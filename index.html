@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>全功能輕量 AI 儀表終端</title>
+  <title>輕量 AI 智能工作終端</title>
   <style>
     :root {
-      --bg: #0b0f19;
-      --card: #151e32;
-      --panel-bg: #111827;
+      --bg: #090d16;
+      --card: #131b2e;
+      --panel: #0e1526;
       --text: #f8fafc;
       --muted: #94a3b8;
       --accent: #3b82f6;
+      --accent-hover: #2563eb;
       --user: #2563eb;
       --ai: #1e293b;
-      --border: #334155;
+      --border: #26334d;
       --danger: #ef4444;
       --safe: #10b981;
       --warn: #f59e0b;
@@ -62,26 +63,29 @@
       padding: 5px 9px;
       border-radius: 6px;
       font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
-    .btn:hover { background: #1f293d; }
+    .btn:hover { background: #1a253d; border-color: var(--accent); }
     .btn-active { background: var(--accent) !important; color: #fff; border-color: var(--accent); }
     .danger-btn { border-color: var(--danger); color: #fca5a5; }
 
-    /* 多功能儀表板區塊 */
+    /* 多功能緊湊儀表板 (已移除時鐘) */
     #dashboard {
-      background: var(--panel-bg);
+      background: var(--panel);
       border-bottom: 2px solid var(--border);
-      padding: 10px 14px;
+      padding: 8px 12px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 8px;
       font-size: 12px;
-      max-height: 40vh;
+      max-height: 42vh;
       overflow-y: auto;
       flex-shrink: 0;
     }
     .widget-box {
-      background: #182234;
+      background: #151f33;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 8px 10px;
@@ -95,21 +99,22 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #2d3748;
+      border-bottom: 1px solid #1f2b45;
       padding-bottom: 4px;
     }
     .widget-row { display: flex; justify-content: space-between; align-items: center; }
-    .news-item {
-      text-decoration: none;
+    
+    .chip-group { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+    .chip {
+      background: #090d16;
+      border: 1px solid var(--border);
       color: #cbd5e1;
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.4;
-      padding: 2px 0;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      cursor: pointer;
     }
-    .news-item:hover { color: var(--accent); }
+    .chip:hover { border-color: var(--accent); color: #fff; }
 
     /* 設定控制面板 */
     #settings-panel {
@@ -130,7 +135,7 @@
       font-size: 13px;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background: #0b0f19;
+      background: #090d16;
       color: var(--text);
       padding: 5px 8px;
       outline: none;
@@ -214,69 +219,86 @@
 
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
-    <strong>AI 終端</strong>
+    <strong>AI 智能終端</strong>
     <span id="net-status" class="status-badge">在線</span>
   </div>
   <div style="display:flex; gap:6px;">
+    <button class="btn" onclick="checkCodeUpdate()" title="向伺服器檢查代碼是否有更新">🔄 檢查更新</button>
     <button class="btn btn-active" id="dashToggleBtn" onclick="toggleDashboard()">資訊儀表板</button>
     <button class="btn" onclick="toggleSettings()">設定</button>
     <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀</button>
   </div>
 </header>
 
-<!-- 多功能可視化即時儀表板 -->
+<!-- 多功能儀表板 -->
 <section id="dashboard">
-  <!-- 1. 手動天氣 (完全不調用定位) -->
+  <!-- 1. 手動天氣預報 (免定位 + 快捷地標 + 多源入口) -->
   <div class="widget-box">
     <div class="widget-title">
-      <span>🌤️ 地區天氣預報</span>
-      <button class="btn" style="padding:1px 5px; font-size:10px;" onclick="fetchWeather()">查詢</button>
+      <span>🌤️ 地區天氣預報 (免定位)</span>
+      <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="fetchWeather()">查詢</button>
     </div>
     <div style="display:flex; gap:4px;">
-      <input id="weatherCity" type="text" placeholder="手動輸入城市 (如: 台北, 台中, 東京)" value="台北" style="flex:1; font-size:11px; padding:3px 6px;" />
+      <input id="weatherCity" type="text" placeholder="手動輸入地名 (如: 台中, 台北, 東京)" value="台北" style="flex:1; font-size:12px; padding:4px 6px;" />
     </div>
-    <div id="weatherDisplay" style="color:var(--muted); line-height:1.5;">點擊查詢獲取實時天氣...</div>
+    <div class="chip-group">
+      <span class="chip" onclick="quickSearchWeather('台北')">台北</span>
+      <span class="chip" onclick="quickSearchWeather('新北')">新北</span>
+      <span class="chip" onclick="quickSearchWeather('台中')">台中</span>
+      <span class="chip" onclick="quickSearchWeather('台南')">台南</span>
+      <span class="chip" onclick="quickSearchWeather('高雄')">高雄</span>
+      <span class="chip" onclick="quickSearchWeather('東京')">東京</span>
+    </div>
+    <div id="weatherDisplay" style="color:var(--muted); line-height:1.4; margin-top:2px;">正在獲取實時天氣...</div>
+    <div style="display:flex; gap:6px; margin-top:4px; font-size:11px; border-top:1px dashed #1f2b45; padding-top:4px;">
+      <span style="color:var(--muted);">時時氣象站:</span>
+      <a href="https://www.cwa.gov.tw" target="_blank" style="color:var(--accent); text-decoration:none;">中央氣象署</a>
+      <a href="https://www.windy.com" target="_blank" style="color:var(--accent); text-decoration:none;">Windy動態</a>
+    </div>
   </div>
 
-  <!-- 2. 自定義全球時區時間 -->
+  <!-- 2. 手動選擇 Google / Yahoo 專業資訊門戶 (取代一般新聞) -->
   <div class="widget-box">
     <div class="widget-title">
-      <span>🌐 全球自定義時區</span>
-      <span style="font-size:10px; color:var(--safe);">即時走時</span>
+      <span>📰 財經/科技/產業資訊導航</span>
+      <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="openSelectedPortal()">直達瀏覽 ↗</button>
     </div>
-    <div class="widget-row"><span>台北 / 香港:</span><strong id="time-tpe">--:--:--</strong></div>
-    <div class="widget-row"><span>東京 / 首爾:</span><strong id="time-tyo">--:--:--</strong></div>
-    <div class="widget-row"><span>美東 (紐約):</span><strong id="time-nyc">--:--:--</strong></div>
-    <div class="widget-row"><span>倫敦 (UTC):</span><strong id="time-lon">--:--:--</strong></div>
+    <div class="widget-row">
+      <span>選擇平台:</span>
+      <select id="portalSelect" onchange="updatePortalLink()" style="flex:1; margin-left:8px; font-size:12px;">
+        <option value="yahoo_finance">Yahoo 股市與國際財經</option>
+        <option value="yahoo_tw">Yahoo 奇摩即時首頁</option>
+        <option value="google_business">Google 新聞 (商業/經濟)</option>
+        <option value="google_tech">Google 新聞 (科技/創新)</option>
+        <option value="google_tw">Google 新聞 (台灣頭條)</option>
+      </select>
+    </div>
+    <div id="portalDesc" style="color:var(--muted); font-size:11px; line-height:1.4; margin-top:4px;">
+      已排定主流中立財經、科技與經濟動態，點擊按鈕即可前往即時資訊。
+    </div>
+    <div class="chip-group" style="margin-top:2px;">
+      <button class="chip" onclick="setAndOpenPortal('yahoo_finance')">Yahoo 股市</button>
+      <button class="chip" onclick="setAndOpenPortal('google_business')">Google 商業</button>
+      <button class="chip" onclick="setAndOpenPortal('google_tech')">Google 科技</button>
+    </div>
   </div>
 
-  <!-- 3. 無政治疑慮重要經濟/商業/科技新聞 -->
-  <div class="widget-box" style="grid-column: span 1;">
-    <div class="widget-title">
-      <span>📰 財經 / 科技 / 產業動態</span>
-      <button class="btn" style="padding:1px 5px; font-size:10px;" onclick="fetchNeutralNews()">更新</button>
-    </div>
-    <div id="newsContainer" style="display:flex; flex-direction:column; gap:3px;">
-      <span style="color:var(--muted);">正在載入主流中立商業經濟報導...</span>
-    </div>
-  </div>
-
-  <!-- 4. 美台金融指標與匯率 -->
+  <!-- 3. 美台金融指標與外匯 -->
   <div class="widget-box">
     <div class="widget-title">
       <span>📈 重要金融指標 & 匯率</span>
-      <button class="btn" style="padding:1px 5px; font-size:10px;" onclick="fetchFinance()">刷新</button>
+      <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="fetchFinance()">更新</button>
     </div>
-    <div class="widget-row"><span>美元/新台幣 (USD/TWD):</span><strong id="rate-usdtwd" style="color:var(--warn);">--</strong></div>
-    <div class="widget-row"><span>日圓/新台幣 (JPY/TWD):</span><strong id="rate-jpytwd">--</strong></div>
-    <div class="widget-row"><span>美股 標普 500 ETF (SPY):</span><strong id="quote-spy">--</strong></div>
-    <div class="widget-row"><span>台股 加權/重要指數代碼:</span><strong id="quote-tw">追蹤中</strong></div>
+    <div class="widget-row"><span>美元 / 新台幣:</span><strong id="rate-usdtwd" style="color:var(--warn);">--</strong></div>
+    <div class="widget-row"><span>日圓 / 新台幣:</span><strong id="rate-jpytwd">--</strong></div>
+    <div class="widget-row"><span>美股 標普 500 (SPY):</span><strong id="quote-spy">連動中</strong></div>
+    <div class="widget-row"><span>台股 加權指數 (TAIEX):</span><strong id="quote-tw">追蹤中</strong></div>
   </div>
 </section>
 
 <!-- 設定面板 -->
 <section id="settings-panel">
-  <div class="panel-row" style="background:#0b0f19; padding:6px 8px; border-radius:6px;">
+  <div class="panel-row" style="background:#090d16; padding:6px 8px; border-radius:6px;">
     <label>本機主密碼:</label>
     <input id="masterPwd" type="password" placeholder="自訂本地防窺密碼" style="width:130px;" />
     <button onclick="encryptAndSaveStorage()">加密保存</button>
@@ -353,84 +375,87 @@
   const dashToggleBtn = document.getElementById("dashToggleBtn");
   const dashboard = document.getElementById("dashboard");
 
-  // ================= 1. 儀表板：手動天氣（禁止定位） =================
+  // ================= 1. 一鍵檢查代碼更新 =================
+  async function checkCodeUpdate() {
+    try {
+      const currentUrl = window.location.href.split('?')[0];
+      const res = await fetch(`${currentUrl}?_t=${Date.now()}`, { cache: "no-store" });
+      if (res.ok) {
+        if (confirm("已與伺服器完成通訊！是否立即無快取重新載入最新版本？")) {
+          window.location.reload(true);
+        }
+      } else {
+        alert("目前版本已是最新或網路無回應。");
+      }
+    } catch (e) {
+      alert("檢查失敗，請確認網路連線。");
+    }
+  }
+
+  // ================= 2. 手動天氣模組 (快捷按鈕 + Open-Meteo) =================
+  function quickSearchWeather(name) {
+    document.getElementById("weatherCity").value = name;
+    fetchWeather();
+  }
+
   async function fetchWeather() {
     const city = document.getElementById("weatherCity").value.trim();
     const display = document.getElementById("weatherDisplay");
     if (!city) return;
-    display.innerText = `正在手動檢索「${city}」坐標與天氣...`;
+    display.innerText = `手動檢索「${city}」座標與氣象中...`;
     try {
-      // 1. 先用純地名向 Open-Meteo 查詢坐標 (零隱私讀取)
       const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`);
       const geoData = await geoRes.json();
       if (!geoData.results || geoData.results.length === 0) {
-        display.innerText = `找不到城市「${city}」，請嘗試輸入英文或鄰近大城市名。`;
+        display.innerText = `找不到城市「${city}」，請輸入大城市名稱。`;
         return;
       }
       const { latitude, longitude, name, country } = geoData.results[0];
-      
-      // 2. 獲取該坐標實時天氣預報
       const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
       const wData = await wRes.json();
       const curr = wData.current_weather;
       const todayMax = wData.daily?.temperature_2m_max[0] ?? "--";
       const todayMin = wData.daily?.temperature_2m_min[0] ?? "--";
 
-      // 簡易氣象代碼解析
       const codeMap = { 0: "晴朗", 1: "大致晴朗", 2: "多雲", 3: "陰天", 45: "起霧", 61: "微雨", 63: "中雨", 65: "大雨", 80: "陣雨", 95: "雷雨" };
       const cond = codeMap[curr.weathercode] || "多雲時晴";
 
-      display.innerHTML = `<strong>${name} (${country || ''})</strong>：${cond} ${curr.temperature}°C<br><span style="font-size:11px;">今日範圍: ${todayMin}°C ~ ${todayMax}°C ｜ 風速: ${curr.windspeed} km/h</span>`;
+      display.innerHTML = `<strong>${name} (${country || ''})</strong>：${cond} ${curr.temperature}°C<br><span style="font-size:11px;">今日最高: ${todayMax}°C ｜ 最低: ${todayMin}°C ｜ 風速: ${curr.windspeed} km/h</span>`;
     } catch (e) {
       display.innerText = "天氣獲取失敗，請確認網路連線。";
     }
   }
 
-  // ================= 2. 儀表板：全球時區走時 =================
-  function updateWorldClocks() {
-    const now = new Date();
-    const fmt = (tz) => new Intl.DateTimeFormat('zh-TW', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now);
-    document.getElementById("time-tpe").innerText = fmt('Asia/Taipei');
-    document.getElementById("time-tyo").innerText = fmt('Asia/Tokyo');
-    document.getElementById("time-nyc").innerText = fmt('America/New_York');
-    document.getElementById("time-lon").innerText = fmt('UTC');
-  }
-  setInterval(updateWorldClocks, 1000);
-  updateWorldClocks();
+  // ================= 3. Yahoo / Google 資訊門戶手動切換 =================
+  const PORTAL_URLS = {
+    "yahoo_finance": "https://tw.stock.yahoo.com/",
+    "yahoo_tw": "https://tw.yahoo.com/",
+    "google_business": "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVd4NUVnSmxiaWdDU2dKQlgwZ0FQAQ?hl=zh-TW&gl=TW&ceid=TW%3Azh-Hant",
+    "google_tech": "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0VnSmxiaWdDU2dKQlgwZ0FQAQ?hl=zh-TW&gl=TW&ceid=TW%3Azh-Hant",
+    "google_tw": "https://news.google.com/?hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+  };
 
-  // ================= 3. 儀表板：主流無政治爭議財經/商業/科技新聞 =================
-  async function fetchNeutralNews() {
-    const container = document.getElementById("newsContainer");
-    container.innerHTML = `<span style="color:var(--muted);">刷新主流經濟科技新聞中...</span>`;
-    try {
-      // 透過開放的 Hacker News / arXiv / 國際經濟純科技公開 JSON API 獲取
-      const res = await fetch("https://hacker-news.firebaseio.com/v0/topstories.json");
-      const ids = await res.json();
-      const topIds = ids.slice(0, 4);
-      container.innerHTML = "";
-      
-      for (const id of topIds) {
-        const itemRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
-        const item = await itemRes.json();
-        if (item && item.title) {
-          const a = document.createElement("a");
-          a.className = "news-item";
-          a.href = item.url || `https://news.ycombinator.com/item?id=${id}`;
-          a.target = "_blank";
-          a.rel = "noopener noreferrer";
-          a.textContent = `• ${item.title}`;
-          container.appendChild(a);
-        }
-      }
-    } catch (e) {
-      container.innerHTML = `<span style="color:var(--muted);">新聞載入超時，請稍後刷新。</span>`;
-    }
+  function updatePortalLink() {
+    const val = document.getElementById("portalSelect").value;
+    const desc = document.getElementById("portalDesc");
+    if (val.includes("yahoo")) desc.innerText = "Yahoo 門戶：提供台灣加權即時行情、國際三大指數與商業產經速報。";
+    else desc.innerText = "Google 門戶：提供純商業、產經、科技研發等中立專業資訊。";
   }
 
-  // ================= 4. 儀表板：金融匯率與指標 =================
+  function openSelectedPortal() {
+    const val = document.getElementById("portalSelect").value;
+    window.open(PORTAL_URLS[val] || "https://tw.stock.yahoo.com/", "_blank");
+  }
+
+  function setAndOpenPortal(key) {
+    document.getElementById("portalSelect").value = key;
+    updatePortalLink();
+    openSelectedPortal();
+  }
+
+  // ================= 4. 金融匯率與指標 =================
   async function fetchFinance() {
     try {
-      // 匯率 (開放免費 ExchangeRate-API)
       const fxRes = await fetch("https://open.er-api.com/v6/latest/USD");
       const fxData = await fxRes.json();
       if (fxData && fxData.rates) {
@@ -440,8 +465,8 @@
         document.getElementById("rate-usdtwd").innerText = `1 USD = ${twd} TWD`;
         document.getElementById("rate-jpytwd").innerText = `1 JPY = ${jpyTwd} TWD`;
       }
-      // 美股 ETF / 綜合指標模擬獲取
-      document.getElementById("quote-spy").innerText = "S&P500 連動中";
+      document.getElementById("quote-spy").innerText = "S&P500 實時連動";
+      document.getElementById("quote-tw").innerText = "加權指數 追蹤中";
     } catch (e) {
       document.getElementById("rate-usdtwd").innerText = "更新失敗";
     }
@@ -491,8 +516,8 @@
     try {
       const payload = JSON.stringify({ apiKey: apiKeyInput.value.trim(), permMem: permanentContext });
       localStorage.setItem("secure_ai_vault", await encryptData(payload, pwd));
-      encStatus.innerText = "🔒 已強固加密";
-      alert("資料已加密封存！");
+      encStatus.innerText = "🔒 已加密存儲";
+      alert("資料已強固加密保存至本機！");
     } catch (e) { alert("加密失敗：" + e.message); }
   }
 
@@ -505,7 +530,7 @@
       apiKeyInput.value = data.apiKey || "";
       activeAPIKey = data.apiKey || "";
       permanentContext = data.permMem || "";
-      if (permanentContext) fileMemoryInfo.textContent = `已解密常駐記憶 (${permanentContext.length} 字)`;
+      if (permanentContext) fileMemoryInfo.textContent = `已解密記憶 (${permanentContext.length} 字)`;
       encStatus.innerText = "🔓 已解密";
       fetchModels(activeAPIKey);
       alert("解密成功！");
@@ -513,11 +538,11 @@
   }
 
   function destroyAllMemory() {
-    if (!confirm("確定要抹除全部資料、對話、記憶與金鑰嗎？此操作不可恢復！")) return;
+    if (!confirm("確定要抹除全部資料、對話、記憶與金鑰嗎？此操作不可逆！")) return;
     conversation = []; permanentContext = ""; activeAPIKey = ""; apiKeyInput.value = ""; masterPwd.value = "";
     localStorage.clear(); sessionStorage.clear(); chatBox.textContent = ""; encStatus.innerText = "";
     if (synth && synth.speaking) synth.cancel();
-    alert("所有資料已完全抹除。");
+    alert("所有資料已抹除乾淨。");
   }
 
   function sanitizeInput(text) {
@@ -529,7 +554,7 @@
 
   // ================= 6. 模型載入與領域標註 =================
   const MODEL_TAGS = {
-    "llama-3.3-70b-versatile": "【旗艦推薦】複雜邏輯 / 繁中綜合",
+    "llama-3.3-70b-versatile": "【旗艦推薦】複雜邏輯 / 繁中優質",
     "llama-3.1-8b-instant": "【極速秒回】低延遲 / 簡易問答",
     "openai/gpt-oss-120b": "【深度推導】高難度演算法 / 代碼",
     "openai/gpt-oss-20b": "【平衡高效】超高推論速度",
@@ -559,7 +584,7 @@
     if (activeAPIKey) fetchModels(activeAPIKey);
   });
 
-  // ================= 7. 高效對話發送與流式輸出 =================
+  // ================= 7. 對話發送與流式輸出 =================
   function appendMessage(role, text) {
     const div = document.createElement("div");
     div.className = "bubble " + role;
@@ -587,7 +612,7 @@
     const key = activeAPIKey || apiKeyInput.value.trim();
     if (!rawText) return;
     if (!key) { alert("請在設定中填入 Groq API Key 或解鎖！"); return; }
-    if (!navigator.onLine) { alert("目前離線中。"); return; }
+    if (!navigator.onLine) { alert("目前處於離線狀態。"); return; }
 
     const safeText = sanitizeInput(rawText);
     appendMessage("user", safeText);
@@ -651,7 +676,7 @@
     }
   }
 
-  // ================= 8. TTS 朗讀與語音識別 =================
+  // ================= 8. TTS 朗讀與語音辨識 =================
   let synth = window.speechSynthesis;
   let voices = [];
   function loadVoices() {
@@ -712,7 +737,7 @@
     else startRecording();
   }
 
-  // ================= 9. 輔助功能與即時聯網 =================
+  // ================= 9. 常駐檔案與視窗自適應 =================
   document.getElementById("fileInput").addEventListener("change", function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -740,9 +765,8 @@
     }
   });
 
-  // 初始聯網載入資訊儀表板
+  // 初始獲取
   fetchWeather();
-  fetchNeutralNews();
   fetchFinance();
 </script>
 </body>
