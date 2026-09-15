@@ -2,9 +2,8 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <!-- 嚴格 CSP 防護：僅允許白名單 API 傳輸，阻絕任何惡意竊聽與資料外洩 -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://geocoding-api.open-meteo.com https://api.open-meteo.com https://open.er-api.com; img-src 'self' data:; frame-ancestors 'none';" />
-  <!-- 隱私防護：不向跳轉的外部網站傳送 Referrer 資訊 -->
+  <!-- CSP 防護：允許安全的 iframe 嵌入與 API 連線 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://geocoding-api.open-meteo.com https://api.open-meteo.com https://open.er-api.com; frame-src https: http:; img-src 'self' data: https:;" />
   <meta name="referrer" content="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>安全防護輕量 AI 終端</title>
@@ -41,6 +40,7 @@
       padding-right: env(safe-area-inset-right, 0px);
       padding-bottom: env(safe-area-inset-bottom, 0px);
       padding-left: env(safe-area-inset-left, 0px);
+      position: relative;
     }
     header {
       padding: 8px 14px;
@@ -51,6 +51,7 @@
       align-items: center;
       flex-shrink: 0;
       gap: 6px;
+      z-index: 20;
     }
     .status-badge {
       font-size: 11px;
@@ -59,7 +60,6 @@
       background: var(--safe);
       color: #fff;
     }
-    .status-badge.offline { background: var(--danger); }
     .btn {
       background: transparent;
       border: 1px solid var(--border);
@@ -76,6 +76,7 @@
     .btn-active { background: var(--accent) !important; color: #fff; border-color: var(--accent); }
     .danger-btn { border-color: var(--danger); color: #fca5a5; }
 
+    /* 三大主題儀表選單 */
     #dashboard {
       background: var(--panel);
       border-bottom: 2px solid var(--border);
@@ -87,6 +88,7 @@
       max-height: 42vh;
       overflow-y: auto;
       flex-shrink: 0;
+      z-index: 15;
     }
     .widget-box {
       background: #141c2e;
@@ -107,7 +109,6 @@
       padding-bottom: 4px;
     }
     .widget-row { display: flex; justify-content: space-between; align-items: center; }
-    
     .chip-group { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
     .chip {
       background: #080c14;
@@ -120,6 +121,59 @@
     }
     .chip:hover { border-color: var(--accent); color: #fff; }
 
+    /* 半透明堆疊懸浮視窗 (Overlay HUD) */
+    #overlay-viewer {
+      display: none;
+      position: absolute;
+      top: 50px;
+      left: 12px;
+      right: 12px;
+      bottom: 65px;
+      background: rgba(17, 23, 38, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      flex-direction: column;
+      z-index: 50;
+      overflow: hidden;
+      transition: opacity 0.2s ease;
+    }
+    #overlay-header {
+      padding: 6px 12px;
+      background: rgba(8, 12, 20, 0.9);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .overlay-controls { display: flex; align-items: center; gap: 8px; }
+    #overlay-frame {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+    }
+    #overlay-notice {
+      display: none;
+      position: absolute;
+      top: 40px;
+      left: 0;
+      right: 0;
+      background: #1e293b;
+      color: #cbd5e1;
+      padding: 6px 12px;
+      font-size: 11px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* 設定控制面板 */
     #settings-panel {
       display: none;
       background: var(--card);
@@ -131,6 +185,7 @@
       max-height: 45vh;
       overflow-y: auto;
       flex-shrink: 0;
+      z-index: 15;
     }
     .panel-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .panel-row label { min-width: 75px; color: var(--muted); }
@@ -184,6 +239,7 @@
       gap: 8px;
       align-items: center;
       flex-shrink: 0;
+      z-index: 20;
     }
     textarea { flex: 1; resize: none; height: 42px; line-height: 20px; padding: 10px; }
     .action-btn {
@@ -215,6 +271,7 @@
     @media (min-width: 768px) {
       .bubble { max-width: 75%; }
       header, footer, #dashboard, #settings-panel { padding-left: 20px; padding-right: 20px; }
+      #overlay-viewer { left: 40px; right: 40px; top: 60px; bottom: 80px; }
     }
   </style>
 </head>
@@ -226,75 +283,84 @@
     <span id="net-status" class="status-badge">在線</span>
   </div>
   <div style="display:flex; gap:6px;">
-    <button class="btn" onclick="checkCodeUpdate()" title="向伺服器確認代碼更新">🔄 檢查更新</button>
+    <button class="btn" onclick="checkCodeUpdate()">🔄 檢查更新</button>
     <button class="btn btn-active" id="dashToggleBtn" onclick="toggleDashboard()">資訊儀表板</button>
     <button class="btn" onclick="toggleSettings()">設定</button>
     <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀</button>
   </div>
 </header>
 
+<!-- 資訊儀表板三大優化選單 -->
 <section id="dashboard">
-  <!-- 1. 手動天氣預報 (免定位 + 公信官方氣象入口) -->
+  <!-- 主題 1：手動氣象 -->
   <div class="widget-box">
     <div class="widget-title">
-      <span>🌤️ 地區天氣預報 (免定位)</span>
+      <span>🌤️ 官方氣象與預報</span>
       <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="fetchWeather()">查詢</button>
     </div>
     <div style="display:flex; gap:4px;">
-      <input id="weatherCity" type="text" placeholder="手動輸入地名 (如: 台中, 台北, 東京)" value="台北" style="flex:1; font-size:12px; padding:4px 6px;" />
+      <input id="weatherCity" type="text" placeholder="輸入城市" value="台北" style="flex:1; font-size:12px; padding:3px 6px;" />
     </div>
     <div class="chip-group">
       <span class="chip" onclick="quickSearchWeather('台北')">台北</span>
-      <span class="chip" onclick="quickSearchWeather('新北')">新北</span>
       <span class="chip" onclick="quickSearchWeather('台中')">台中</span>
-      <span class="chip" onclick="quickSearchWeather('台南')">台南</span>
       <span class="chip" onclick="quickSearchWeather('高雄')">高雄</span>
-      <span class="chip" onclick="quickSearchWeather('東京')">東京</span>
     </div>
-    <div id="weatherDisplay" style="color:var(--muted); line-height:1.4; margin-top:2px;">正在獲取實時天氣...</div>
+    <div id="weatherDisplay" style="color:var(--muted); line-height:1.4; margin-top:2px;">正在獲取氣象...</div>
     <div style="display:flex; gap:6px; margin-top:4px; font-size:11px; border-top:1px dashed #1c263d; padding-top:4px;">
-      <span style="color:var(--muted);">公信官方站:</span>
-      <a href="https://www.cwa.gov.tw" target="_blank" rel="noopener noreferrer" style="color:var(--accent); text-decoration:none;">中央氣象署</a>
-      <a href="https://worldweather.wmo.int" target="_blank" rel="noopener noreferrer" style="color:var(--accent); text-decoration:none;">世界氣象組織</a>
+      <span style="color:var(--muted);">疊加視圖:</span>
+      <button class="chip" onclick="openOverlay('https://www.cwa.gov.tw', '中央氣象署')">中央氣象署</button>
+      <button class="chip" onclick="openOverlay('https://worldweather.wmo.int', '世界氣象組織')">WMO</button>
     </div>
   </div>
 
-  <!-- 2. 中立公信經貿與統計導航 (完全排除非客觀及政治爭議新聞) -->
+  <!-- 主題 2：公信經貿與金融 -->
   <div class="widget-box">
     <div class="widget-title">
-      <span>🏛️ 公信經貿與金融統計門戶</span>
-      <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="openSelectedPortal()">直達瀏覽 ↗</button>
+      <span>🏛️ 公信經貿與數據</span>
+      <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="openSelectedPortal()">疊加預覽 ↗</button>
     </div>
     <div class="widget-row">
-      <span>選擇機構:</span>
-      <select id="portalSelect" onchange="updatePortalLink()" style="flex:1; margin-left:8px; font-size:12px;">
-        <option value="twse">臺灣證券交易所 (TWSE 行情)</option>
-        <option value="moea_stat">中華民國經濟部統計處 (客觀產經數據)</option>
-        <option value="world_bank">世界銀行 Open Data (全球宏觀經濟)</option>
-        <option value="yahoo_stock">Yahoo 股市 (即時大盤走勢)</option>
+      <select id="portalSelect" style="flex:1; font-size:12px;">
+        <option value="https://tw.stock.yahoo.com/">Yahoo 股市大盤中心</option>
+        <option value="https://www.twse.com.tw/zh/indices/taiex/mi-5min-hist.html">臺灣證券交易所 (TWSE)</option>
+        <option value="https://www.moea.gov.tw/Mns/dos/home/Home.aspx">經濟部統計處官方產經</option>
+        <option value="https://data.worldbank.org/">世界銀行 Open Data</option>
       </select>
     </div>
-    <div id="portalDesc" style="color:var(--muted); font-size:11px; line-height:1.4; margin-top:4px;">
-      提供主管機構官方統計與客觀大盤數字，杜絕主觀評論與爭議內容。
-    </div>
-    <div class="chip-group" style="margin-top:2px;">
-      <button class="chip" onclick="setAndOpenPortal('twse')">證交所</button>
-      <button class="chip" onclick="setAndOpenPortal('moea_stat')">經部統計</button>
-      <button class="chip" onclick="setAndOpenPortal('yahoo_stock')">Yahoo 股市</button>
+    <div class="chip-group" style="margin-top:4px;">
+      <button class="chip" onclick="openOverlay('https://tw.stock.yahoo.com/', 'Yahoo 股市')">Yahoo 股市</button>
+      <button class="chip" onclick="openOverlay('https://www.twse.com.tw/zh/', '證交所行情')">證交所</button>
+      <button class="chip" onclick="openOverlay('https://data.worldbank.org/', '世界銀行數據')">世界銀行</button>
     </div>
   </div>
 
-  <!-- 3. 美台金融指標與外匯 (開放公信匯率 API) -->
+  <!-- 主題 3：匯市外匯與大盤 -->
   <div class="widget-box">
     <div class="widget-title">
-      <span>📈 重要金融指標 & 匯率</span>
+      <span>📈 國際匯市與行情</span>
       <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="fetchFinance()">更新</button>
     </div>
     <div class="widget-row"><span>美元 / 新台幣:</span><strong id="rate-usdtwd" style="color:var(--warn);">--</strong></div>
     <div class="widget-row"><span>日圓 / 新台幣:</span><strong id="rate-jpytwd">--</strong></div>
-    <div class="widget-row"><span>美股 標普 500 (SPY):</span><strong id="quote-spy">連動中</strong></div>
-    <div class="widget-row"><span>台股 加權指數 (TAIEX):</span><strong id="quote-tw">追蹤中</strong></div>
+    <div class="widget-row"><span>標普 500 (SPY):</span><strong id="quote-spy">連動中</strong></div>
+    <div class="widget-row"><span>TAIEX 加權指數:</span><strong id="quote-tw">追蹤中</strong></div>
   </div>
+</section>
+
+<!-- 半透明堆疊預覽視窗 (HUD Overlay) -->
+<section id="overlay-viewer">
+  <div id="overlay-header">
+    <strong id="overlay-title" style="color:var(--accent);">疊加視圖</strong>
+    <div class="overlay-controls">
+      <span style="color:var(--muted); font-size:11px;">透明度:</span>
+      <input type="range" id="opacitySlider" min="0.3" max="1.0" step="0.05" value="0.85" oninput="adjustOverlayOpacity(this.value)" style="width:70px;" />
+      <button class="btn" style="padding:2px 6px; font-size:11px;" onclick="popOutOverlay()" title="獨立新分頁開啟">↗ 外跳</button>
+      <button class="btn danger-btn" style="padding:2px 6px; font-size:11px;" onclick="closeOverlay()">✕ 關閉</button>
+    </div>
+  </div>
+  <div id="overlay-notice">若該網站限制內嵌，請點擊右上角「↗ 外跳」以安全新視窗瀏覽。</div>
+  <iframe id="overlay-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 </section>
 
 <!-- 設定面板 -->
@@ -342,7 +408,7 @@
   </div>
 </section>
 
-<!-- 聊天視窗 -->
+<!-- 聊天對話視窗 -->
 <main id="chat-box"></main>
 
 <!-- 底部發送列 -->
@@ -353,11 +419,11 @@
 </footer>
 
 <script>
-  // 使用嚴格閉包，避免敏感變數暴露在 window 全域作用域
   (function() {
     let conversation = [];
     let permanentContext = "";
     let memoryKey = "";
+    let currentOverlayUrl = "";
 
     const chatBox = document.getElementById("chat-box");
     const userInput = document.getElementById("userInput");
@@ -377,24 +443,56 @@
     const netStatus = document.getElementById("net-status");
     const dashToggleBtn = document.getElementById("dashToggleBtn");
     const dashboard = document.getElementById("dashboard");
+    const overlayViewer = document.getElementById("overlay-viewer");
+    const overlayFrame = document.getElementById("overlay-frame");
+    const overlayTitle = document.getElementById("overlay-title");
+    const overlayNotice = document.getElementById("overlay-notice");
+    const opacitySlider = document.getElementById("opacitySlider");
 
-    // ================= 1. 安全加密保管庫 (AES-GCM-256 + PBKDF2 10萬次迭代) =================
+    // ================= 1. 浮動堆疊視圖 (HUD Overlay) 控制 =================
+    window.openOverlay = function(url, title) {
+      currentOverlayUrl = url;
+      overlayTitle.textContent = `疊加視圖: ${title}`;
+      overlayFrame.src = url;
+      overlayViewer.style.display = "flex";
+      adjustOverlayOpacity(opacitySlider.value);
+      overlayNotice.style.display = "block";
+      setTimeout(() => { overlayNotice.style.display = "none"; }, 4000);
+    };
+
+    window.closeOverlay = function() {
+      overlayViewer.style.display = "none";
+      overlayFrame.src = "about:blank";
+      currentOverlayUrl = "";
+    };
+
+    window.adjustOverlayOpacity = function(val) {
+      overlayViewer.style.backgroundColor = `rgba(17, 23, 38, ${val})`;
+      overlayFrame.style.opacity = val;
+    };
+
+    window.popOutOverlay = function() {
+      if (currentOverlayUrl) window.open(currentOverlayUrl, "_blank", "noopener,noreferrer");
+    };
+
+    window.openSelectedPortal = function() {
+      const select = document.getElementById("portalSelect");
+      const url = select.value;
+      const title = select.options[select.selectedIndex].text;
+      window.openOverlay(url, title);
+    };
+
+    // ================= 2. 安全加密防護 (AES-GCM-256) =================
     async function deriveKey(password, salt) {
       const enc = new TextEncoder();
       const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
-      return crypto.subtle.deriveKey(
-        { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-        keyMaterial,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["encrypt", "decrypt"]
-      );
+      return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
     }
 
     window.secureStorage = {
       encryptAndSave: async function() {
         const pwd = masterPwd.value.trim();
-        if (!pwd) { alert("請輸入主密碼作為本地加密金鑰！"); return; }
+        if (!pwd) { alert("請輸入主密碼！"); return; }
         try {
           const salt = crypto.getRandomValues(new Uint8Array(16));
           const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -402,21 +500,17 @@
           const enc = new TextEncoder();
           const payload = JSON.stringify({ apiKey: apiKeyInput.value.trim(), permMem: permanentContext });
           const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(payload));
-          
           const combined = new Uint8Array(salt.length + iv.length + cipher.byteLength);
-          combined.set(salt, 0);
-          combined.set(iv, salt.length);
-          combined.set(new Uint8Array(cipher), salt.length + iv.length);
-          
+          combined.set(salt, 0); combined.set(iv, salt.length); combined.set(new Uint8Array(cipher), salt.length + iv.length);
           localStorage.setItem("secure_ai_vault", btoa(String.fromCharCode(...combined)));
           encStatus.textContent = "🔒 已加密存儲";
-          alert("金鑰與常駐記憶已透過 AES-GCM-256 加密封存！");
+          alert("資料已強固加密存儲至本機！");
         } catch (e) { alert("加密失敗：" + e.message); }
       },
       decryptAndLoad: async function() {
         const pwd = masterPwd.value.trim();
         const cipherB64 = localStorage.getItem("secure_ai_vault");
-        if (!cipherB64 || !pwd) { alert("請確認已輸入密碼且本機存有加密資料！"); return; }
+        if (!cipherB64 || !pwd) { alert("請確認已輸入密碼！"); return; }
         try {
           const raw = Uint8Array.from(atob(cipherB64), c => c.charCodeAt(0));
           const salt = raw.slice(0, 16);
@@ -426,7 +520,6 @@
           const dec = new TextDecoder();
           const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher);
           const data = JSON.parse(dec.decode(plain));
-          
           apiKeyInput.value = data.apiKey || "";
           memoryKey = data.apiKey || "";
           permanentContext = data.permMem || "";
@@ -434,26 +527,19 @@
           encStatus.textContent = "🔓 已解密";
           fetchModels(memoryKey);
           alert("解密成功！");
-        } catch (e) { alert("密碼錯誤或資料遭受竄改，解密失敗！"); }
+        } catch (e) { alert("密碼錯誤，解密失敗！"); }
       }
     };
 
     window.destroyAllMemory = function() {
-      if (!confirm("確定銷毀所有金鑰、記憶體、聊天與常駐檔案嗎？此操作不可逆！")) return;
-      conversation = [];
-      permanentContext = "";
-      memoryKey = "";
-      apiKeyInput.value = "";
-      masterPwd.value = "";
-      localStorage.clear();
-      sessionStorage.clear();
-      chatBox.textContent = "";
-      encStatus.textContent = "";
+      if (!confirm("確定銷毀所有金鑰、記憶體、聊天與常駐檔案嗎？")) return;
+      conversation = []; permanentContext = ""; memoryKey = ""; apiKeyInput.value = ""; masterPwd.value = "";
+      localStorage.clear(); sessionStorage.clear(); chatBox.textContent = ""; encStatus.textContent = "";
+      window.closeOverlay();
       if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
-      alert("所有敏感數據已自記憶體與本機儲存徹底銷毀。");
+      alert("所有敏感數據已自記憶體與本機徹底銷毀。");
     };
 
-    // ================= 2. 敏感資料過濾 (DLP) =================
     function sanitizeInput(text) {
       if (!maskSensitiveCheck.checked) return text;
       return text.replace(/[A-Z][12]\d{8}/gi, "[ID_REDACTED]")
@@ -461,20 +547,18 @@
                  .replace(/\b(?:\d{4}[ -]?){3}\d{4}\b/g, "[CARD_REDACTED]");
     }
 
-    // ================= 3. 一鍵代碼更新確認 =================
+    // ================= 3. 檢查代碼更新 =================
     window.checkCodeUpdate = async function() {
       try {
         const currentUrl = window.location.href.split('?')[0];
         const res = await fetch(`${currentUrl}?_t=${Date.now()}`, { cache: "no-store" });
-        if (res.ok) {
-          if (confirm("已連線至伺服器驗證完畢！是否立即無快取重新載入頁面？")) {
-            window.location.reload(true);
-          }
+        if (res.ok && confirm("已與伺服器連線確認！是否立即重新載入頁面？")) {
+          window.location.reload(true);
         }
       } catch (e) { alert("檢查失敗，請確認網路連線。"); }
     };
 
-    // ================= 4. 手動天氣 (Open-Meteo 匿名查詢) =================
+    // ================= 4. 手動氣象查詢 =================
     window.quickSearchWeather = function(name) {
       document.getElementById("weatherCity").value = name;
       window.fetchWeather();
@@ -484,57 +568,25 @@
       const city = document.getElementById("weatherCity").value.trim();
       const display = document.getElementById("weatherDisplay");
       if (!city) return;
-      display.textContent = `手動檢索「${city}」座標與氣象中...`;
+      display.textContent = `檢索「${city}」座標與氣象中...`;
       try {
         const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`);
         const geoData = await geoRes.json();
         if (!geoData.results || geoData.results.length === 0) {
-          display.textContent = `找不到「${city}」，請嘗試鄰近主要行政區名稱。`;
+          display.textContent = `找不到「${city}」，請輸入大城市名。`;
           return;
         }
         const { latitude, longitude, name, country } = geoData.results[0];
         const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
         const wData = await wRes.json();
         const curr = wData.current_weather;
-        const todayMax = wData.daily?.temperature_2m_max[0] ?? "--";
-        const todayMin = wData.daily?.temperature_2m_min[0] ?? "--";
-
         const codeMap = { 0: "晴朗", 1: "大致晴朗", 2: "多雲", 3: "陰天", 45: "起霧", 61: "微雨", 63: "中雨", 65: "大雨", 80: "陣雨", 95: "雷雨" };
         const cond = codeMap[curr.weathercode] || "多雲時晴";
-
-        display.textContent = `${name} (${country || ''})：${cond} ${curr.temperature}°C ｜ 今日氣溫: ${todayMin}°C ~ ${todayMax}°C ｜ 風速: ${curr.windspeed} km/h`;
-      } catch (e) { display.textContent = "氣象通訊失敗，請確認網路狀態。"; }
+        display.textContent = `${name} (${country || ''})：${cond} ${curr.temperature}°C ｜ 風速: ${curr.windspeed} km/h`;
+      } catch (e) { display.textContent = "氣象獲取失敗，請確認連線。"; }
     };
 
-    // ================= 5. 公信中立機構導航 (避免政治爭議) =================
-    const PORTALS = {
-      "twse": "https://www.twse.com.tw/zh/indices/taiex/mi-5min-hist.html",
-      "moea_stat": "https://www.moea.gov.tw/Mns/dos/home/Home.aspx",
-      "world_bank": "https://data.worldbank.org/",
-      "yahoo_stock": "https://tw.stock.yahoo.com/"
-    };
-
-    window.updatePortalLink = function() {
-      const val = document.getElementById("portalSelect").value;
-      const desc = document.getElementById("portalDesc");
-      if (val === "twse") desc.textContent = "臺灣證券交易所官方大盤指數走勢與統計，法定權威數據源。";
-      else if (val === "moea_stat") desc.textContent = "經濟部官方產銷進出口純統計數字，無立場爭議。";
-      else if (val === "world_bank") desc.textContent = "世界銀行全球總體經濟開放資料庫，中立國際公開數據。";
-      else desc.textContent = "Yahoo 股市行情走勢，提供報價與純數字走勢。";
-    };
-
-    window.openSelectedPortal = function() {
-      const val = document.getElementById("portalSelect").value;
-      window.open(PORTALS[val] || PORTALS.twse, "_blank", "noopener,noreferrer");
-    };
-
-    window.setAndOpenPortal = function(k) {
-      document.getElementById("portalSelect").value = k;
-      window.updatePortalLink();
-      window.openSelectedPortal();
-    };
-
-    // ================= 6. 金融外匯數據 =================
+    // ================= 5. 金融數據 =================
     window.fetchFinance = async function() {
       try {
         const fxRes = await fetch("https://open.er-api.com/v6/latest/USD");
@@ -542,9 +594,8 @@
         if (fxData && fxData.rates) {
           const twd = fxData.rates.TWD?.toFixed(2) || "--";
           const jpy = fxData.rates.JPY;
-          const jpyTwd = (twd / jpy).toFixed(4);
           document.getElementById("rate-usdtwd").textContent = `1 USD = ${twd} TWD`;
-          document.getElementById("rate-jpytwd").textContent = `1 JPY = ${jpyTwd} TWD`;
+          document.getElementById("rate-jpytwd").textContent = `1 JPY = ${(twd / jpy).toFixed(4)} TWD`;
         }
         document.getElementById("quote-spy").textContent = "標普 500 連動中";
         document.getElementById("quote-tw").textContent = "TAIEX 加權指數";
@@ -566,7 +617,7 @@
       p.style.display = (p.style.display === "flex") ? "none" : "flex";
     };
 
-    // ================= 7. 模型獲取與領域標籤 =================
+    // ================= 6. 模型清單拉取 =================
     const MODEL_TAGS = {
       "llama-3.3-70b-versatile": "【旗艦推薦】複雜邏輯 / 繁中優質",
       "llama-3.1-8b-instant": "【極速秒回】低延遲 / 簡易問答",
@@ -599,7 +650,7 @@
       if (memoryKey) fetchModels(memoryKey);
     });
 
-    // ================= 8. 對話核心 (DOM 節點安全構建 + rAF 節流輸出) =================
+    // ================= 7. 對話核心 =================
     function appendMessage(role, text) {
       const div = document.createElement("div");
       div.className = "bubble " + role;
@@ -626,8 +677,8 @@
       const rawText = userInput.value.trim();
       const key = memoryKey || apiKeyInput.value.trim();
       if (!rawText) return;
-      if (!key) { alert("請在設定中填入 Groq API Key 或解鎖本機加密金鑰！"); return; }
-      if (!navigator.onLine) { alert("目前處於離線狀態。"); return; }
+      if (!key) { alert("請填入 Groq API Key 或解鎖本機金鑰！"); return; }
+      if (!navigator.onLine) { alert("目前離線中。"); return; }
 
       const safeText = sanitizeInput(rawText);
       appendMessage("user", safeText);
@@ -691,7 +742,7 @@
       }
     };
 
-    // ================= 9. 語音辨識與 TTS =================
+    // ================= 8. 語音辨識與 TTS =================
     let synth = window.speechSynthesis;
     let voices = [];
     function loadVoices() {
@@ -752,7 +803,7 @@
       else startRecording();
     };
 
-    // ================= 10. 文件注入與自適應 =================
+    // ================= 9. 輔助事件 =================
     document.getElementById("fileInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -760,7 +811,7 @@
       reader.onload = function(evt) {
         permanentContext = evt.target.result.slice(0, 8000);
         fileMemoryInfo.textContent = `已綁定：${file.name} (${permanentContext.length} 字)`;
-        alert(`文件「${file.name}」已寫入記憶！建議輸入主密碼點擊「加密保存」。`);
+        alert(`文件「${file.name}」已寫入常駐記憶！`);
       };
       reader.readAsText(file);
     });
