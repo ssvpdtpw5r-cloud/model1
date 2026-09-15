@@ -2,20 +2,24 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
+  <!-- 嚴格 CSP 防護：僅允許白名單 API 傳輸，阻絕任何惡意竊聽與資料外洩 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://geocoding-api.open-meteo.com https://api.open-meteo.com https://open.er-api.com; img-src 'self' data:; frame-ancestors 'none';" />
+  <!-- 隱私防護：不向跳轉的外部網站傳送 Referrer 資訊 -->
+  <meta name="referrer" content="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>輕量 AI 智能工作終端</title>
+  <title>安全防護輕量 AI 終端</title>
   <style>
     :root {
-      --bg: #090d16;
-      --card: #131b2e;
-      --panel: #0e1526;
+      --bg: #080c14;
+      --card: #111726;
+      --panel: #0d121f;
       --text: #f8fafc;
       --muted: #94a3b8;
       --accent: #3b82f6;
       --accent-hover: #2563eb;
       --user: #2563eb;
-      --ai: #1e293b;
-      --border: #26334d;
+      --ai: #1a2234;
+      --border: #232d42;
       --danger: #ef4444;
       --safe: #10b981;
       --warn: #f59e0b;
@@ -55,6 +59,7 @@
       background: var(--safe);
       color: #fff;
     }
+    .status-badge.offline { background: var(--danger); }
     .btn {
       background: transparent;
       border: 1px solid var(--border);
@@ -67,11 +72,10 @@
       align-items: center;
       gap: 4px;
     }
-    .btn:hover { background: #1a253d; border-color: var(--accent); }
+    .btn:hover { background: #182236; border-color: var(--accent); }
     .btn-active { background: var(--accent) !important; color: #fff; border-color: var(--accent); }
     .danger-btn { border-color: var(--danger); color: #fca5a5; }
 
-    /* 多功能緊湊儀表板 (已移除時鐘) */
     #dashboard {
       background: var(--panel);
       border-bottom: 2px solid var(--border);
@@ -85,7 +89,7 @@
       flex-shrink: 0;
     }
     .widget-box {
-      background: #151f33;
+      background: #141c2e;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 8px 10px;
@@ -99,14 +103,14 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #1f2b45;
+      border-bottom: 1px solid #1c263d;
       padding-bottom: 4px;
     }
     .widget-row { display: flex; justify-content: space-between; align-items: center; }
     
     .chip-group { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
     .chip {
-      background: #090d16;
+      background: #080c14;
       border: 1px solid var(--border);
       color: #cbd5e1;
       border-radius: 4px;
@@ -116,7 +120,6 @@
     }
     .chip:hover { border-color: var(--accent); color: #fff; }
 
-    /* 設定控制面板 */
     #settings-panel {
       display: none;
       background: var(--card);
@@ -135,13 +138,12 @@
       font-size: 13px;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background: #090d16;
+      background: #080c14;
       color: var(--text);
       padding: 5px 8px;
       outline: none;
     }
 
-    /* 聊天主體區 */
     #chat-box {
       flex: 1;
       overflow-y: auto;
@@ -150,6 +152,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      contain: layout;
     }
     .bubble {
       max-width: 86%;
@@ -223,16 +226,15 @@
     <span id="net-status" class="status-badge">在線</span>
   </div>
   <div style="display:flex; gap:6px;">
-    <button class="btn" onclick="checkCodeUpdate()" title="向伺服器檢查代碼是否有更新">🔄 檢查更新</button>
+    <button class="btn" onclick="checkCodeUpdate()" title="向伺服器確認代碼更新">🔄 檢查更新</button>
     <button class="btn btn-active" id="dashToggleBtn" onclick="toggleDashboard()">資訊儀表板</button>
     <button class="btn" onclick="toggleSettings()">設定</button>
     <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀</button>
   </div>
 </header>
 
-<!-- 多功能儀表板 -->
 <section id="dashboard">
-  <!-- 1. 手動天氣預報 (免定位 + 快捷地標 + 多源入口) -->
+  <!-- 1. 手動天氣預報 (免定位 + 公信官方氣象入口) -->
   <div class="widget-box">
     <div class="widget-title">
       <span>🌤️ 地區天氣預報 (免定位)</span>
@@ -250,40 +252,39 @@
       <span class="chip" onclick="quickSearchWeather('東京')">東京</span>
     </div>
     <div id="weatherDisplay" style="color:var(--muted); line-height:1.4; margin-top:2px;">正在獲取實時天氣...</div>
-    <div style="display:flex; gap:6px; margin-top:4px; font-size:11px; border-top:1px dashed #1f2b45; padding-top:4px;">
-      <span style="color:var(--muted);">時時氣象站:</span>
-      <a href="https://www.cwa.gov.tw" target="_blank" style="color:var(--accent); text-decoration:none;">中央氣象署</a>
-      <a href="https://www.windy.com" target="_blank" style="color:var(--accent); text-decoration:none;">Windy動態</a>
+    <div style="display:flex; gap:6px; margin-top:4px; font-size:11px; border-top:1px dashed #1c263d; padding-top:4px;">
+      <span style="color:var(--muted);">公信官方站:</span>
+      <a href="https://www.cwa.gov.tw" target="_blank" rel="noopener noreferrer" style="color:var(--accent); text-decoration:none;">中央氣象署</a>
+      <a href="https://worldweather.wmo.int" target="_blank" rel="noopener noreferrer" style="color:var(--accent); text-decoration:none;">世界氣象組織</a>
     </div>
   </div>
 
-  <!-- 2. 手動選擇 Google / Yahoo 專業資訊門戶 (取代一般新聞) -->
+  <!-- 2. 中立公信經貿與統計導航 (完全排除非客觀及政治爭議新聞) -->
   <div class="widget-box">
     <div class="widget-title">
-      <span>📰 財經/科技/產業資訊導航</span>
+      <span>🏛️ 公信經貿與金融統計門戶</span>
       <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="openSelectedPortal()">直達瀏覽 ↗</button>
     </div>
     <div class="widget-row">
-      <span>選擇平台:</span>
+      <span>選擇機構:</span>
       <select id="portalSelect" onchange="updatePortalLink()" style="flex:1; margin-left:8px; font-size:12px;">
-        <option value="yahoo_finance">Yahoo 股市與國際財經</option>
-        <option value="yahoo_tw">Yahoo 奇摩即時首頁</option>
-        <option value="google_business">Google 新聞 (商業/經濟)</option>
-        <option value="google_tech">Google 新聞 (科技/創新)</option>
-        <option value="google_tw">Google 新聞 (台灣頭條)</option>
+        <option value="twse">臺灣證券交易所 (TWSE 行情)</option>
+        <option value="moea_stat">中華民國經濟部統計處 (客觀產經數據)</option>
+        <option value="world_bank">世界銀行 Open Data (全球宏觀經濟)</option>
+        <option value="yahoo_stock">Yahoo 股市 (即時大盤走勢)</option>
       </select>
     </div>
     <div id="portalDesc" style="color:var(--muted); font-size:11px; line-height:1.4; margin-top:4px;">
-      已排定主流中立財經、科技與經濟動態，點擊按鈕即可前往即時資訊。
+      提供主管機構官方統計與客觀大盤數字，杜絕主觀評論與爭議內容。
     </div>
     <div class="chip-group" style="margin-top:2px;">
-      <button class="chip" onclick="setAndOpenPortal('yahoo_finance')">Yahoo 股市</button>
-      <button class="chip" onclick="setAndOpenPortal('google_business')">Google 商業</button>
-      <button class="chip" onclick="setAndOpenPortal('google_tech')">Google 科技</button>
+      <button class="chip" onclick="setAndOpenPortal('twse')">證交所</button>
+      <button class="chip" onclick="setAndOpenPortal('moea_stat')">經部統計</button>
+      <button class="chip" onclick="setAndOpenPortal('yahoo_stock')">Yahoo 股市</button>
     </div>
   </div>
 
-  <!-- 3. 美台金融指標與外匯 -->
+  <!-- 3. 美台金融指標與外匯 (開放公信匯率 API) -->
   <div class="widget-box">
     <div class="widget-title">
       <span>📈 重要金融指標 & 匯率</span>
@@ -298,11 +299,11 @@
 
 <!-- 設定面板 -->
 <section id="settings-panel">
-  <div class="panel-row" style="background:#090d16; padding:6px 8px; border-radius:6px;">
+  <div class="panel-row" style="background:#080c14; padding:6px 8px; border-radius:6px;">
     <label>本機主密碼:</label>
     <input id="masterPwd" type="password" placeholder="自訂本地防窺密碼" style="width:130px;" />
-    <button onclick="encryptAndSaveStorage()">加密保存</button>
-    <button onclick="decryptFromStorage()">密碼解鎖</button>
+    <button onclick="secureStorage.encryptAndSave()">加密保存</button>
+    <button onclick="secureStorage.decryptAndLoad()">密碼解鎖</button>
     <span id="enc-status" style="color:var(--safe); font-size:11px;"></span>
   </div>
   <div class="panel-row">
@@ -341,7 +342,7 @@
   </div>
 </section>
 
-<!-- 聊天對話視窗 -->
+<!-- 聊天視窗 -->
 <main id="chat-box"></main>
 
 <!-- 底部發送列 -->
@@ -352,422 +353,432 @@
 </footer>
 
 <script>
-  let conversation = [];
-  let permanentContext = "";
-  let activeAPIKey = "";
+  // 使用嚴格閉包，避免敏感變數暴露在 window 全域作用域
+  (function() {
+    let conversation = [];
+    let permanentContext = "";
+    let memoryKey = "";
 
-  const chatBox = document.getElementById("chat-box");
-  const userInput = document.getElementById("userInput");
-  const apiKeyInput = document.getElementById("apiKey");
-  const modelSelect = document.getElementById("modelSelect");
-  const masterPwd = document.getElementById("masterPwd");
-  const encStatus = document.getElementById("enc-status");
-  const maskSensitiveCheck = document.getElementById("maskSensitiveCheck");
-  const windowSelect = document.getElementById("windowSelect");
-  const sysPrompt = document.getElementById("sysPrompt");
-  const autoSpeakCheck = document.getElementById("autoSpeakCheck");
-  const ttsRate = document.getElementById("ttsRate");
-  const ttsPitch = document.getElementById("ttsPitch");
-  const voiceSelect = document.getElementById("voiceSelect");
-  const fileMemoryInfo = document.getElementById("fileMemoryInfo");
-  const micBtn = document.getElementById("micBtn");
-  const netStatus = document.getElementById("net-status");
-  const dashToggleBtn = document.getElementById("dashToggleBtn");
-  const dashboard = document.getElementById("dashboard");
+    const chatBox = document.getElementById("chat-box");
+    const userInput = document.getElementById("userInput");
+    const apiKeyInput = document.getElementById("apiKey");
+    const modelSelect = document.getElementById("modelSelect");
+    const masterPwd = document.getElementById("masterPwd");
+    const encStatus = document.getElementById("enc-status");
+    const maskSensitiveCheck = document.getElementById("maskSensitiveCheck");
+    const windowSelect = document.getElementById("windowSelect");
+    const sysPrompt = document.getElementById("sysPrompt");
+    const autoSpeakCheck = document.getElementById("autoSpeakCheck");
+    const ttsRate = document.getElementById("ttsRate");
+    const ttsPitch = document.getElementById("ttsPitch");
+    const voiceSelect = document.getElementById("voiceSelect");
+    const fileMemoryInfo = document.getElementById("fileMemoryInfo");
+    const micBtn = document.getElementById("micBtn");
+    const netStatus = document.getElementById("net-status");
+    const dashToggleBtn = document.getElementById("dashToggleBtn");
+    const dashboard = document.getElementById("dashboard");
 
-  // ================= 1. 一鍵檢查代碼更新 =================
-  async function checkCodeUpdate() {
-    try {
-      const currentUrl = window.location.href.split('?')[0];
-      const res = await fetch(`${currentUrl}?_t=${Date.now()}`, { cache: "no-store" });
-      if (res.ok) {
-        if (confirm("已與伺服器完成通訊！是否立即無快取重新載入最新版本？")) {
-          window.location.reload(true);
-        }
-      } else {
-        alert("目前版本已是最新或網路無回應。");
-      }
-    } catch (e) {
-      alert("檢查失敗，請確認網路連線。");
+    // ================= 1. 安全加密保管庫 (AES-GCM-256 + PBKDF2 10萬次迭代) =================
+    async function deriveKey(password, salt) {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+      return crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+      );
     }
-  }
 
-  // ================= 2. 手動天氣模組 (快捷按鈕 + Open-Meteo) =================
-  function quickSearchWeather(name) {
-    document.getElementById("weatherCity").value = name;
-    fetchWeather();
-  }
-
-  async function fetchWeather() {
-    const city = document.getElementById("weatherCity").value.trim();
-    const display = document.getElementById("weatherDisplay");
-    if (!city) return;
-    display.innerText = `手動檢索「${city}」座標與氣象中...`;
-    try {
-      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`);
-      const geoData = await geoRes.json();
-      if (!geoData.results || geoData.results.length === 0) {
-        display.innerText = `找不到城市「${city}」，請輸入大城市名稱。`;
-        return;
+    window.secureStorage = {
+      encryptAndSave: async function() {
+        const pwd = masterPwd.value.trim();
+        if (!pwd) { alert("請輸入主密碼作為本地加密金鑰！"); return; }
+        try {
+          const salt = crypto.getRandomValues(new Uint8Array(16));
+          const iv = crypto.getRandomValues(new Uint8Array(12));
+          const key = await deriveKey(pwd, salt);
+          const enc = new TextEncoder();
+          const payload = JSON.stringify({ apiKey: apiKeyInput.value.trim(), permMem: permanentContext });
+          const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(payload));
+          
+          const combined = new Uint8Array(salt.length + iv.length + cipher.byteLength);
+          combined.set(salt, 0);
+          combined.set(iv, salt.length);
+          combined.set(new Uint8Array(cipher), salt.length + iv.length);
+          
+          localStorage.setItem("secure_ai_vault", btoa(String.fromCharCode(...combined)));
+          encStatus.textContent = "🔒 已加密存儲";
+          alert("金鑰與常駐記憶已透過 AES-GCM-256 加密封存！");
+        } catch (e) { alert("加密失敗：" + e.message); }
+      },
+      decryptAndLoad: async function() {
+        const pwd = masterPwd.value.trim();
+        const cipherB64 = localStorage.getItem("secure_ai_vault");
+        if (!cipherB64 || !pwd) { alert("請確認已輸入密碼且本機存有加密資料！"); return; }
+        try {
+          const raw = Uint8Array.from(atob(cipherB64), c => c.charCodeAt(0));
+          const salt = raw.slice(0, 16);
+          const iv = raw.slice(16, 28);
+          const cipher = raw.slice(28);
+          const key = await deriveKey(pwd, salt);
+          const dec = new TextDecoder();
+          const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher);
+          const data = JSON.parse(dec.decode(plain));
+          
+          apiKeyInput.value = data.apiKey || "";
+          memoryKey = data.apiKey || "";
+          permanentContext = data.permMem || "";
+          if (permanentContext) fileMemoryInfo.textContent = `已解密常駐記憶 (${permanentContext.length} 字)`;
+          encStatus.textContent = "🔓 已解密";
+          fetchModels(memoryKey);
+          alert("解密成功！");
+        } catch (e) { alert("密碼錯誤或資料遭受竄改，解密失敗！"); }
       }
-      const { latitude, longitude, name, country } = geoData.results[0];
-      const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
-      const wData = await wRes.json();
-      const curr = wData.current_weather;
-      const todayMax = wData.daily?.temperature_2m_max[0] ?? "--";
-      const todayMin = wData.daily?.temperature_2m_min[0] ?? "--";
+    };
 
-      const codeMap = { 0: "晴朗", 1: "大致晴朗", 2: "多雲", 3: "陰天", 45: "起霧", 61: "微雨", 63: "中雨", 65: "大雨", 80: "陣雨", 95: "雷雨" };
-      const cond = codeMap[curr.weathercode] || "多雲時晴";
+    window.destroyAllMemory = function() {
+      if (!confirm("確定銷毀所有金鑰、記憶體、聊天與常駐檔案嗎？此操作不可逆！")) return;
+      conversation = [];
+      permanentContext = "";
+      memoryKey = "";
+      apiKeyInput.value = "";
+      masterPwd.value = "";
+      localStorage.clear();
+      sessionStorage.clear();
+      chatBox.textContent = "";
+      encStatus.textContent = "";
+      if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+      alert("所有敏感數據已自記憶體與本機儲存徹底銷毀。");
+    };
 
-      display.innerHTML = `<strong>${name} (${country || ''})</strong>：${cond} ${curr.temperature}°C<br><span style="font-size:11px;">今日最高: ${todayMax}°C ｜ 最低: ${todayMin}°C ｜ 風速: ${curr.windspeed} km/h</span>`;
-    } catch (e) {
-      display.innerText = "天氣獲取失敗，請確認網路連線。";
+    // ================= 2. 敏感資料過濾 (DLP) =================
+    function sanitizeInput(text) {
+      if (!maskSensitiveCheck.checked) return text;
+      return text.replace(/[A-Z][12]\d{8}/gi, "[ID_REDACTED]")
+                 .replace(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/g, "[EMAIL_REDACTED]")
+                 .replace(/\b(?:\d{4}[ -]?){3}\d{4}\b/g, "[CARD_REDACTED]");
     }
-  }
 
-  // ================= 3. Yahoo / Google 資訊門戶手動切換 =================
-  const PORTAL_URLS = {
-    "yahoo_finance": "https://tw.stock.yahoo.com/",
-    "yahoo_tw": "https://tw.yahoo.com/",
-    "google_business": "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVd4NUVnSmxiaWdDU2dKQlgwZ0FQAQ?hl=zh-TW&gl=TW&ceid=TW%3Azh-Hant",
-    "google_tech": "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0VnSmxiaWdDU2dKQlgwZ0FQAQ?hl=zh-TW&gl=TW&ceid=TW%3Azh-Hant",
-    "google_tw": "https://news.google.com/?hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
-  };
-
-  function updatePortalLink() {
-    const val = document.getElementById("portalSelect").value;
-    const desc = document.getElementById("portalDesc");
-    if (val.includes("yahoo")) desc.innerText = "Yahoo 門戶：提供台灣加權即時行情、國際三大指數與商業產經速報。";
-    else desc.innerText = "Google 門戶：提供純商業、產經、科技研發等中立專業資訊。";
-  }
-
-  function openSelectedPortal() {
-    const val = document.getElementById("portalSelect").value;
-    window.open(PORTAL_URLS[val] || "https://tw.stock.yahoo.com/", "_blank");
-  }
-
-  function setAndOpenPortal(key) {
-    document.getElementById("portalSelect").value = key;
-    updatePortalLink();
-    openSelectedPortal();
-  }
-
-  // ================= 4. 金融匯率與指標 =================
-  async function fetchFinance() {
-    try {
-      const fxRes = await fetch("https://open.er-api.com/v6/latest/USD");
-      const fxData = await fxRes.json();
-      if (fxData && fxData.rates) {
-        const twd = fxData.rates.TWD?.toFixed(2) || "--";
-        const jpy = fxData.rates.JPY;
-        const jpyTwd = (twd / jpy).toFixed(4);
-        document.getElementById("rate-usdtwd").innerText = `1 USD = ${twd} TWD`;
-        document.getElementById("rate-jpytwd").innerText = `1 JPY = ${jpyTwd} TWD`;
-      }
-      document.getElementById("quote-spy").innerText = "S&P500 實時連動";
-      document.getElementById("quote-tw").innerText = "加權指數 追蹤中";
-    } catch (e) {
-      document.getElementById("rate-usdtwd").innerText = "更新失敗";
-    }
-  }
-
-  function toggleDashboard() {
-    if (dashboard.style.display === "none") {
-      dashboard.style.display = "grid";
-      dashToggleBtn.classList.add("btn-active");
-    } else {
-      dashboard.style.display = "none";
-      dashToggleBtn.classList.remove("btn-active");
-    }
-  }
-
-  // ================= 5. 安全加密防護 (AES-GCM-256) =================
-  async function deriveKey(password, salt) {
-    const enc = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
-    return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
-  }
-
-  async function encryptData(text, password) {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const key = await deriveKey(password, salt);
-    const enc = new TextEncoder();
-    const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(text));
-    const combined = new Uint8Array(salt.length + iv.length + cipher.byteLength);
-    combined.set(salt, 0); combined.set(iv, salt.length); combined.set(new Uint8Array(cipher), salt.length + iv.length);
-    return btoa(String.fromCharCode(...combined));
-  }
-
-  async function decryptData(b64Data, password) {
-    const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
-    const salt = raw.slice(0, 16);
-    const iv = raw.slice(16, 28);
-    const cipher = raw.slice(28);
-    const key = await deriveKey(password, salt);
-    const dec = new TextDecoder();
-    return dec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher));
-  }
-
-  async function encryptAndSaveStorage() {
-    const pwd = masterPwd.value.trim();
-    if (!pwd) { alert("請先輸入自訂主密碼！"); return; }
-    try {
-      const payload = JSON.stringify({ apiKey: apiKeyInput.value.trim(), permMem: permanentContext });
-      localStorage.setItem("secure_ai_vault", await encryptData(payload, pwd));
-      encStatus.innerText = "🔒 已加密存儲";
-      alert("資料已強固加密保存至本機！");
-    } catch (e) { alert("加密失敗：" + e.message); }
-  }
-
-  async function decryptFromStorage() {
-    const pwd = masterPwd.value.trim();
-    const cipher = localStorage.getItem("secure_ai_vault");
-    if (!cipher || !pwd) { alert("請輸入主密碼！"); return; }
-    try {
-      const data = JSON.parse(await decryptData(cipher, pwd));
-      apiKeyInput.value = data.apiKey || "";
-      activeAPIKey = data.apiKey || "";
-      permanentContext = data.permMem || "";
-      if (permanentContext) fileMemoryInfo.textContent = `已解密記憶 (${permanentContext.length} 字)`;
-      encStatus.innerText = "🔓 已解密";
-      fetchModels(activeAPIKey);
-      alert("解密成功！");
-    } catch (e) { alert("密碼錯誤，解密失敗！"); }
-  }
-
-  function destroyAllMemory() {
-    if (!confirm("確定要抹除全部資料、對話、記憶與金鑰嗎？此操作不可逆！")) return;
-    conversation = []; permanentContext = ""; activeAPIKey = ""; apiKeyInput.value = ""; masterPwd.value = "";
-    localStorage.clear(); sessionStorage.clear(); chatBox.textContent = ""; encStatus.innerText = "";
-    if (synth && synth.speaking) synth.cancel();
-    alert("所有資料已抹除乾淨。");
-  }
-
-  function sanitizeInput(text) {
-    if (!maskSensitiveCheck.checked) return text;
-    return text.replace(/[A-Z][12]\d{8}/gi, "[ID_REDACTED]")
-               .replace(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/g, "[EMAIL_REDACTED]")
-               .replace(/\b(?:\d{4}[ -]?){3}\d{4}\b/g, "[CARD_REDACTED]");
-  }
-
-  // ================= 6. 模型載入與領域標註 =================
-  const MODEL_TAGS = {
-    "llama-3.3-70b-versatile": "【旗艦推薦】複雜邏輯 / 繁中優質",
-    "llama-3.1-8b-instant": "【極速秒回】低延遲 / 簡易問答",
-    "openai/gpt-oss-120b": "【深度推導】高難度演算法 / 代碼",
-    "openai/gpt-oss-20b": "【平衡高效】超高推論速度",
-    "qwen/qwen3.8-27b": "【中文專精】在地語感 / 文學創作"
-  };
-
-  async function fetchModels(key) {
-    if (!key) return;
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/models", { headers: { "Authorization": "Bearer " + key } });
-      const data = await res.json();
-      if (data && data.data) {
-        modelSelect.textContent = "";
-        const chatModels = data.data.filter(m => !m.id.includes("whisper") && !m.id.includes("guard") && !m.id.includes("distil"));
-        chatModels.forEach(m => {
-          const opt = document.createElement("option");
-          opt.value = m.id;
-          opt.textContent = m.id + (MODEL_TAGS[m.id] ? ` - ${MODEL_TAGS[m.id]}` : "");
-          if (m.id === "llama-3.3-70b-versatile") opt.selected = true;
-          modelSelect.appendChild(opt);
-        });
-      }
-    } catch (e) {}
-  }
-  apiKeyInput.addEventListener("change", () => {
-    activeAPIKey = apiKeyInput.value.trim();
-    if (activeAPIKey) fetchModels(activeAPIKey);
-  });
-
-  // ================= 7. 對話發送與流式輸出 =================
-  function appendMessage(role, text) {
-    const div = document.createElement("div");
-    div.className = "bubble " + role;
-    const textSpan = document.createElement("span");
-    textSpan.textContent = text;
-    div.appendChild(textSpan);
-
-    if (role === "assistant") {
-      const actions = document.createElement("div");
-      actions.className = "bubble-actions";
-      const spkBtn = document.createElement("button");
-      spkBtn.className = "speak-btn";
-      spkBtn.textContent = "🔊 朗讀";
-      spkBtn.onclick = () => speakText(textSpan.textContent);
-      actions.appendChild(spkBtn);
-      div.appendChild(actions);
-    }
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    return { bubble: div, textSpan };
-  }
-
-  async function sendMessage() {
-    const rawText = userInput.value.trim();
-    const key = activeAPIKey || apiKeyInput.value.trim();
-    if (!rawText) return;
-    if (!key) { alert("請在設定中填入 Groq API Key 或解鎖！"); return; }
-    if (!navigator.onLine) { alert("目前處於離線狀態。"); return; }
-
-    const safeText = sanitizeInput(rawText);
-    appendMessage("user", safeText);
-    conversation.push({ role: "user", content: safeText });
-    userInput.value = "";
-
-    const maxTurns = parseInt(windowSelect.value, 10);
-    let trimmedHistory = conversation.slice(-maxTurns);
-    let fullSystemPrompt = sysPrompt.value;
-    if (permanentContext) fullSystemPrompt += "\n\n【常駐背景記憶資料】：\n" + permanentContext;
-
-    const payloadMessages = [{ role: "system", content: fullSystemPrompt }, ...trimmedHistory];
-    const aiMsg = appendMessage("assistant", "");
-    aiMsg.textSpan.textContent = "▍";
-
-    try {
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
-        body: JSON.stringify({ model: modelSelect.value, messages: payloadMessages, stream: true })
-      });
-      if (!response.ok) throw new Error("伺服器無回應或金鑰錯誤");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let fullReply = "";
-      let renderPending = false;
-
-      function scheduleRender() {
-        if (!renderPending) {
-          renderPending = true;
-          requestAnimationFrame(() => {
-            aiMsg.textSpan.textContent = fullReply + "▍";
-            chatBox.scrollTop = chatBox.scrollHeight;
-            renderPending = false;
-          });
-        }
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ") && line !== "data: [DONE]") {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              fullReply += (parsed.choices[0].delta?.content || "");
-              scheduleRender();
-            } catch (e) {}
+    // ================= 3. 一鍵代碼更新確認 =================
+    window.checkCodeUpdate = async function() {
+      try {
+        const currentUrl = window.location.href.split('?')[0];
+        const res = await fetch(`${currentUrl}?_t=${Date.now()}`, { cache: "no-store" });
+        if (res.ok) {
+          if (confirm("已連線至伺服器驗證完畢！是否立即無快取重新載入頁面？")) {
+            window.location.reload(true);
           }
         }
-      }
-      aiMsg.textSpan.textContent = fullReply;
-      conversation.push({ role: "assistant", content: fullReply });
-      if (autoSpeakCheck.checked) speakText(fullReply);
-    } catch (err) {
-      aiMsg.textSpan.textContent = "出錯了: " + err.message;
-      conversation.pop();
-    }
-  }
+      } catch (e) { alert("檢查失敗，請確認網路連線。"); }
+    };
 
-  // ================= 8. TTS 朗讀與語音辨識 =================
-  let synth = window.speechSynthesis;
-  let voices = [];
-  function loadVoices() {
-    if (!synth) return;
-    voices = synth.getVoices().filter(v => v.lang.includes("zh") || v.lang.includes("cmn"));
-    voiceSelect.textContent = "";
-    voices.forEach(v => {
-      const opt = document.createElement("option");
-      opt.value = v.name;
-      opt.textContent = `${v.name} (${v.lang})`;
-      voiceSelect.appendChild(opt);
+    // ================= 4. 手動天氣 (Open-Meteo 匿名查詢) =================
+    window.quickSearchWeather = function(name) {
+      document.getElementById("weatherCity").value = name;
+      window.fetchWeather();
+    };
+
+    window.fetchWeather = async function() {
+      const city = document.getElementById("weatherCity").value.trim();
+      const display = document.getElementById("weatherDisplay");
+      if (!city) return;
+      display.textContent = `手動檢索「${city}」座標與氣象中...`;
+      try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`);
+        const geoData = await geoRes.json();
+        if (!geoData.results || geoData.results.length === 0) {
+          display.textContent = `找不到「${city}」，請嘗試鄰近主要行政區名稱。`;
+          return;
+        }
+        const { latitude, longitude, name, country } = geoData.results[0];
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
+        const wData = await wRes.json();
+        const curr = wData.current_weather;
+        const todayMax = wData.daily?.temperature_2m_max[0] ?? "--";
+        const todayMin = wData.daily?.temperature_2m_min[0] ?? "--";
+
+        const codeMap = { 0: "晴朗", 1: "大致晴朗", 2: "多雲", 3: "陰天", 45: "起霧", 61: "微雨", 63: "中雨", 65: "大雨", 80: "陣雨", 95: "雷雨" };
+        const cond = codeMap[curr.weathercode] || "多雲時晴";
+
+        display.textContent = `${name} (${country || ''})：${cond} ${curr.temperature}°C ｜ 今日氣溫: ${todayMin}°C ~ ${todayMax}°C ｜ 風速: ${curr.windspeed} km/h`;
+      } catch (e) { display.textContent = "氣象通訊失敗，請確認網路狀態。"; }
+    };
+
+    // ================= 5. 公信中立機構導航 (避免政治爭議) =================
+    const PORTALS = {
+      "twse": "https://www.twse.com.tw/zh/indices/taiex/mi-5min-hist.html",
+      "moea_stat": "https://www.moea.gov.tw/Mns/dos/home/Home.aspx",
+      "world_bank": "https://data.worldbank.org/",
+      "yahoo_stock": "https://tw.stock.yahoo.com/"
+    };
+
+    window.updatePortalLink = function() {
+      const val = document.getElementById("portalSelect").value;
+      const desc = document.getElementById("portalDesc");
+      if (val === "twse") desc.textContent = "臺灣證券交易所官方大盤指數走勢與統計，法定權威數據源。";
+      else if (val === "moea_stat") desc.textContent = "經濟部官方產銷進出口純統計數字，無立場爭議。";
+      else if (val === "world_bank") desc.textContent = "世界銀行全球總體經濟開放資料庫，中立國際公開數據。";
+      else desc.textContent = "Yahoo 股市行情走勢，提供報價與純數字走勢。";
+    };
+
+    window.openSelectedPortal = function() {
+      const val = document.getElementById("portalSelect").value;
+      window.open(PORTALS[val] || PORTALS.twse, "_blank", "noopener,noreferrer");
+    };
+
+    window.setAndOpenPortal = function(k) {
+      document.getElementById("portalSelect").value = k;
+      window.updatePortalLink();
+      window.openSelectedPortal();
+    };
+
+    // ================= 6. 金融外匯數據 =================
+    window.fetchFinance = async function() {
+      try {
+        const fxRes = await fetch("https://open.er-api.com/v6/latest/USD");
+        const fxData = await fxRes.json();
+        if (fxData && fxData.rates) {
+          const twd = fxData.rates.TWD?.toFixed(2) || "--";
+          const jpy = fxData.rates.JPY;
+          const jpyTwd = (twd / jpy).toFixed(4);
+          document.getElementById("rate-usdtwd").textContent = `1 USD = ${twd} TWD`;
+          document.getElementById("rate-jpytwd").textContent = `1 JPY = ${jpyTwd} TWD`;
+        }
+        document.getElementById("quote-spy").textContent = "標普 500 連動中";
+        document.getElementById("quote-tw").textContent = "TAIEX 加權指數";
+      } catch (e) { document.getElementById("rate-usdtwd").textContent = "更新失敗"; }
+    };
+
+    window.toggleDashboard = function() {
+      if (dashboard.style.display === "none") {
+        dashboard.style.display = "grid";
+        dashToggleBtn.classList.add("btn-active");
+      } else {
+        dashboard.style.display = "none";
+        dashToggleBtn.classList.remove("btn-active");
+      }
+    };
+
+    window.toggleSettings = function() {
+      const p = document.getElementById("settings-panel");
+      p.style.display = (p.style.display === "flex") ? "none" : "flex";
+    };
+
+    // ================= 7. 模型獲取與領域標籤 =================
+    const MODEL_TAGS = {
+      "llama-3.3-70b-versatile": "【旗艦推薦】複雜邏輯 / 繁中優質",
+      "llama-3.1-8b-instant": "【極速秒回】低延遲 / 簡易問答",
+      "openai/gpt-oss-120b": "【深度推導】高難度演算法 / 代碼",
+      "openai/gpt-oss-20b": "【平衡高效】超高推論速度",
+      "qwen/qwen3.8-27b": "【中文專精】在地語感 / 文學創作"
+    };
+
+    async function fetchModels(key) {
+      if (!key) return;
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/models", { headers: { "Authorization": "Bearer " + key } });
+        const data = await res.json();
+        if (data && data.data) {
+          modelSelect.textContent = "";
+          const chatModels = data.data.filter(m => !m.id.includes("whisper") && !m.id.includes("guard") && !m.id.includes("distil"));
+          chatModels.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m.id;
+            opt.textContent = m.id + (MODEL_TAGS[m.id] ? ` - ${MODEL_TAGS[m.id]}` : "");
+            if (m.id === "llama-3.3-70b-versatile") opt.selected = true;
+            modelSelect.appendChild(opt);
+          });
+        }
+      } catch (e) {}
+    }
+
+    apiKeyInput.addEventListener("change", () => {
+      memoryKey = apiKeyInput.value.trim();
+      if (memoryKey) fetchModels(memoryKey);
     });
-  }
-  if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
-  loadVoices();
 
-  function speakText(text) {
-    if (!synth || !text) return;
-    if (synth.speaking) synth.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = parseFloat(ttsRate.value);
-    utter.pitch = parseFloat(ttsPitch.value);
-    const selectedVoice = voices.find(v => v.name === voiceSelect.value);
-    if (selectedVoice) utter.voice = selectedVoice;
-    else utter.lang = "zh-TW";
-    synth.speak(utter);
-  }
+    // ================= 8. 對話核心 (DOM 節點安全構建 + rAF 節流輸出) =================
+    function appendMessage(role, text) {
+      const div = document.createElement("div");
+      div.className = "bubble " + role;
+      const textSpan = document.createElement("span");
+      textSpan.textContent = text;
+      div.appendChild(textSpan);
 
-  let recognition = null;
-  let isRecording = false;
-  if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    recognition.lang = "zh-TW";
-    recognition.continuous = true;
-    recognition.onresult = (e) => {
-      for (let i = e.resultIndex; i < e.results.length; ++i) {
-        if (e.results[i].isFinal) userInput.value += e.results[i][0].transcript;
+      if (role === "assistant") {
+        const actions = document.createElement("div");
+        actions.className = "bubble-actions";
+        const spkBtn = document.createElement("button");
+        spkBtn.className = "speak-btn";
+        spkBtn.textContent = "🔊 朗讀";
+        spkBtn.onclick = () => speakText(textSpan.textContent);
+        actions.appendChild(spkBtn);
+        div.appendChild(actions);
+      }
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return { bubble: div, textSpan };
+    }
+
+    window.sendMessage = async function() {
+      const rawText = userInput.value.trim();
+      const key = memoryKey || apiKeyInput.value.trim();
+      if (!rawText) return;
+      if (!key) { alert("請在設定中填入 Groq API Key 或解鎖本機加密金鑰！"); return; }
+      if (!navigator.onLine) { alert("目前處於離線狀態。"); return; }
+
+      const safeText = sanitizeInput(rawText);
+      appendMessage("user", safeText);
+      conversation.push({ role: "user", content: safeText });
+      userInput.value = "";
+
+      const maxTurns = parseInt(windowSelect.value, 10);
+      let trimmedHistory = conversation.slice(-maxTurns);
+      let fullSystemPrompt = sysPrompt.value;
+      if (permanentContext) fullSystemPrompt += "\n\n【常駐背景記憶資料】：\n" + permanentContext;
+
+      const payloadMessages = [{ role: "system", content: fullSystemPrompt }, ...trimmedHistory];
+      const aiMsg = appendMessage("assistant", "");
+      aiMsg.textSpan.textContent = "▍";
+
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+          body: JSON.stringify({ model: modelSelect.value, messages: payloadMessages, stream: true })
+        });
+        if (!response.ok) throw new Error("伺服器金鑰驗證失敗或無回應");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let fullReply = "";
+        let renderPending = false;
+
+        function scheduleRender() {
+          if (!renderPending) {
+            renderPending = true;
+            requestAnimationFrame(() => {
+              aiMsg.textSpan.textContent = fullReply + "▍";
+              chatBox.scrollTop = chatBox.scrollHeight;
+              renderPending = false;
+            });
+          }
+        }
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ") && line !== "data: [DONE]") {
+              try {
+                const parsed = JSON.parse(line.slice(6));
+                fullReply += (parsed.choices[0].delta?.content || "");
+                scheduleRender();
+              } catch (e) {}
+            }
+          }
+        }
+        aiMsg.textSpan.textContent = fullReply;
+        conversation.push({ role: "assistant", content: fullReply });
+        if (autoSpeakCheck.checked) speakText(fullReply);
+      } catch (err) {
+        aiMsg.textSpan.textContent = "出錯了: " + err.message;
+        conversation.pop();
       }
     };
-    recognition.onerror = () => stopRecording();
-    recognition.onend = () => { if (isRecording) stopRecording(); };
-  }
 
-  function startRecording() {
-    if (!recognition) { alert("瀏覽器不支援語音辨識"); return; }
-    recognition.start();
-    isRecording = true;
-    micBtn.classList.add("recording");
-  }
-  function stopRecording() {
-    if (recognition && isRecording) recognition.stop();
-    isRecording = false;
-    micBtn.classList.remove("recording");
-  }
-  function toggleVoice() {
-    if (isRecording) stopRecording();
-    else startRecording();
-  }
-
-  // ================= 9. 常駐檔案與視窗自適應 =================
-  document.getElementById("fileInput").addEventListener("change", function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      permanentContext = evt.target.result.slice(0, 8000);
-      fileMemoryInfo.textContent = `已綁定：${file.name} (${permanentContext.length} 字)`;
-      alert(`文件「${file.name}」已寫入常駐記憶！`);
-    };
-    reader.readAsText(file);
-  });
-
-  function toggleSettings() {
-    const p = document.getElementById("settings-panel");
-    p.style.display = (p.style.display === "flex") ? "none" : "flex";
-  }
-
-  window.addEventListener("online", () => { netStatus.className = "status-badge"; netStatus.textContent = "在線"; });
-  window.addEventListener("offline", () => { netStatus.className = "status-badge offline"; netStatus.textContent = "離線中"; });
-
-  userInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+    // ================= 9. 語音辨識與 TTS =================
+    let synth = window.speechSynthesis;
+    let voices = [];
+    function loadVoices() {
+      if (!synth) return;
+      voices = synth.getVoices().filter(v => v.lang.includes("zh") || v.lang.includes("cmn"));
+      voiceSelect.textContent = "";
+      voices.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        voiceSelect.appendChild(opt);
+      });
     }
-  });
+    if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
 
-  // 初始獲取
-  fetchWeather();
-  fetchFinance();
+    function speakText(text) {
+      if (!synth || !text) return;
+      if (synth.speaking) synth.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = parseFloat(ttsRate.value);
+      utter.pitch = parseFloat(ttsPitch.value);
+      const selectedVoice = voices.find(v => v.name === voiceSelect.value);
+      if (selectedVoice) utter.voice = selectedVoice;
+      else utter.lang = "zh-TW";
+      synth.speak(utter);
+    }
+
+    let recognition = null;
+    let isRecording = false;
+    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = "zh-TW";
+      recognition.continuous = true;
+      recognition.onresult = (e) => {
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) userInput.value += e.results[i][0].transcript;
+        }
+      };
+      recognition.onerror = () => stopRecording();
+      recognition.onend = () => { if (isRecording) stopRecording(); };
+    }
+
+    function startRecording() {
+      if (!recognition) { alert("瀏覽器不支援語音辨識"); return; }
+      recognition.start();
+      isRecording = true;
+      micBtn.classList.add("recording");
+    }
+    function stopRecording() {
+      if (recognition && isRecording) recognition.stop();
+      isRecording = false;
+      micBtn.classList.remove("recording");
+    }
+    window.toggleVoice = function() {
+      if (isRecording) stopRecording();
+      else startRecording();
+    };
+
+    // ================= 10. 文件注入與自適應 =================
+    document.getElementById("fileInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        permanentContext = evt.target.result.slice(0, 8000);
+        fileMemoryInfo.textContent = `已綁定：${file.name} (${permanentContext.length} 字)`;
+        alert(`文件「${file.name}」已寫入記憶！建議輸入主密碼點擊「加密保存」。`);
+      };
+      reader.readAsText(file);
+    });
+
+    window.addEventListener("online", () => { netStatus.className = "status-badge"; netStatus.textContent = "在線"; });
+    window.addEventListener("offline", () => { netStatus.className = "status-badge offline"; netStatus.textContent = "離線中"; });
+
+    userInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        window.sendMessage();
+      }
+    });
+
+    // 啟動初始化
+    window.fetchWeather();
+    window.fetchFinance();
+  })();
 </script>
 </body>
 </html>
