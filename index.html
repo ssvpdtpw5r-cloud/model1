@@ -29,9 +29,11 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid #334155;
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    .config-inputs { display: flex; gap: 8px; }
-    input, button, textarea {
+    .config-inputs { display: flex; gap: 8px; flex-wrap: wrap; }
+    input, select, button, textarea {
       font-size: 14px;
       border-radius: 8px;
       border: 1px solid #475569;
@@ -81,7 +83,10 @@
 <header>
   <strong>輕量 AI 終端</strong>
   <div class="config-inputs">
-    <input id="apiKey" type="password" placeholder="輸入 Groq API Key (gsk_...)" />
+    <input id="apiKey" type="password" placeholder="輸入 Groq Key (gsk_...)" />
+    <select id="modelSelect">
+      <option value="">載入模型中...</option>
+    </select>
     <button onclick="clearHistory()">清除對話</button>
   </div>
 </header>
@@ -101,17 +106,46 @@
   const chatBox = document.getElementById("chat-box");
   const userInput = document.getElementById("userInput");
   const apiKeyInput = document.getElementById("apiKey");
+  const modelSelect = document.getElementById("modelSelect");
 
   if (localStorage.getItem("ai_api_key")) {
     apiKeyInput.value = localStorage.getItem("ai_api_key");
+    fetchModels(apiKeyInput.value.trim());
   }
+
   apiKeyInput.addEventListener("change", () => {
-    localStorage.setItem("ai_api_key", apiKeyInput.value.trim());
+    const key = apiKeyInput.value.trim();
+    localStorage.setItem("ai_api_key", key);
+    if (key) fetchModels(key);
   });
+
+  // 自動向伺服器查詢該金鑰真正有權限的模型清單
+  async function fetchModels(key) {
+    if (!key) return;
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { "Authorization": `Bearer ${key}` }
+      });
+      const data = await res.json();
+      if (data && data.data) {
+        modelSelect.innerHTML = "";
+        // 排除 whisper 音訊辨識模型，只留文字聊天模型
+        const chatModels = data.data.filter(m => !m.id.includes("whisper"));
+        chatModels.forEach(m => {
+          const opt = document.createElement("option");
+          opt.value = m.id;
+          opt.innerText = m.id;
+          modelSelect.appendChild(opt);
+        });
+      }
+    } catch (e) {
+      console.error("載入模型清單失敗", e);
+    }
+  }
 
   function appendMessage(role, text) {
     const div = document.createElement("div");
-    div.className = `bubble ${role}`;
+    div.className = "bubble " + role;
     div.innerText = text;
     chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -121,14 +155,20 @@
   async function sendMessage() {
     const text = userInput.value.trim();
     const key = apiKeyInput.value.trim();
+    const selectedModel = modelSelect.value;
+
     if (!text) return;
     if (!key) {
-      alert("請先在右上角輸入以 gsk_ 開頭的 Groq API Key！");
+      alert("請在右上角貼上 Groq API Key（以 gsk_ 開頭）！");
+      return;
+    }
+    if (!selectedModel) {
+      alert("正在載入可用模型清單，請稍等兩秒再試一次！");
       return;
     }
 
-    conversation.push({ role: "user", content: text });
     appendMessage("user", text);
+    conversation.push({ role: "user", content: text });
     userInput.value = "";
 
     const loadingBubble = appendMessage("assistant", "思考中...");
@@ -141,13 +181,15 @@
           "Authorization": `Bearer ${key}`
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: selectedModel,
           messages: conversation
         })
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error?.message || "伺服器回應錯誤");
+      if (!response.ok) {
+        throw new Error(data.error ? data.error.message : "伺服器無回應");
+      }
 
       const reply = data.choices[0].message.content;
       loadingBubble.innerText = reply;
@@ -163,7 +205,7 @@
       { role: "system", content: "你是一位精煉、樂於助人且具備清晰推理邏輯的繁體中文 AI 助理。" }
     ];
     chatBox.innerHTML = "";
-    appendMessage("assistant", "上下文已清除，可以重新開始對話。");
+    appendMessage("assistant", "對話已重置。");
   }
 
   userInput.addEventListener("keydown", (e) => {
