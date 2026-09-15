@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>輕量對話 AI</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --user: #2563eb;
+      --ai: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+    }
+    header {
+      padding: 12px 16px;
+      background: var(--card);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+    }
+    .config-inputs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    input, button, textarea {
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: var(--text);
+      padding: 6px 10px;
+    }
+    #chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .user { align-self: flex-end; background: var(--user); color: #fff; }
+    .assistant { align-self: flex-start; background: var(--ai); color: #e2e8f0; }
+    footer {
+      padding: 12px;
+      background: var(--card);
+      border-top: 1px solid #334155;
+      display: flex;
+      gap: 8px;
+    }
+    textarea {
+      flex: 1;
+      resize: none;
+      height: 42px;
+    }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0 16px;
+    }
+    button:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+<header>
+  <strong>輕量 AI 終端</strong>
+  <div class="config-inputs">
+    <input id="apiKey" type="password" placeholder="輸入 API Key (預設存於本機)" />
+    <button onclick="clearHistory()">清除對話</button>
+  </div>
+</header>
+
+<main id="chat-box"></main>
+
+<footer>
+  <textarea id="userInput" placeholder="輸入訊息... (Enter 發送, Shift+Enter 換行)"></textarea>
+  <button id="sendBtn" onclick="sendMessage()">發送</button>
+</footer>
+
+<script>
+  // 對話歷史紀錄陣列（保留上下文的核心）
+  let conversation = [
+    { role: "system", content: "你是一位精煉、樂於助人且具備清晰推理邏輯的繁體中文 AI 助理。" }
+  ];
+
+  const chatBox = document.getElementById("chat-box");
+  const userInput = document.getElementById("userInput");
+  const apiKeyInput = document.getElementById("apiKey");
+
+  // 自動保存本機金鑰，換裝置時僅需輸入一次
+  if (localStorage.getItem("ai_api_key")) {
+    apiKeyInput.value = localStorage.getItem("ai_api_key");
+  }
+  apiKeyInput.addEventListener("change", () => {
+    localStorage.setItem("ai_api_key", apiKeyInput.value.trim());
+  });
+
+  function appendMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = `bubble ${role}`;
+    div.innerText = text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return div;
+  }
+
+  async function sendMessage() {
+    const text = userInput.value.trim();
+    const key = apiKeyInput.value.trim();
+    if (!text) return;
+    if (!key) {
+      alert("請先在右上角輸入相容的 API Key（如 Groq、OpenAI 或 DeepSeek）！");
+      return;
+    }
+
+    // 加入用戶發言
+    conversation.push({ role: "user", content: text });
+    appendMessage("user", text);
+    userInput.value = "";
+
+    const loadingBubble = appendMessage("assistant", "思考中...");
+
+    try {
+      // 支援標準 OpenAI 格式之任意端點（此處以 Groq 超高速/免費額度為例）
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: conversation // 發送完整上下文
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error?.message || "網路請求失敗");
+
+      const reply = data.choices[0].message.content;
+      loadingBubble.innerText = reply;
+
+      // 儲存 AI 回覆至歷史紀錄，供下一輪對話作為上下文
+      conversation.push({ role: "assistant", content: reply });
+    } catch (err) {
+      loadingBubble.innerText = "出錯了: " + err.message;
+      conversation.pop(); // 請求失敗時移除剛才加入的問題
+    }
+  }
+
+  function clearHistory() {
+    conversation = [
+      { role: "system", content: "你是一位精煉、樂於助人且具備清晰推理邏輯的繁體中文 AI 助理。" }
+    ];
+    chatBox.innerHTML = "";
+    appendMessage("assistant", "上下文已清除，可以重新開始對話。");
+  }
+
+  userInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+</script>
+
+</body>
+</html>
