@@ -2,7 +2,6 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <!-- CSP 防護：允許安全的 iframe 嵌入與 API 連線 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://geocoding-api.open-meteo.com https://api.open-meteo.com https://open.er-api.com; frame-src https: http:; img-src 'self' data: https:;" />
   <meta name="referrer" content="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -60,6 +59,7 @@
       background: var(--safe);
       color: #fff;
     }
+    .status-badge.offline { background: var(--danger); }
     .btn {
       background: transparent;
       border: 1px solid var(--border);
@@ -281,6 +281,7 @@
   <div style="display:flex; align-items:center; gap:8px;">
     <strong>AI 智能終端</strong>
     <span id="net-status" class="status-badge">在線</span>
+    <span id="enc-status" style="color:var(--safe); font-size:11px;"></span>
   </div>
   <div style="display:flex; gap:6px;">
     <button class="btn" onclick="checkCodeUpdate()">🔄 檢查更新</button>
@@ -367,10 +368,9 @@
 <section id="settings-panel">
   <div class="panel-row" style="background:#080c14; padding:6px 8px; border-radius:6px;">
     <label>本機主密碼:</label>
-    <input id="masterPwd" type="password" placeholder="自訂本地防窺密碼" style="width:130px;" />
+    <input id="masterPwd" type="password" placeholder="自訂本地防窺密碼 (僅需首次輸入)" style="width:160px;" />
     <button onclick="secureStorage.encryptAndSave()">加密保存</button>
     <button onclick="secureStorage.decryptAndLoad()">密碼解鎖</button>
-    <span id="enc-status" style="color:var(--safe); font-size:11px;"></span>
   </div>
   <div class="panel-row">
     <label>API Key:</label>
@@ -482,7 +482,7 @@
       window.openOverlay(url, title);
     };
 
-    // ================= 2. 安全加密防護 (AES-GCM-256) =================
+    // ================= 2. 安全加密保管庫 (單次解鎖 + Session 持久化快取) =================
     async function deriveKey(password, salt) {
       const enc = new TextEncoder();
       const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
@@ -492,7 +492,7 @@
     window.secureStorage = {
       encryptAndSave: async function() {
         const pwd = masterPwd.value.trim();
-        if (!pwd) { alert("請輸入主密碼！"); return; }
+        if (!pwd) { alert("請輸入主密碼作為本地加密金鑰！"); return; }
         try {
           const salt = crypto.getRandomValues(new Uint8Array(16));
           const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -502,15 +502,20 @@
           const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(payload));
           const combined = new Uint8Array(salt.length + iv.length + cipher.byteLength);
           combined.set(salt, 0); combined.set(iv, salt.length); combined.set(new Uint8Array(cipher), salt.length + iv.length);
+          
           localStorage.setItem("secure_ai_vault", btoa(String.fromCharCode(...combined)));
-          encStatus.textContent = "🔒 已加密存儲";
-          alert("資料已強固加密存儲至本機！");
+          // 同步保存至工作階段快取，供重新整理與代碼更新後自動解鎖
+          sessionStorage.setItem("ai_session_unlocked", payload);
+
+          memoryKey = apiKeyInput.value.trim();
+          encStatus.textContent = "🔒 已加密保存";
+          alert("金鑰與常駐記憶已加密封存！後續更新代碼或刷新頁面將無需重複輸入密碼。");
         } catch (e) { alert("加密失敗：" + e.message); }
       },
       decryptAndLoad: async function() {
         const pwd = masterPwd.value.trim();
         const cipherB64 = localStorage.getItem("secure_ai_vault");
-        if (!cipherB64 || !pwd) { alert("請確認已輸入密碼！"); return; }
+        if (!cipherB64 || !pwd) { alert("請確認已輸入密碼且本機存有加密資料！"); return; }
         try {
           const raw = Uint8Array.from(atob(cipherB64), c => c.charCodeAt(0));
           const salt = raw.slice(0, 16);
@@ -519,20 +524,41 @@
           const key = await deriveKey(pwd, salt);
           const dec = new TextDecoder();
           const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher);
-          const data = JSON.parse(dec.decode(plain));
+          const rawPayload = dec.decode(plain);
+          const data = JSON.parse(rawPayload);
+          
           apiKeyInput.value = data.apiKey || "";
           memoryKey = data.apiKey || "";
           permanentContext = data.permMem || "";
           if (permanentContext) fileMemoryInfo.textContent = `已解密常駐記憶 (${permanentContext.length} 字)`;
-          encStatus.textContent = "🔓 已解密";
+          
+          // 寫入工作階段暫存，單次驗證後重新整理免密碼
+          sessionStorage.setItem("ai_session_unlocked", rawPayload);
+          encStatus.textContent = "🔓 已解密就緒";
           fetchModels(memoryKey);
-          alert("解密成功！");
-        } catch (e) { alert("密碼錯誤，解密失敗！"); }
+          alert("解密成功！本瀏覽階段已永久記住金鑰。");
+        } catch (e) { alert("密碼錯誤或資料損毀，解密失敗！"); }
       }
     };
 
+    // 頁面初始化時，檢查是否已有單次工作階段解鎖資料
+    function initSessionUnlock() {
+      const cached = sessionStorage.getItem("ai_session_unlocked");
+      if (cached) {
+        try {
+          const data = JSON.parse(cached);
+          apiKeyInput.value = data.apiKey || "";
+          memoryKey = data.apiKey || "";
+          permanentContext = data.permMem || "";
+          if (permanentContext) fileMemoryInfo.textContent = `已載入工作記憶 (${permanentContext.length} 字)`;
+          encStatus.textContent = "🔓 已自動解密就緒";
+          fetchModels(memoryKey);
+        } catch (e) {}
+      }
+    }
+
     window.destroyAllMemory = function() {
-      if (!confirm("確定銷毀所有金鑰、記憶體、聊天與常駐檔案嗎？")) return;
+      if (!confirm("確定銷毀所有金鑰、工作階段、聊天與常駐檔案嗎？此操作不可逆！")) return;
       conversation = []; permanentContext = ""; memoryKey = ""; apiKeyInput.value = ""; masterPwd.value = "";
       localStorage.clear(); sessionStorage.clear(); chatBox.textContent = ""; encStatus.textContent = "";
       window.closeOverlay();
@@ -547,12 +573,12 @@
                  .replace(/\b(?:\d{4}[ -]?){3}\d{4}\b/g, "[CARD_REDACTED]");
     }
 
-    // ================= 3. 檢查代碼更新 =================
+    // ================= 3. 檢查代碼更新 (保留 Session 金鑰無感重整) =================
     window.checkCodeUpdate = async function() {
       try {
         const currentUrl = window.location.href.split('?')[0];
         const res = await fetch(`${currentUrl}?_t=${Date.now()}`, { cache: "no-store" });
-        if (res.ok && confirm("已與伺服器連線確認！是否立即重新載入頁面？")) {
+        if (res.ok && confirm("已連線確認！是否立即重新載入頁面？（您的解鎖狀態會自動保留）")) {
           window.location.reload(true);
         }
       } catch (e) { alert("檢查失敗，請確認網路連線。"); }
@@ -803,7 +829,7 @@
       else startRecording();
     };
 
-    // ================= 9. 輔助事件 =================
+    // ================= 9. 輔助事件與自適應 =================
     document.getElementById("fileInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -811,7 +837,7 @@
       reader.onload = function(evt) {
         permanentContext = evt.target.result.slice(0, 8000);
         fileMemoryInfo.textContent = `已綁定：${file.name} (${permanentContext.length} 字)`;
-        alert(`文件「${file.name}」已寫入常駐記憶！`);
+        alert(`文件「${file.name}」已寫入常駐記憶！建議點擊「加密保存」。`);
       };
       reader.readAsText(file);
     });
@@ -827,6 +853,7 @@
     });
 
     // 啟動初始化
+    initSessionUnlock();
     window.fetchWeather();
     window.fetchFinance();
   })();
