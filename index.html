@@ -2,7 +2,8 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 加入 viewport-fit=cover 完整支援 iOS 瀏海、動態島與旋轉適配 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>安全防護輕量 AI 終端</title>
   <style>
     :root {
@@ -17,14 +18,30 @@
       --danger: #ef4444;
       --safe: #10b981;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      -webkit-tap-highlight-color: transparent; /* 消除行動端點擊反白閃爍 */
+    }
+    html, body {
+      width: 100%;
+      /* 同時支援現代 dvh 與舊版 fallback，防止畫面跳動 */
+      height: 100vh;
+      height: 100dvh;
       background: var(--bg);
       color: var(--text);
+      overflow: hidden;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       display: flex;
       flex-direction: column;
-      height: 100dvh;
+      /* 適應各家手機瀏海、相機挖孔與底部手勢橫條 */
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
     }
     header {
       padding: 10px 16px;
@@ -33,7 +50,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
+      flex-shrink: 0;
       gap: 8px;
     }
     .status-badge {
@@ -42,6 +59,7 @@
       border-radius: 999px;
       background: var(--safe);
       color: #fff;
+      white-space: nowrap;
     }
     .status-badge.offline { background: var(--danger); }
     .panel-toggle {
@@ -49,11 +67,14 @@
       border: 1px solid var(--border);
       color: var(--text);
       cursor: pointer;
-      padding: 4px 10px;
+      padding: 6px 10px;
       border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
     }
     .danger-btn { border-color: var(--danger); color: #fca5a5; }
     .danger-btn:hover { background: rgba(239, 68, 68, 0.15); }
+    
     #settings-panel {
       display: none;
       background: var(--card);
@@ -62,64 +83,94 @@
       gap: 10px;
       flex-direction: column;
       font-size: 13px;
+      max-height: 50vh;
+      overflow-y: auto; /* 防止手機橫向時控制面板高度超出畫面 */
+      flex-shrink: 0;
     }
-    .panel-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .panel-row label { min-width: 90px; color: var(--muted); }
+    .panel-row { 
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+      flex-wrap: wrap; 
+    }
+    .panel-row label { min-width: 80px; color: var(--muted); }
     input, select, textarea, button {
-      font-size: 13px;
+      font-size: 14px;
       border-radius: 6px;
       border: 1px solid var(--border);
       background: #0b0f19;
       color: var(--text);
       padding: 6px 10px;
+      outline: none;
     }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+    
     #chat-box {
       flex: 1;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* iOS 滑動順暢回彈 */
       padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      contain: layout; /* 瀏覽器效能優化：限制回流範圍 */
+      contain: layout;
     }
     .bubble {
-      max-width: 85%;
+      max-width: 88%;
       padding: 10px 14px;
-      border-radius: 10px;
+      border-radius: 12px;
       line-height: 1.6;
       white-space: pre-wrap;
       word-break: break-word;
+      font-size: 15px;
     }
     .user { align-self: flex-end; background: var(--user); color: #fff; }
-    .assistant { align-self: flex-start; background: var(--ai); color: #e2e8f0; border: 1px solid #1e293b; }
+    .assistant { 
+      align-self: flex-start; 
+      background: var(--ai); 
+      color: #e2e8f0; 
+      border: 1px solid var(--border); 
+    }
     .bubble-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
     .speak-btn {
       background: transparent;
       border: 1px solid var(--border);
       color: var(--muted);
       cursor: pointer;
-      padding: 2px 6px;
+      padding: 2px 8px;
       font-size: 11px;
       border-radius: 4px;
     }
+
     footer {
-      padding: 10px 16px;
+      padding: 8px 12px;
       background: var(--card);
       border-top: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       gap: 8px;
+      flex-shrink: 0;
     }
     .input-bar { display: flex; gap: 8px; align-items: center; }
-    textarea { flex: 1; resize: none; height: 44px; }
+    textarea { 
+      flex: 1; 
+      resize: none; 
+      height: 44px;
+      line-height: 20px;
+      padding: 10px;
+    }
     .action-btn {
       background: var(--accent);
       color: #fff;
       border: none;
       cursor: pointer;
       font-weight: 600;
-      padding: 0 14px;
+      padding: 0 16px;
       height: 44px;
+      min-width: 60px;
+      white-space: nowrap;
     }
     .icon-btn {
       background: transparent;
@@ -128,6 +179,7 @@
       cursor: pointer;
       width: 44px;
       height: 44px;
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -135,6 +187,24 @@
     }
     .recording { background: var(--danger) !important; color: #fff; animation: pulse 1s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    /* ================= 平板與桌上型電腦（Windows / Mac / iPad 大螢幕）================= */
+    @media (min-width: 768px) {
+      .bubble { max-width: 75%; }
+      header { padding: 12px 24px; }
+      #chat-box { padding: 24px; }
+      footer { padding: 12px 24px; }
+      #settings-panel { padding: 16px 24px; }
+    }
+
+    /* ================= 手機橫向旋轉（Landscape）極窄高度特別調優 ================= */
+    @media (max-height: 480px) {
+      header { padding: 6px 12px; }
+      footer { padding: 6px 12px; }
+      textarea { height: 38px; padding: 6px; }
+      .action-btn, .icon-btn { height: 38px; }
+      #settings-panel { max-height: 65vh; }
+    }
   </style>
 </head>
 <body>
@@ -143,64 +213,61 @@
   <div style="display:flex; align-items:center; gap:8px;">
     <strong>輕量 AI 終端</strong>
     <span id="net-status" class="status-badge">在線</span>
-    <span id="enc-status" style="font-size:11px; color:var(--muted);">🔒 記憶體暫存模式</span>
+    <span id="enc-status" style="font-size:11px; color:var(--muted); display:none;">🔒 密文保護</span>
   </div>
-  <div style="display:flex; gap:8px;">
-    <button class="panel-toggle" onclick="toggleSettings()">控制面板</button>
-    <button class="panel-toggle danger-btn" onclick="destroyAllMemory()" title="立刻抹除本機儲存與記憶體">銷毀記憶與金鑰</button>
+  <div style="display:flex; gap:6px;">
+    <button class="panel-toggle" onclick="toggleSettings()">面板</button>
+    <button class="panel-toggle danger-btn" onclick="destroyAllMemory()" title="銷毀記憶與金鑰">抹除</button>
   </div>
 </header>
 
 <section id="settings-panel">
-  <!-- 隱私與安全金鑰管理 -->
   <div class="panel-row" style="background:#0b0f19; padding:8px; border-radius:6px;">
     <label>本機主密碼:</label>
-    <input id="masterPwd" type="password" placeholder="自訂本地解鎖密碼 (防竊聽)" style="width:160px;" />
-    <button onclick="encryptAndSaveStorage()">加密保存至本機</button>
-    <button onclick="decryptFromStorage()">輸入密碼解鎖</button>
-    <span style="color:var(--muted); font-size:11px;">※ 採用 AES-GCM-256 加密儲存，杜絕明文外洩</span>
+    <input id="masterPwd" type="password" placeholder="自訂本地解鎖密碼" style="width:140px;" />
+    <button onclick="encryptAndSaveStorage()">加密保存</button>
+    <button onclick="decryptFromStorage()">密碼解鎖</button>
   </div>
 
   <div class="panel-row">
     <label>API Key:</label>
-    <input id="apiKey" type="password" placeholder="Groq API Key (gsk_...)" style="flex:1;" />
+    <input id="apiKey" type="password" placeholder="Groq API Key (gsk_...)" style="flex:1; min-width:180px;" />
     <label>模型清單:</label>
-    <select id="modelSelect" style="max-width:320px;">
+    <select id="modelSelect" style="flex:1; min-width:180px;">
       <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile - 載入中...</option>
     </select>
   </div>
 
   <div class="panel-row">
     <label>安全防護:</label>
-    <label style="min-width:auto;"><input type="checkbox" id="maskSensitiveCheck" checked /> 送出前遮蔽敏感個資 (身分證/信用卡/Email)</label>
-    <label style="min-width:auto; margin-left:16px;">上下文截斷:</label>
+    <label style="min-width:auto;"><input type="checkbox" id="maskSensitiveCheck" checked /> 個資遮蔽 (身分證/卡號/Email)</label>
+    <label style="min-width:auto; margin-left:8px;">上下文截斷:</label>
     <select id="windowSelect">
-      <option value="6">保留最新 6 輪</option>
-      <option value="12" selected>保留最新 12 輪</option>
-      <option value="20">保留最新 20 輪</option>
+      <option value="6">保留 6 輪</option>
+      <option value="12" selected>保留 12 輪</option>
+      <option value="20">保留 20 輪</option>
     </select>
   </div>
 
   <div class="panel-row">
-    <label>語音與人設:</label>
-    <label style="min-width:auto;"><input type="checkbox" id="autoSpeakCheck" /> 自動朗讀回覆</label>
+    <label>語音與朗讀:</label>
+    <label style="min-width:auto;"><input type="checkbox" id="autoSpeakCheck" /> 自動朗讀</label>
     <span>語速:</span>
-    <input id="ttsRate" type="range" min="0.5" max="2" step="0.1" value="1.0" style="width:70px;" />
+    <input id="ttsRate" type="range" min="0.5" max="2" step="0.1" value="1.0" style="width:60px;" />
     <span>語調:</span>
-    <input id="ttsPitch" type="range" min="0.5" max="1.5" step="0.1" value="1.0" style="width:70px;" />
-    <span>聲音:</span>
-    <select id="voiceSelect" style="max-width:140px;"><option value="">預設中文</option></select>
+    <input id="ttsPitch" type="range" min="0.5" max="1.5" step="0.1" value="1.0" style="width:60px;" />
+    <select id="voiceSelect" style="max-width:140px;"><option value="">預設繁中</option></select>
   </div>
 
   <div class="panel-row">
     <label>人設 (System):</label>
-    <input id="sysPrompt" type="text" value="你是一位精準、樂於助人且具備清晰邏輯思維的繁體中文 AI 助理。" style="flex:1;" />
+    <input id="sysPrompt" type="text" value="你是一位精準、樂於助人且具備清晰邏輯思維的繁體中文 AI 助理。" style="flex:1; min-width:200px;" />
   </div>
 
   <div class="panel-row">
     <label>持久常駐檔案:</label>
     <input type="file" id="fileInput" accept=".txt,.md,.json,.csv" />
-    <span id="fileMemoryInfo" style="color:var(--muted);">尚未匯入持久文件</span>
+    <span id="fileMemoryInfo" style="color:var(--muted); font-size:12px;">尚未匯入常駐文件</span>
   </div>
 </section>
 
@@ -215,10 +282,9 @@
 </footer>
 
 <script>
-  // ================= 核心狀態 =================
   let conversation = [];
   let permanentContext = "";
-  let activeAPIKey = ""; // 純記憶體變數，減少不必要的存儲曝險
+  let activeAPIKey = "";
 
   const chatBox = document.getElementById("chat-box");
   const userInput = document.getElementById("userInput");
@@ -237,7 +303,15 @@
   const micBtn = document.getElementById("micBtn");
   const netStatus = document.getElementById("net-status");
 
-  // ================= 1. 安全隱私：Web Crypto 本地 AES-GCM-256 加密模組 =================
+  // ================= 1. 旋轉與鍵盤彈出視窗適應 =================
+  function handleLayoutAdjustment() {
+    window.scrollTo(0, 0); // 防止 iOS 旋轉後產生視窗位移殘留
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+  window.addEventListener("resize", handleLayoutAdjustment);
+  window.addEventListener("orientationchange", () => setTimeout(handleLayoutAdjustment, 150));
+
+  // ================= 2. 安全加密防護 (AES-GCM-256) =================
   async function deriveKey(password, salt) {
     const enc = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
@@ -256,8 +330,6 @@
     const key = await deriveKey(password, salt);
     const enc = new TextEncoder();
     const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(text));
-    
-    // 組合 salt + iv + cipher 並以 base64 存儲
     const combined = new Uint8Array(salt.length + iv.length + cipher.byteLength);
     combined.set(salt, 0);
     combined.set(iv, salt.length);
@@ -278,7 +350,7 @@
 
   async function encryptAndSaveStorage() {
     const pwd = masterPwd.value.trim();
-    if (!pwd) { alert("請先輸入自訂的「主密碼」作為加密金鑰！"); return; }
+    if (!pwd) { alert("請先輸入主密碼作為加密鑰匙！"); return; }
     const payload = JSON.stringify({
       apiKey: apiKeyInput.value.trim(),
       permMem: permanentContext
@@ -286,9 +358,8 @@
     try {
       const encrypted = await encryptData(payload, pwd);
       localStorage.setItem("secure_ai_vault", encrypted);
-      encStatus.innerText = "🔒 本地資料已強固加密";
-      encStatus.style.color = "var(--safe)";
-      alert("API Key 與常駐記憶已透過 AES-GCM 加密保存至瀏覽器！");
+      encStatus.style.display = "inline";
+      alert("資料已加密封存至瀏覽器！");
     } catch (e) {
       alert("加密失敗：" + e.message);
     }
@@ -297,7 +368,7 @@
   async function decryptFromStorage() {
     const pwd = masterPwd.value.trim();
     const cipher = localStorage.getItem("secure_ai_vault");
-    if (!cipher) { alert("本機尚無任何加密儲存紀錄。"); return; }
+    if (!cipher) { alert("本機無加密紀錄。"); return; }
     if (!pwd) { alert("請輸入主密碼進行解密！"); return; }
     try {
       const decrypted = await decryptData(cipher, pwd);
@@ -305,18 +376,17 @@
       apiKeyInput.value = data.apiKey || "";
       activeAPIKey = data.apiKey || "";
       permanentContext = data.permMem || "";
-      if (permanentContext) fileMemoryInfo.innerText = `解密持久記憶 (${permanentContext.length} 字)`;
-      encStatus.innerText = "🔓 已解密就緒";
-      encStatus.style.color = "var(--safe)";
+      if (permanentContext) fileMemoryInfo.textContent = `解密持久記憶 (${permanentContext.length} 字)`;
+      encStatus.style.display = "inline";
       fetchModels(activeAPIKey);
-      alert("解密成功！已載入金鑰與持久記憶。");
+      alert("解密成功！");
     } catch (e) {
-      alert("密碼錯誤或資料損毀，解密失敗！");
+      alert("密碼錯誤，解密失敗！");
     }
   }
 
   function destroyAllMemory() {
-    if (!confirm("確定要銷毀所有對話記錄、記憶體與本機所有加密密鑰嗎？此操作不可逆！")) return;
+    if (!confirm("確定要抹除全部資料、對話、記憶與金鑰嗎？")) return;
     conversation = [];
     permanentContext = "";
     activeAPIKey = "";
@@ -325,25 +395,19 @@
     localStorage.clear();
     sessionStorage.clear();
     chatBox.textContent = "";
-    encStatus.innerText = "⚠️ 數據已徹底銷毀";
-    encStatus.style.color = "var(--danger)";
+    encStatus.style.display = "none";
     if (synth && synth.speaking) synth.cancel();
-    alert("所有資料已從記憶體與本機儲存徹底抹除。");
+    alert("所有資料已完全抹除。");
   }
 
-  // ================= 2. 敏感資料過濾（DLP Masking） =================
   function sanitizeInput(text) {
     if (!maskSensitiveCheck.checked) return text;
-    // 遮蔽台灣身分證字號、Email、信用卡號
-    const twIdRegex = /[A-Z][12]\d{8}/gi;
-    const emailRegex = /[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/g;
-    const cardRegex = /\b(?:\d{4}[ -]?){3}\d{4}\b/g;
-    return text.replace(twIdRegex, "[ID_REDACTED]")
-               .replace(emailRegex, "[EMAIL_REDACTED]")
-               .replace(cardRegex, "[CARD_REDACTED]");
+    return text.replace(/[A-Z][12]\d{8}/gi, "[ID_REDACTED]")
+               .replace(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/g, "[EMAIL_REDACTED]")
+               .replace(/\b(?:\d{4}[ -]?){3}\d{4}\b/g, "[CARD_REDACTED]");
   }
 
-  // ================= 3. 模型拉取與領域對照 =================
+  // ================= 3. 自動拉取可用模型與領域標記 =================
   const MODEL_TAGS = {
     "llama-3.3-70b-versatile": "【旗艦推薦】複雜邏輯 / 繁中綜合",
     "llama-3.1-8b-instant": "【極速秒回】低延遲 / 簡易問答",
@@ -371,7 +435,7 @@
         });
       }
     } catch (e) {
-      console.error("載入模型失敗", e);
+      console.error("載入模型清單失敗", e);
     }
   }
 
@@ -380,7 +444,7 @@
     if (activeAPIKey) fetchModels(activeAPIKey);
   });
 
-  // ================= 4. 安全高效的 DOM 渲染與 rAF 流式更新 =================
+  // ================= 4. 高效 DOM 渲染與 rAF 流式更新 =================
   function appendMessage(role, text) {
     const div = document.createElement("div");
     div.className = "bubble " + role;
@@ -405,12 +469,11 @@
     return { bubble: div, textSpan };
   }
 
-  // 高效發送與流式輸出（採用 requestAnimationFrame 防抖節流，防畫面凍結）
   async function sendMessage() {
     const rawText = userInput.value.trim();
     const key = activeAPIKey || apiKeyInput.value.trim();
     if (!rawText) return;
-    if (!key) { alert("請先填入 Groq API Key 或透過主密碼解鎖！"); return; }
+    if (!key) { alert("請在設定面板輸入 Groq API Key 或透過主密碼解鎖！"); return; }
     if (!navigator.onLine) { alert("目前離線中，請檢查網路連線。"); return; }
 
     const safeText = sanitizeInput(rawText);
@@ -458,7 +521,6 @@
       let fullReply = "";
       let renderPending = false;
 
-      // 效能優化：以 rAF 限制更新頻率，避免短時間過度重繪卡頓
       function scheduleRender() {
         if (!renderPending) {
           renderPending = true;
@@ -491,7 +553,6 @@
 
       aiMsg.textSpan.textContent = fullReply;
       conversation.push({ role: "assistant", content: fullReply });
-
       if (autoSpeakCheck.checked) speakText(fullReply);
 
     } catch (err) {
@@ -553,7 +614,7 @@
   }
 
   function startRecording() {
-    if (!recognition) { alert("瀏覽器不支援語音輸入"); return; }
+    if (!recognition) { alert("瀏覽器不支援語音辨識"); return; }
     recognition.start();
     isRecording = true;
     micBtn.classList.add("recording");
@@ -568,15 +629,15 @@
     else startRecording();
   }
 
-  // ================= 6. 其他輔助與監聽 =================
+  // ================= 6. 常駐記憶與網路狀態監聽 =================
   document.getElementById("fileInput").addEventListener("change", function(e) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(evt) {
       permanentContext = evt.target.result.slice(0, 8000);
-      fileMemoryInfo.textContent = `已綁定記憶：${file.name} (${permanentContext.length} 字)`;
-      alert(`文件「${file.name}」已寫入常駐記憶！建議輸入主密碼後點擊「加密保存」。`);
+      fileMemoryInfo.textContent = `已綁定：${file.name} (${permanentContext.length} 字)`;
+      alert(`文件「${file.name}」已寫入常駐記憶！`);
     };
     reader.readAsText(file);
   });
