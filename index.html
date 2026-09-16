@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="referrer" content="no-referrer" />
-  <!-- 擴充 CSP 允許即時新聞 RSS/XML 解析端點 -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://api.rss2json.com https://api.allorigins.win; img-src 'self' data:; frame-ancestors 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://api.allorigins.win https://corsproxy.io https://api.codetabs.com; img-src 'self' data:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>專業 AI 即時新聞與鑑識終端</title>
   <style>
@@ -248,7 +247,7 @@
 
   <div class="panel-row">
     <label style="color:#60a5fa;">系統人設:</label>
-    <textarea id="sysPrompt" style="flex:1; height:65px; font-size:12px; line-height:1.4;">你是一位高效率、精準客觀的繁體中文資訊整合助手。當提供最新即時資訊時，請依據提供的各平台即時快訊，直接彙整、列出具體的真實新聞事件與內容，絕不回答「無法取得」或「知識庫截止」，也不要提供空泛的網站清單。</textarea>
+    <textarea id="sysPrompt" style="flex:1; height:65px; font-size:12px; line-height:1.4;">你是一位專業新聞摘要助理。當用戶詢問新聞時，嚴禁回答「無法取得」或列舉網站清單，必須直接針對系統提供的即時報導內容進行條列整理與重點說明。</textarea>
   </div>
 
   <div class="panel-row">
@@ -336,35 +335,62 @@
       webSearchToggle.innerText = isWebSearchEnabled ? "🌐 即時新聞串接: 開啟" : "🌐 即時新聞串接: 關閉";
     };
 
-    // ================= 1. 真實新聞多源 RSS 聯網聚合器 =================
-    async function fetchLiveNewsContext() {
-      if (!isWebSearchEnabled) return "";
-      let newsDigest = "";
-      
-      // 聚合來源：中央社 (CNA)、公視新聞 (PNN)、Yahoo 奇摩即時焦點
-      const feeds = [
-        { name: "中央通訊社 (CNA)", url: "https://feeds.feedburner.com/cnaFirstNews" },
-        { name: "公視新聞網 (PNN)", url: "https://news.pts.org.tw/xml/index.xml" },
-        { name: "Yahoo 奇摩頭條", url: "https://tw.news.yahoo.com/rss/realtime" }
+    // ================= 1. 高可用跨域 RSS XML 解析器 =================
+    async function fetchRSSFeed(feedUrl, sourceName) {
+      const proxies = [
+        `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`,
+        `https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`
       ];
 
-      for (const feed of feeds) {
+      for (const proxy of proxies) {
         try {
-          const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=&count=5`;
-          const res = await fetch(proxyUrl);
-          if (res.ok) {
+          const res = await fetch(proxy, { cache: "no-store" });
+          if (!res.ok) continue;
+          let xmlText = "";
+          if (proxy.includes("allorigins")) {
             const data = await res.json();
-            if (data.items && data.items.length > 0) {
-              newsDigest += `\n【${feed.name} 即時焦點】：\n`;
-              data.items.slice(0, 4).forEach((item, idx) => {
-                const cleanDesc = (item.description || "").replace(/<[^>]*>?/gm, '').slice(0, 100);
-                newsDigest += `${idx + 1}. ${item.title}\n   摘要: ${cleanDesc}...\n`;
-              });
-            }
+            xmlText = data.contents;
+          } else {
+            xmlText = await res.text();
           }
+
+          if (!xmlText) continue;
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+          const items = xmlDoc.querySelectorAll("item");
+          if (!items || items.length === 0) continue;
+
+          let feedText = `\n【${sourceName} 現場最新頭條】：\n`;
+          let count = 0;
+          items.forEach(item => {
+            if (count >= 4) return;
+            const title = item.querySelector("title")?.textContent?.trim() || "";
+            let desc = item.querySelector("description")?.textContent?.trim() || "";
+            desc = desc.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").slice(0, 90);
+            if (title) {
+              count++;
+              feedText += `${count}. ${title}\n   摘要: ${desc}...\n`;
+            }
+          });
+
+          if (count > 0) return feedText;
         } catch (e) {}
       }
-      return newsDigest.trim();
+      return "";
+    }
+
+    async function fetchLiveNewsContext() {
+      if (!isWebSearchEnabled) return "";
+      
+      const feeds = [
+        { name: "中央社 CNA 即時新聞", url: "https://feeds.feedburner.com/cnaFirstNews" },
+        { name: "公視新聞 PNN 焦點", url: "https://news.pts.org.tw/xml/index.xml" },
+        { name: "Yahoo 奇摩即時頭條", url: "https://tw.news.yahoo.com/rss/realtime" }
+      ];
+
+      const results = await Promise.all(feeds.map(f => fetchRSSFeed(f.url, f.name)));
+      const combined = results.filter(r => r.length > 0).join("\n");
+      return combined.trim();
     }
 
     // ================= 2. API Key 持久化保存 =================
@@ -579,7 +605,6 @@
       aiMsg.textSpan.textContent = "▍";
 
       let liveNewsData = "";
-      // 偵測到詢問新聞、時事或即時消息，自動擷取各大主流新聞平台即時資料
       if (isWebSearchEnabled && /(新聞|時事|快訊|焦點|消息|發生|今天|現在)/i.test(rawText)) {
         aiMsg.textSpan.textContent = "🌐 正在即時抓取各大主流平台（中央社、公視、Yahoo奇摩）即時新聞內容...";
         liveNewsData = await fetchLiveNewsContext();
@@ -593,7 +618,9 @@
           "\n\n【絕對遵循之回答指示】：\n" +
           "1. 嚴禁回答「我無法提供即時新聞」、「我的知識庫截止於」等拒絕用語。\n" +
           "2. 嚴禁只列出媒體連結或網站名稱清單。\n" +
-          "3. 必須直接從上方【各主流平台真實即時快訊】中，依不同平台（如：中央社、公視、Yahoo等）分類，條列寫出具體的真實新聞標題與詳細內容重點摘要，以通順的繁體中文呈現。";
+          "3. 必須直接依據上方【各主流平台真實即時快訊】之內容，依不同平台分類條列寫出具體的真實新聞事件、標題與核心內容摘要。";
+      } else if (/(新聞|時事|快訊|焦點|消息|今天)/i.test(rawText)) {
+        fullSystemPrompt += "\n\n【指示】：若外部連線暫時受限，請直接摘要最近已知的重要事件要點，絕對不要生成任何來源網址或免責推託列表。";
       }
 
       const payloadMessages = [{ role: "system", content: fullSystemPrompt }, ...conversation.slice(-12)];
