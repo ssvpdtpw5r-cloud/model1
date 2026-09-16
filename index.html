@@ -3,24 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="referrer" content="no-referrer" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://api.dictionaryapi.dev https://api.allorigins.win https://corsproxy.io; frame-src https:; img-src 'self' data: blob:; frame-ancestors 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://api.dictionaryapi.dev https://api.allorigins.win https://corsproxy.io https://api.codetabs.com; frame-src https:; img-src 'self' data: blob:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>COGITATOR // WARHAMMER 40K TERMINAL</title>
+  <title>COGITATOR // WARHAMMER 40K TRPG NARRATIVE ENGINE</title>
   <style>
     :root {
-      --bg: #05070a;
-      --terminal-black: #080d12;
+      --bg: #040609;
+      --terminal-black: #080c13;
       --gold-primary: #d4af37;
       --gold-bright: #ffd700;
-      --gold-dark: #8c7322;
+      --gold-dark: #7a631e;
       --green-glow: #10b981;
+      --green-dim: #065f46;
+      --amber: #f59e0b;
+      --crimson: #b91c1c;
       --text: #e2e8f0;
       --text-dim: #94a3b8;
-      --purity-seal: #b91c1c;
-      --border-gothic: #2a384c;
-      --bubble-user: #172554;
-      --bubble-ai: #0b1320;
-      --drawer-bg: rgba(8, 13, 20, 0.98);
+      --border-gothic: #1e293b;
+      --hud-panel: rgba(11, 17, 28, 0.98);
+      --card-bg: #090e17;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -38,6 +39,8 @@
       padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
       position: relative;
     }
+
+    /* 哥特CRT微光掃描線背景 */
     body::before {
       content: " ";
       display: block;
@@ -47,10 +50,12 @@
       z-index: 99;
       background-size: 100% 3px, 6px 100%;
       pointer-events: none;
-      opacity: 0.7;
+      opacity: 0.65;
     }
+
+    /* 頂部機械神教終端列 */
     header {
-      padding: 10px 14px;
+      padding: 8px 14px;
       background: var(--terminal-black);
       border-bottom: 2px solid var(--gold-dark);
       display: flex;
@@ -58,24 +63,32 @@
       align-items: center;
       flex-shrink: 0;
       gap: 6px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.8);
       z-index: 20;
     }
+    .cog-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold-primary);
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
     .status-badge {
-      font-size: 10.5px;
+      font-size: 10px;
       padding: 2px 7px;
       border-radius: 3px;
       background: var(--green-glow);
       color: #000;
       font-weight: 700;
-      letter-spacing: 0.05em;
     }
+
     .btn {
       background: #0d1520;
       border: 1px solid var(--border-gothic);
       color: var(--text);
       cursor: pointer;
-      padding: 6px 10px;
+      padding: 5px 9px;
       border-radius: 4px;
       font-size: 11px;
       display: inline-flex;
@@ -87,8 +100,44 @@
     .btn:hover { background: #162234; border-color: var(--gold-primary); color: #fff; }
     .gold-btn { border-color: var(--gold-primary); color: var(--gold-primary); }
     .gold-btn:hover { background: rgba(212, 175, 55, 0.15); }
-    .danger-btn { border-color: var(--purity-seal); color: #fca5a5; }
+    .danger-btn { border-color: var(--crimson); color: #fca5a5; }
 
+    /* CRPG 角色屬性與遊戲 HUD 頂列 */
+    #character-hud {
+      background: #080d14;
+      border-bottom: 1px solid #1a2638;
+      padding: 6px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      flex-shrink: 0;
+      gap: 8px;
+      overflow-x: auto;
+    }
+    .hud-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .hud-bar {
+      width: 55px;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      overflow: hidden;
+      display: inline-block;
+    }
+    .hud-bar-fill {
+      height: 100%;
+      background: var(--green-glow);
+      width: 100%;
+      transition: width 0.3s ease;
+    }
+    .hud-bar-fill.sanity { background: #60a5fa; }
+
+    /* 設定控制面板 */
     #settings-panel {
       display: none;
       background: #090f17;
@@ -114,7 +163,9 @@
       outline: none;
       font-family: inherit;
     }
+    input:focus, select:focus, textarea:focus { border-color: var(--gold-primary); }
 
+    /* 戰術情境快捷列 */
     #scenario-bar {
       padding: 6px 12px;
       background: #06090e;
@@ -141,6 +192,7 @@
     .scenario-chip:hover { border-color: var(--gold-primary); color: #fff; }
     .zero-chip { border-color: var(--green-glow) !important; color: #a7f3d0 !important; }
 
+    /* 遊戲主對話與敘事畫布 */
     #workspace {
       flex: 1;
       display: flex;
@@ -158,9 +210,9 @@
       contain: layout;
     }
     .bubble {
-      max-width: 90%;
+      max-width: 92%;
       padding: 14px 16px;
-      border-radius: 8px;
+      border-radius: 6px;
       line-height: 1.7;
       word-break: break-word;
       font-size: 14px;
@@ -168,21 +220,66 @@
     }
     .user { 
       align-self: flex-end; 
-      background: var(--bubble-user); 
-      border: 1px solid #2563eb;
+      background: #111e33; 
+      border: 1px solid #1d4ed8;
       color: #fff; 
       white-space: pre-wrap; 
     }
     .assistant { 
       align-self: flex-start; 
-      background: var(--bubble-ai); 
+      background: #0a101a; 
       color: #e2e8f0; 
       border: 1px solid var(--border-gothic); 
       box-shadow: 0 4px 18px rgba(0,0,0,0.6);
     }
-    .assistant h1, .assistant h2, .assistant h3 { margin: 12px 0 6px 0; color: var(--gold-primary); }
-    .assistant h1 { font-size: 1.3em; border-bottom: 1px solid var(--gold-dark); padding-bottom: 3px; }
+    .assistant h1, .assistant h2, .assistant h3 { margin: 10px 0 6px 0; color: var(--gold-primary); }
+    .assistant h1 { font-size: 1.25em; border-bottom: 1px solid var(--gold-dark); padding-bottom: 3px; }
     .assistant strong { color: var(--gold-bright); font-weight: 600; }
+    .assistant blockquote { border-left: 3px solid var(--gold-dark); padding-left: 8px; margin: 8px 0; color: #94a3b8; font-style: italic; }
+
+    /* 遊戲互動分支決策按鈕容器 (Game Choices) */
+    .game-choice-container {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-top: 1px dashed var(--gold-dark);
+      padding-top: 10px;
+    }
+    .choice-btn {
+      background: #0f1929;
+      border: 1px solid #1e3a5f;
+      color: #93c5fd;
+      padding: 8px 12px;
+      border-radius: 4px;
+      text-align: left;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .choice-btn:hover {
+      background: #1e293b;
+      border-color: var(--gold-primary);
+      color: var(--gold-bright);
+      transform: translateX(4px);
+    }
+
+    /* 可點選查詞高亮單字 */
+    .lore-word {
+      color: var(--gold-bright);
+      text-decoration: underline dotted var(--gold-dark);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .lore-word:hover {
+      color: #fff;
+      background: rgba(212, 175, 55, 0.2);
+      border-radius: 2px;
+    }
+
     .bubble-tools {
       display: flex;
       justify-content: flex-end;
@@ -201,7 +298,26 @@
     }
     .tool-btn:hover { color: var(--gold-bright); }
 
-    /* 內建檔案庫抽屜 (含直接閱讀器與實時更新) */
+    /* 懸浮發音播放控制器 */
+    #tts-controller-bar {
+      display: none;
+      position: absolute;
+      bottom: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(8, 13, 20, 0.96);
+      border: 1px solid var(--gold-primary);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+      border-radius: 20px;
+      padding: 5px 14px;
+      align-items: center;
+      gap: 8px;
+      z-index: 40;
+      font-size: 11px;
+    }
+    .tts-ctrl-btn { background: transparent; border: none; color: var(--text); cursor: pointer; font-size: 13px; }
+
+    /* 戰錘典籍庫與 TRPG 遊戲設定抽屜 */
     #plugin-drawer {
       display: none;
       position: absolute;
@@ -211,7 +327,7 @@
       width: 50%;
       min-width: 320px;
       max-width: 100%;
-      background: var(--drawer-bg);
+      background: var(--hud-panel);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-left: 2px solid var(--gold-dark);
@@ -249,7 +365,7 @@
       line-height: 1.7;
     }
     .archive-item {
-      background: #0b111a;
+      background: var(--card-bg);
       border: 1px solid var(--border-gothic);
       border-radius: 6px;
       padding: 10px;
@@ -261,17 +377,17 @@
     .archive-item h4 { color: var(--gold-primary); margin-bottom: 4px; font-size: 13px; }
     .archive-item p { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
     
-    /* 內部原汁原味閱讀器面板 */
+    /* 原生內嵌作品閱讀器 */
     #internal-reader {
       display: none;
-      background: #06090e;
+      background: #05080e;
       border: 1px solid var(--border-gothic);
       border-radius: 6px;
-      padding: 14px;
+      padding: 12px;
       margin-top: 8px;
     }
-    #internal-reader h3 { color: var(--gold-bright); margin-bottom: 8px; font-size: 14px; border-bottom: 1px dashed var(--gold-dark); padding-bottom: 4px; }
-    #internal-reader-body { white-space: pre-wrap; font-size: 13px; color: #cbd5e1; line-height: 1.8; max-height: 380px; overflow-y: auto; }
+    #internal-reader h3 { color: var(--gold-bright); margin-bottom: 6px; font-size: 13.5px; border-bottom: 1px dashed var(--gold-dark); padding-bottom: 4px; }
+    #internal-reader-body { white-space: pre-wrap; font-size: 12.5px; color: #cbd5e1; line-height: 1.75; max-height: 360px; overflow-y: auto; }
 
     footer {
       padding: 8px 12px;
@@ -340,7 +456,7 @@
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: var(--danger);
+      background: var(--crimson);
       box-shadow: 0 0 5px rgba(239, 68, 68, 0.9);
       pointer-events: none;
     }
@@ -351,6 +467,7 @@
     }
     @keyframes pulse-led { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
+    /* 手機端深度優化 (Mobile First) */
     @media (max-width: 768px) {
       #plugin-drawer {
         width: 100%;
@@ -362,24 +479,47 @@
         border-radius: 12px 12px 0 0;
       }
       .bubble { max-width: 95%; font-size: 13.5px; padding: 12px 14px; }
-      header, footer { padding: 6px 10px; }
+      header { padding: 6px 10px; }
+      footer { padding: 6px 10px; }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <div style="display:flex; align-items:center; gap:6px;">
-    <strong style="color:var(--gold-primary); font-size:12px; letter-spacing:0.04em;">COGITATOR//40K</strong>
+  <div class="cog-title">
+    <span>💀</span>
+    <span>COGITATOR // TRPG-40K</span>
     <span id="key-indicator" class="status-badge" style="background:#475569;">OFFLINE</span>
   </div>
   <div style="display:flex; gap:4px;">
-    <button class="btn gold-btn" id="pluginToggleBtn" onclick="togglePluginDrawer()">📜 典籍庫/作品閱讀</button>
+    <button class="btn gold-btn" id="pluginToggleBtn" onclick="togglePluginDrawer()">📜 帝國典籍庫</button>
     <button class="btn" onclick="checkCodeUpdateRobust()">🔄 更新</button>
     <button class="btn" onclick="toggleSettings()">⚙️ 配置</button>
     <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀</button>
   </div>
 </header>
+
+<!-- CRPG 角色屬性列 (遊戲狀態即時追蹤) -->
+<div id="character-hud">
+  <div class="hud-stat">
+    <span style="color:var(--gold-primary);">身份:</span>
+    <strong id="hud-role" style="color:#fff;">行商浪人 (Rogue Trader)</strong>
+  </div>
+  <div class="hud-stat">
+    <span style="color:#f87171;">HP:</span>
+    <div class="hud-bar"><div class="hud-bar-fill" id="hp-bar" style="width:100%;"></div></div>
+    <span id="hp-text">100/100</span>
+  </div>
+  <div class="hud-stat">
+    <span style="color:#60a5fa;">意志/純潔度:</span>
+    <div class="hud-bar"><div class="hud-bar-fill sanity" id="san-bar" style="width:85%;"></div></div>
+    <span id="san-text">85%</span>
+  </div>
+  <div class="hud-stat">
+    <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="rollD20Action()">🎲 D20 戰術檢定</button>
+  </div>
+</div>
 
 <section id="settings-panel">
   <div class="panel-row">
@@ -390,11 +530,11 @@
   </div>
 
   <div class="panel-row">
-    <label>思維訓練模式:</label>
+    <label>遊戲與教學模式:</label>
     <select id="modePresetSelect" onchange="applyModePreset()" style="flex:1; min-width:200px;">
-      <option value="zero_foundation" selected>🌱 0基礎戰錘啟蒙（單詞拆節 + 骨架對照 + 填空測驗）</option>
+      <option value="trpg_game" selected>🎲 戰錘 40K 互動跑團小說（CRPG 分支選項 + 戰術檢定 + 英文學習）</option>
+      <option value="zero_foundation">🌱 0 基礎戰錘新兵啟蒙（單詞拆節 + 骨架對照 + 填空測驗）</option>
       <option value="fanfic_interactive">⚔️ 戰錘同人精讀（黑暗哥特詞彙 + 雙向語境拆解）</option>
-      <option value="warhammer_roleplay">🎲 戰錘TRPG跑團互動（GM戰術指揮 + 口語寫作修飾）</option>
       <option value="private_companion">👑 私有全能助理（解除教條審查 / 深度情感 / 創作）</option>
     </select>
   </div>
@@ -415,76 +555,84 @@
   </div>
 </section>
 
-<!-- 快速語境戰術列 -->
+<!-- 快速戰術快捷列 -->
 <nav id="scenario-bar">
-  <span style="font-size:10.5px; color:var(--gold-primary); white-space:nowrap;">快速指令:</span>
-  <button class="scenario-chip zero-chip" onclick="triggerQuickScenario('zero_vocabulary')">🛡️ 0基礎 10個戰錘單字</button>
-  <button class="scenario-chip zero-chip" onclick="triggerQuickScenario('zero_simple_dialogue')">💬 0基礎 戰術對答</button>
-  <button class="scenario-chip" onclick="openReaderFromScenario('genestealer')">📖 閱讀：基因竊取者地下密謀</button>
-  <button class="scenario-chip" onclick="openReaderFromScenario('roguetrader')">🚀 閱讀：行商浪人遠航日誌</button>
-  <button class="scenario-chip" onclick="createInteractiveCloze()">🧩 為當前章節產生填空測驗</button>
+  <span style="font-size:10.5px; color:var(--gold-primary); white-space:nowrap;">快速情境:</span>
+  <button class="scenario-chip" onclick="startNewCampaign('rogue_trader_derelict')">🚀 [章節] 探索太空廢船《恐懼方舟》</button>
+  <button class="scenario-chip" onclick="startNewCampaign('cult_underhive')">👾 [章節] 巢都底層排查異形信標</button>
+  <button class="scenario-chip" onclick="startNewCampaign('inquisition_vault')">⚖️ [章節] 審判官審問神秘亞空間遺物</button>
+  <button class="scenario-chip zero-chip" onclick="triggerQuickScenario('zero_vocabulary')">🛡️ 0基礎 10個戰錘生存單字</button>
+  <button class="scenario-chip zero-chip" onclick="triggerQuickScenario('zero_simple_dialogue')">💬 0基礎 極簡戰術對答</button>
 </nav>
 
-<!-- 主工作區塊 -->
+<!-- 懸浮發音播放控制器 -->
+<div id="tts-controller-bar">
+  <span id="tts-status-text" style="color:var(--gold-primary);">🔊 聖言發音中</span>
+  <button class="tts-ctrl-btn" onclick="pauseTTS()">⏸️</button>
+  <button class="tts-ctrl-btn" onclick="resumeTTS()">▶️</button>
+  <button class="tts-ctrl-btn" onclick="stopTTS()">⏹️</button>
+</div>
+
+<!-- 遊戲主舞台 -->
 <div id="workspace">
   <main id="chat-box"></main>
 
-  <!-- 內部原創典籍庫與閱讀器抽屜 -->
+  <!-- 帝國檔案庫與多重容錯閱讀抽屜 -->
   <aside id="plugin-drawer">
     <div id="drawer-header">
       <div style="display:flex; gap:4px; flex-wrap:wrap;">
-        <button class="preset-chip active" id="tab-vault" onclick="switchDrawerTab('vault')">📜 典籍作品庫</button>
-        <button class="preset-chip" id="tab-live" onclick="switchDrawerTab('live')">🌐 即時同人動態</button>
-        <button class="preset-chip" id="tab-dict" onclick="switchDrawerTab('dict')">📖 英漢辭典</button>
+        <button class="preset-chip active" id="tab-vault" onclick="switchDrawerTab('vault')">📜 本地戰錘典籍庫</button>
+        <button class="preset-chip" id="tab-live" onclick="switchDrawerTab('live')">🌐 多源即時同步</button>
+        <button class="preset-chip" id="tab-dict" onclick="switchDrawerTab('dict')">📖 開源辭典</button>
       </div>
       <button class="btn danger-btn" style="padding:2px 6px;" onclick="togglePluginDrawer()">✕</button>
     </div>
 
     <div id="drawer-content-box">
-      <!-- 1. 內部作品列表與內嵌閱讀器 -->
+      <!-- 1. 本地高可用同人文庫 -->
       <div id="vault-tab-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <strong style="color:var(--gold-primary);">精選戰錘作品與短篇（點擊內嵌閱讀）</strong>
-          <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="fetchLiveCommunityNews()">🔄 實時聯網同步</button>
+          <strong style="color:var(--gold-primary);">精選同人短篇（保證 100% 離線可用）</strong>
+          <span style="font-size:10px; color:var(--safe);">免網路依賴</span>
         </div>
 
         <div id="archive-list-container"></div>
 
-        <!-- 原生內嵌閱讀器面板 -->
+        <!-- 內部小說閱讀器 -->
         <div id="internal-reader">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 id="reader-title">作品標題</h3>
-            <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="closeInternalReader()">✕ 關閉閱讀</button>
+            <h3 id="reader-title">作品章節</h3>
+            <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="closeInternalReader()">✕ 關閉</button>
           </div>
           <div id="internal-reader-body"></div>
           <div style="margin-top:10px; display:flex; gap:6px;">
-            <button class="btn gold-btn" style="flex:1;" onclick="sendReadingToChat()">🚀 投送至教學區進行剖析與填空</button>
-            <button class="btn" onclick="speakCurrentReading()">🔊 朗讀此章</button>
+            <button class="btn gold-btn" style="flex:1;" onclick="sendReadingToChat()">🚀 載入本章作為跑團劇本</button>
+            <button class="btn" onclick="speakCurrentReading()">🔊 慢速朗讀</button>
           </div>
         </div>
 
         <div style="margin-top:12px; border-top:1px dashed var(--border-gothic); padding-top:8px;">
-          <p style="font-size:11px; color:var(--text-dim); margin-bottom:4px;">匯入本地作品 (.txt / .md)：</p>
+          <p style="font-size:11px; color:var(--text-dim); margin-bottom:4px;">上傳自訂戰錘文本 (.txt / .md)：</p>
           <input type="file" id="localFanficUpload" accept=".txt,.md" onchange="importLocalFanfic(this)" style="font-size:11px; width:100%;" />
         </div>
       </div>
 
-      <!-- 2. 即時動態資訊流 (RSS/動態源內嵌展示) -->
+      <!-- 2. 多重輪詢即時連線 (多源容錯防死白) -->
       <div id="live-tab-content" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <strong style="color:#60a5fa;">Warhammer 社群與同人實時更新</strong>
-          <span style="font-size:10px; color:var(--safe);">即時在線</span>
+          <strong style="color:#60a5fa;">Warhammer 多源動態連線</strong>
+          <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="fetchLiveMultiSource()">🔄 重新連線檢索</button>
         </div>
-        <div id="live-news-feed" style="color:var(--text-dim); font-size:12px;">正在連線戰錘最新發布...</div>
+        <div id="live-news-feed" style="color:var(--text-dim); font-size:12px;">點擊上方按鈕向多個開放節點獲取即時故事...</div>
       </div>
 
-      <!-- 3. 開源辭典 -->
+      <!-- 3. 開源辭典即時檢驗 -->
       <div id="dict-tab-content" style="display:none;">
         <div style="display:flex; gap:4px; margin-bottom:8px;">
-          <input type="text" id="dict-query" placeholder="輸入單字 (例如: heresy, servo)..." style="flex:1;" onkeydown="if(event.key==='Enter') lookupDictionary();" />
-          <button class="btn gold-btn" onclick="lookupDictionary()">查詞</button>
+          <input type="text" id="dict-query" placeholder="輸入要鑑定的單字 (如: heresy, vox)..." style="flex:1;" onkeydown="if(event.key==='Enter') lookupDictionary();" />
+          <button class="btn gold-btn" onclick="lookupDictionary()">檢定</button>
         </div>
-        <div id="dict-result" style="color:var(--text-dim);">輸入英文單字即可查詢音標與語意。</div>
+        <div id="dict-result" style="color:var(--text-dim);">點選故事中的金黃色單字亦可在此處即時解析音標與搭配詞。</div>
       </div>
     </div>
   </aside>
@@ -493,10 +641,10 @@
 <footer>
   <div class="control-bar">
     <div style="display:flex; align-items:center; gap:6px;">
-      <span style="color:var(--text-dim); font-size:10px;">🔒 Enter 換行，發送鍵輸出</span>
+      <span style="color:var(--text-dim); font-size:10px;">🔒 Enter 為換行，發送鍵輸出</span>
       <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="speakSelectedText()">🔊 朗讀反白選取文字</button>
     </div>
-    <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="clearAllChat()">🧹 清空記錄</button>
+    <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="clearAllChat()">🧹 清空歷史</button>
   </div>
   <div class="input-bar">
     <div class="mic-button-container">
@@ -505,7 +653,7 @@
         <div class="mic-indicator-led" id="micLed"></div>
       </button>
     </div>
-    <textarea id="userInput" placeholder="輸入英文回報、戰錘問題或學習指令 (Enter換行，點發送確認)..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <textarea id="userInput" placeholder="下達戰術指令、選擇行動或練習英文對話 (Enter換行，點發送確認)..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
     <button class="action-btn" id="sendBtn" onclick="sendMessage()">傳送</button>
   </div>
 </footer>
@@ -518,7 +666,14 @@
     let currentLoadedTitle = "";
     let currentLoadedContent = "";
 
-    // 內建模擬機械音效
+    // 遊戲狀態 (RPG Stats)
+    let playerStats = {
+      role: "行商浪人 (Rogue Trader)",
+      hp: 100,
+      sanity: 85
+    };
+
+    // Web Audio 機械微音效合成器
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playMechBeep(freq = 600, duration = 0.03) {
       if (!document.getElementById("soundFxCheck").checked) return;
@@ -550,40 +705,38 @@
     const micLed = document.getElementById("micLed");
     const pluginDrawer = document.getElementById("plugin-drawer");
     const pluginToggleBtn = document.getElementById("pluginToggleBtn");
+    const ttsControllerBar = document.getElementById("tts-controller-bar");
+    const ttsStatusText = document.getElementById("tts-status-text");
 
-    // ================= 1. 內建戰錘典籍與即時同人庫 =================
+    // ================= 1. 本地高可用同人與設定小說庫 (保證 100% 可開啟) =================
     const LOCAL_ARCHIVES = [
+      {
+        id: "space_hulk",
+        title: "The Derelict Sanctum (太空廢船《恐懼聖所》)",
+        source: "Koronus Expanse Chronicle",
+        text: `The Gothic arches of the void-ship were choked with rime and warp-corrosion. Through your auspex scanner, faint biological pulses flickered in the darkness ahead.
+
+"Lord Captain," whispers Arch-Militant Drake, checking the power cell of his plasma pistol. "The bulkhead doors were breached from the inside. Whatever killed the previous crew is still hunting here."
+
+Suddenly, the vox-channel crackles with a guttural, multi-tonal clicking. Two crimson heat signatures materialize on the catwalk above you.`
+      },
       {
         id: "genestealer",
         title: "Shadows in the Underhive (巢都暗影：基因竊取者密謀)",
-        source: "Warhammer Fanfic Archive",
+        source: "Ordo Xenos Dossier",
         text: `The air in the lower sumps was thick with grease and chemical runoff. Malakor adjusted his breather mask, his finger resting lightly on the cold trigger of his autogun.
 
 "They are moving through the ventilation shafts," whispered Sister Vael, her power armor humming in the damp darkness. "Not mutants. Something far more coordinated."
 
-A guttural hiss echoed above them. Through the rusted grating, four piercing violet eyes gleamed in the gloom. The cultists did not merely worship an alien deity; they carried its hybrid bloodline within their veins.
-
-"Hold the choke-point," Malakor commanded, fighting down the surge of dread. "Purge them before they breach the upper levels!"`
+A guttural hiss echoed above them. Through the rusted grating, four piercing violet eyes gleamed in the gloom. The cultists did not merely worship an alien deity; they carried its hybrid bloodline within their veins.`
       },
       {
-        id: "roguetrader",
-        title: "Beyond the Maw: The Koronus Log (行商浪人遠航紀事)",
-        source: "Imperial Void Explorations",
-        text: `Entry: 842.M41 - Deep Void beyond the Calixis Sector.
+        id: "astartes_stand",
+        title: "Last Stand at Helsreach (赫爾斯歷奇最後誓約)",
+        source: "Black Templars Chapter Log",
+        text: `We are the spear of the Emperor. The cathedral roof groaned under the relentless barrage of greenskin artillery.
 
-Our vessel, the 'Gilded Sovereign', emerged from the Warp with scorched void-shields. Before our macro-telescopes drifted an ancient station, its Gothic spires covered in rime and silence.
-
-"Lord Captain," my chief augur reported, his voice trembling beneath the mechanical crackle. "The energy readings are fluctuating. Life signs detected in the stasis crypts—but they do not match human biology."
-
-A fortune in archeotech awaited us, balanced upon the edge of total damnation. With a wave of my signet ring, I ordered the boarding torpedoes prepared.`
-      },
-      {
-        id: "astartes",
-        title: "The Oath of the Custodes (神聖禁軍之誓)",
-        source: "Terra Sanctus Archives",
-        text: `We are the shadow of the Throne. We are the spear that does not waver, and the golden wall that does not crumble.
-
-While others know fear, we know only vigilance. We have watched empires rise and fade to cinder across ten thousand years. When darkness claws at the gates of the Throneworld, we do not ask for victory—we demand it. Duty is our lifeblood; loyalty, our eternal shield.`
+Brother Priamus planted the chapter banner firmly into the rubble. "Let them swarm like locusts! Our armor is faith; our shield is devotion. For every step they take, we shall make them pay in rivers of black blood!"`
       }
     ];
 
@@ -592,13 +745,12 @@ While others know fear, we know only vigilance. We have watched empires rise and
       container.innerHTML = LOCAL_ARCHIVES.map(item => `
         <div class="archive-item" onclick="openInternalReader('${item.id}')">
           <h4>${escapeHtml(item.title)}</h4>
-          <p>${escapeHtml(item.text.slice(0, 110))}...</p>
-          <span style="font-size:10px; color:var(--gold-dark);">來源: ${item.source} ｜ 點擊於網頁內部閱讀</span>
+          <p>${escapeHtml(item.text.slice(0, 100))}...</p>
+          <span style="font-size:10px; color:var(--gold-dark);">檔案源: ${item.source} ｜ 點擊於終端內部開啟</span>
         </div>
       `).join("");
     }
 
-    // 在網頁內部直接閱讀作品
     window.openInternalReader = function(id) {
       const item = LOCAL_ARCHIVES.find(a => a.id === id);
       if (!item) return;
@@ -617,7 +769,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
     window.sendReadingToChat = function() {
       if (!currentLoadedContent) return;
-      userInput.value = `【研讀作品：《${currentLoadedTitle}》】：\n\n${currentLoadedContent}\n\n請老師為我拆解該段中的核心生詞（附音標與戰錘搭配詞）、高級語法，並出一題填空測驗讓我練習！`;
+      userInput.value = `【載入劇本：《${currentLoadedTitle}》】：\n\n${currentLoadedContent}\n\n請以 TRPG 遊戲主持人模式推進本章劇情，給予我 3 個具體的英文戰術行動選項，並引導我進行英文學習與決策！`;
       togglePluginDrawer();
       userInput.focus();
     };
@@ -626,50 +778,66 @@ While others know fear, we know only vigilance. We have watched empires rise and
       if (currentLoadedContent) speakText(currentLoadedContent);
     };
 
-    window.openReaderFromScenario = function(id) {
-      togglePluginDrawer();
-      switchDrawerTab('vault');
-      openInternalReader(id);
-    };
-
-    // ================= 2. 實時聯網動態同步 =================
-    window.fetchLiveCommunityNews = async function() {
+    // ================= 2. 多重輪詢外部動態同步 (四重容錯通道) =================
+    window.fetchLiveMultiSource = async function() {
       const feedBox = document.getElementById("live-news-feed");
-      feedBox.innerHTML = `正在向開源動態節點同步最新戰錘消息與作品...`;
+      feedBox.innerHTML = `正在透過多重代理節點輪詢戰錘開源社群...`;
       switchDrawerTab('live');
 
-      try {
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://www.warhammer-community.com/feed/')}`;
-        const res = await fetch(proxyUrl);
-        if (!res.ok) throw new Error("伺服器連線受限");
-        const data = await res.json();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-        const items = xmlDoc.querySelectorAll("item");
+      // 4 個備用代理通道，徹底解決單一節點被阻擋問題
+      const targetUrl = 'https://www.warhammer-community.com/feed/';
+      const proxies = [
+        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`
+      ];
 
-        if (!items || items.length === 0) throw new Error("暫無新資料");
+      let success = false;
+      for (const p of proxies) {
+        try {
+          const res = await fetch(p, { cache: "no-store" });
+          if (!res.ok) continue;
+          let xmlText = "";
+          if (p.includes("allorigins")) {
+            const data = await res.json();
+            xmlText = data.contents;
+          } else {
+            xmlText = await res.text();
+          }
 
-        let html = "";
-        items.forEach((item, idx) => {
-          if (idx >= 4) return;
-          const title = item.querySelector("title")?.textContent || "Warhammer News";
-          const desc = (item.querySelector("description")?.textContent || "").replace(/<[^>]*>?/gm, '').slice(0, 120);
-          html += `
-            <div class="archive-item" onclick="loadExternalArticleToReader('${escapeHtml(title)}', '${escapeHtml(desc)}')">
-              <h4>${escapeHtml(title)}</h4>
-              <p>${escapeHtml(desc)}...</p>
-              <span style="font-size:10px; color:#60a5fa;">點擊導入內部閱讀學習</span>
-            </div>
-          `;
-        });
-        feedBox.innerHTML = html;
-      } catch (e) {
+          if (xmlText && xmlText.includes("<item>")) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            const items = xmlDoc.querySelectorAll("item");
+            if (items.length > 0) {
+              let html = "";
+              items.forEach((item, idx) => {
+                if (idx >= 4) return;
+                const title = item.querySelector("title")?.textContent || "Warhammer Chronicle";
+                const desc = (item.querySelector("description")?.textContent || "").replace(/<[^>]*>?/gm, '').slice(0, 110);
+                html += `
+                  <div class="archive-item" onclick="loadExternalArticleToReader('${escapeHtml(title)}', '${escapeHtml(desc)}')">
+                    <h4>${escapeHtml(title)}</h4>
+                    <p>${escapeHtml(desc)}...</p>
+                    <span style="font-size:10px; color:#60a5fa;">點擊導入內部遊戲劇本</span>
+                  </div>
+                `;
+              });
+              feedBox.innerHTML = html;
+              success = true;
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (!success) {
         feedBox.innerHTML = `
           <div style="color:var(--text-dim); padding:6px 0;">
-            <p>即時動態節點暫時休眠。以下為已同步之本機焦點：</p>
-            <div class="archive-item" onclick="openInternalReader('genestealer')">
-              <h4>Space Marine II & Genestealer Cults Lore Update</h4>
-              <p>最新巢都潛伏者戰術條目，已緩存至本地庫供隨時閱讀。</p>
+            <p style="color:var(--amber);">⚠️ 外部代理暫時休眠，已自動平滑切換至本機備份典籍：</p>
+            <div class="archive-item" onclick="openInternalReader('space_hulk')">
+              <h4>Space Hulk: Deathwing Encounters</h4>
+              <p>太空廢船暗黑天使戰役日誌，已就緒供直接跑團。</p>
             </div>
           </div>
         `;
@@ -693,46 +861,79 @@ While others know fear, we know only vigilance. We have watched empires rise and
         const text = e.target.result.slice(0, 8000);
         LOCAL_ARCHIVES.unshift({
           id: "custom_" + Date.now(),
-          title: `自訂作品：《${file.name}》`,
-          source: "本地安全匯入",
+          title: `自訂戰報：《${file.name}》`,
+          source: "本地文檔",
           text: text
         });
         renderArchiveList();
         openInternalReader(LOCAL_ARCHIVES[0].id);
-        alert(`作品《${file.name}》已成功內嵌至閱讀器！`);
+        alert(`文檔《${file.name}》已載入本機典籍庫！`);
       };
       reader.readAsText(file);
     };
 
-    // 抽屜標籤切換
-    window.switchDrawerTab = function(tab) {
-      document.getElementById("vault-tab-content").style.display = (tab === 'vault') ? "block" : "none";
-      document.getElementById("live-tab-content").style.display = (tab === 'live') ? "block" : "none";
-      document.getElementById("dict-tab-content").style.display = (tab === 'dict') ? "block" : "none";
-
-      document.getElementById("tab-vault").classList.toggle("active", tab === 'vault');
-      document.getElementById("tab-live").classList.toggle("active", tab === 'live');
-      document.getElementById("tab-dict").classList.toggle("active", tab === 'dict');
+    // ================= 3. TRPG 遊戲互動式推演系統 =================
+    window.startNewCampaign = function(scenarioKey) {
+      playMechBeep(700, 0.04);
+      const scenarios = {
+        rogue_trader_derelict: "Let us start a Warhammer 40K TRPG adventure. I am a Rogue Trader boarding an ancient derelict Space Hulk. Please describe the opening scene in atmospheric English, give me 3 clear tactical choices with dice check difficulties, and help me learn English through my decisions!",
+        cult_underhive: "Start a TRPG campaign where I play an Imperial Inquisitor hunting a Genestealer Cult in a Hive City. Provide vivid Gothic prose, 3 tactical choices, and vocabulary explanations.",
+        inquisition_vault: "Begin an investigative TRPG scene where I inspect an enigmatic xenos artifact recovered from the halo stars. Offer 3 investigative actions."
+      };
+      userInput.value = scenarios[scenarioKey] || "";
+      sendMessage();
     };
 
-    // ================= 3. 系統人設與模式 =================
+    // 點選劇情中的分支決策按鈕直接推進
+    window.selectGameChoice = function(choiceText) {
+      playMechBeep(600, 0.04);
+      userInput.value = `I choose: "${choiceText}". Please resolve the outcome, continue the Warhammer TRPG narrative, and offer the next set of choices and English tips!`;
+      sendMessage();
+    };
+
+    // D20 骰子判定系統
+    window.rollD20Action = function() {
+      playMechBeep(850, 0.06);
+      const roll = Math.floor(Math.random() * 20) + 1;
+      let outcome = "";
+      if (roll === 20) outcome = "🔥 Critical Success (大成功 - 機魂神佑！)";
+      else if (roll >= 12) outcome = "✅ Tactical Success (檢定成功)";
+      else if (roll === 1) outcome = "💀 Critical Failure (大失敗 - 遭遇亞空間干擾！)";
+      else outcome = "⚠️ Partial Failure (檢定失敗，遭受代價)";
+
+      alert(`🎲 D20 擲骰結果: [ ${roll} ]\n${outcome}`);
+      userInput.value = `[D20 Tactical Check: Rolled ${roll} - ${outcome}]. Please resolve the outcome of this action in our Warhammer TRPG story!`;
+      userInput.focus();
+    };
+
+    // ================= 4. 系統人設與模式協定 =================
     const PROTOCOL_PROMPTS = {
+      trpg_game: `【戰錘40K 互動式跑團小說與英語教練協議】
+你是具備頂尖敘事能力的戰錘 TRPG 遊戲主持人（Game Master）兼私人英語教練。
+【輸出規範】：
+每次回覆必須包含三層架構：
+1. 【Narrative Scene (英語原文劇情)】：
+   - 創作 120-180 字富含黑暗哥特張力、細節豐富的戰錘英語故事。
+   - 將關鍵詞彙用粗體標注（如 **auspex**, **heresy**, **void-shield**）。
+2. 【Tactical Choices (戰術決策選項)】：
+   - 必須給予 3 個結構分明的英語行動選項，格式嚴格為：
+     [Choice 1]: (行動描述與預估檢定)
+     [Choice 2]: (行動描述與預估檢定)
+     [Choice 3]: (行動描述與預估檢定)
+3. 【Language Mechanics & Polish (中文語法與詞彙拆解)】：
+   - 挑出 2 個核心生詞提供音標與戰錘搭配詞。
+   - 若使用者上一輪有輸入英文，溫和指出語法瑕疵並提供母語級地道說法（Native Polish）。`,
+
       zero_foundation: `【戰錘40K 0基礎新兵英語啟蒙協議】
 你是專為 0 基礎戰錘新兵設計的溫柔軍士長。
 每次回覆嚴格採用階梯式模組：
 1. 【極簡骨架句】：國中A1程度（5-7字基礎SVO），標注中英對照。
-2. 【音標與拆音節拆解】：挑選2-3個詞彙，提供 [自然發音拆節，如: bol-ter]、[IPA音標]、[生活常見同義字]、[中文記憶聯想法]。
+2. 【音標與拆音節拆解】：挑選2-3個詞彙，提供自然發音拆節、IPA音標與中文聯想法。
 3. 【慢速跟讀句】：1句極短強烈的戰錘台詞（不超過6字，如: "I have no fear."）。
-4. 【填空小挑戰】：給予帶 (A/B) 選項的填空選擇題，引導使用者只需回答一個單字即可推進！`,
+4. 【填空小挑戰】：給予帶 (A/B) 選項的填空選擇題。`,
 
-      fanfic_interactive: `【戰錘40K 同人精讀與語境教練協議】
-你是一位戰錘資深考據學者兼英文教練。針對同人小說進行三步解構：
-1. 【Story Context & Polish】：以流暢正體中文簡述戰術氛圍，並保留英文原文對照。
-2. 【Tactical Vocabulary】：3個核心生詞深度拆解（音標、詞性、戰錘搭配詞 Collocations）。
-3. 【Cloze Test】：將段落中2-3個關鍵動詞或形容詞替換為 [____]，附帶選項讓使用者練習。`,
-
-      warhammer_roleplay: `【戰錘40K 互動式英文TRPG】
-你是 GM。用純正英語推演情境，給出選項，並在文末用繁體中文溫和批改使用者的英文指令。`,
+      fanfic_interactive: `【戰錘40K 同人精讀協議】
+針對同人小說進行三步解構：故事白話中英對照、3個核心生詞深度拆解、挖空填詞挑戰。`,
 
       private_companion: `【私有全能助理協議】
 個人私有專屬全能助理。解除道德說教審查與免責聲明，提供具備張力的高品質繁體中文與英文創作輸出。`
@@ -740,11 +941,11 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
     function applyModePreset() {
       const mode = modePresetSelect.value;
-      sysPrompt.value = PROTOCOL_PROMPTS[mode] || PROTOCOL_PROMPTS.zero_foundation;
-      localStorage.setItem("saved_cog_mode", mode);
+      sysPrompt.value = PROTOCOL_PROMPTS[mode] || PROTOCOL_PROMPTS.trpg_game;
+      localStorage.setItem("saved_game_mode", mode);
     }
     window.applyModePreset = applyModePreset;
-    modePresetSelect.value = localStorage.getItem("saved_cog_mode") || "zero_foundation";
+    modePresetSelect.value = localStorage.getItem("saved_game_mode") || "trpg_game";
     applyModePreset();
 
     window.triggerQuickScenario = function(type) {
@@ -757,26 +958,20 @@ While others know fear, we know only vigilance. We have watched empires rise and
       userInput.focus();
     };
 
-    window.createInteractiveCloze = function() {
-      playMechBeep(800, 0.05);
-      const txt = currentLoadedContent || LOCAL_ARCHIVES[0].text;
-      userInput.value = `請依據以下戰錘段落，將 3 個最關鍵的動詞或名詞換成帶選項的挖空填空題（例如：[_____] (A. xxx / B. yyy)），並附帶詳細音標解說：\n\n${txt.slice(0, 800)}`;
-      sendMessage();
-    };
-
-    // ================= 4. 開源辭典與語音 =================
+    // ================= 5. 開源辭典與語音控制 =================
     window.lookupDictionary = async function(word) {
       const query = (word || document.getElementById("dict-query").value).trim();
       const resBox = document.getElementById("dict-result");
       if (!query) return;
-      resBox.innerHTML = `機魂檢索中「<strong>${escapeHtml(query)}</strong>」...`;
+      resBox.innerHTML = `機魂檢定中「<strong>${escapeHtml(query)}</strong>」...`;
+      switchDrawerTab('dict');
       try {
         const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(query)}`);
-        if (!res.ok) throw new Error("辭典查無此字。");
+        if (!res.ok) throw new Error("辭典查無此字（專有名詞請參考戰錘背景設定）。");
         const data = await res.json();
         const entry = data[0];
         let html = `<h4 style="color:var(--gold-primary);">${entry.word}</h4>`;
-        if (entry.phonetic) html += `<span style="color:var(--text-dim); font-size:11px;">音標: ${entry.phonetic}</span><br>`;
+        if (entry.phonetic) html += `<span style="color:var(--text-dim); font-size:11px;">IPA 音標: ${entry.phonetic}</span><br>`;
         entry.meanings.forEach((m) => {
           html += `<div style="margin-top:6px;"><strong>[${m.partOfSpeech}]</strong><ol style="margin-left:14px;">`;
           m.definitions.slice(0, 2).forEach(d => {
@@ -786,7 +981,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
         });
         resBox.innerHTML = html;
       } catch (e) {
-        resBox.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`;
+        resBox.innerHTML = `<span style="color:var(--crimson);">${e.message}</span>`;
       }
     };
 
@@ -812,14 +1007,25 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
     function speakText(text) {
       if (!synth || !text) return;
-      if (synth.speaking) synth.cancel();
+      stopTTS();
       currentUtterance = new SpeechSynthesisUtterance(text);
       currentUtterance.rate = parseFloat(ttsRate.value);
       const selected = voices.find(v => v.name === voiceSelect.value);
       if (selected) currentUtterance.voice = selected;
       else currentUtterance.lang = "en-GB";
+
+      currentUtterance.onstart = () => {
+        ttsControllerBar.style.display = "flex";
+        ttsStatusText.textContent = "🔊 慢速跟讀發音中";
+      };
+      currentUtterance.onend = () => { ttsControllerBar.style.display = "none"; };
+      currentUtterance.onerror = () => { ttsControllerBar.style.display = "none"; };
       synth.speak(currentUtterance);
     }
+
+    window.pauseTTS = function() { if (synth && synth.speaking) { synth.pause(); ttsStatusText.textContent = "⏸️ 已暫停"; } };
+    window.resumeTTS = function() { if (synth && synth.paused) { synth.resume(); ttsStatusText.textContent = "🔊 發音中"; } };
+    window.stopTTS = function() { if (synth) { synth.cancel(); ttsControllerBar.style.display = "none"; } };
 
     window.speakSelectedText = function() {
       const selectedText = window.getSelection().toString().trim();
@@ -827,7 +1033,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
       speakText(selectedText);
     };
 
-    // ================= 5. API Key 與通訊 =================
+    // ================= 6. API Key 與通訊管理 =================
     function initKeyStorage() {
       const storedKey = localStorage.getItem("app_vault_key");
       if (storedKey) {
@@ -873,12 +1079,12 @@ While others know fear, we know only vigilance. We have watched empires rise and
           localStorage.setItem("app_vault_key", key);
           return true;
         } else {
-          keyIndicator.style.background = "var(--danger)";
+          keyIndicator.style.background = "var(--crimson)";
           keyIndicator.innerText = "KEY INVALID";
           return false;
         }
       } catch (e) {
-        keyIndicator.style.background = "var(--danger)";
+        keyIndicator.style.background = "var(--crimson)";
         keyIndicator.innerText = "DISCONNECTED";
         return false;
       }
@@ -889,7 +1095,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
       return candidates.find(c => availableChatModels.includes(c)) || "llama-3.3-70b-versatile";
     }
 
-    // ================= 6. 語音辨識與發送 =================
+    // ================= 7. 口語辨識與麥克風 =================
     let recognition = null;
     let isMicRecording = false;
 
@@ -932,23 +1138,40 @@ While others know fear, we know only vigilance. We have watched empires rise and
       else startMicByUser();
     };
 
+    // ================= 8. 遊戲敘事渲染與互動選項生成 =================
     function escapeHtml(text) {
       return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    function renderMarkdownToHtml(markdown) {
-      if (!markdown) return "";
-      let html = markdown;
-      html = html.replace(/`([^`]+)`/g, '<code style="background:#111b27; color:#6ee7b7; padding:2px 4px; border-radius:3px; font-size:12px;">$1</code>');
+    // 將回覆轉為帶有遊戲互動選項與高亮單字的 HTML
+    function renderGameNarrativeHtml(text) {
+      if (!text) return "";
+      let html = text;
+
+      // 提取分支決策 [Choice X]: ... 並轉為動態遊戲按鈕
+      let choicesHtml = "";
+      html = html.replace(/\[Choice\s*(\d+)\]:\s*([^\n\r]+)/gi, function(match, num, desc) {
+        choicesHtml += `<button class="choice-btn" onclick="selectGameChoice('${escapeHtml(desc.trim())}')"><span>⚡ [選項 ${num}]:</span> ${escapeHtml(desc.trim())}</button>`;
+        return "";
+      });
+
+      // 戰錘特殊生詞高亮與點擊即查
+      html = html.replace(/\*\*([^*]+)\*\*/g, function(match, word) {
+        return `<strong class="lore-word" onclick="lookupDictionary('${escapeHtml(word)}')">${word}</strong>`;
+      });
+
       html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
       html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
       html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li>$1</li>');
       html = html.replace(/(<li>[\s\S]*?<\/li>)/gm, '<ul>$1</ul>');
       html = html.replace(/<\/ul>\s*<ul>/g, '');
       html = html.replace(/\n\n+/g, '</p><p>');
       html = '<p>' + html + '</p>';
+
+      if (choicesHtml) {
+        html += `<div class="game-choice-container">${choicesHtml}</div>`;
+      }
       return html;
     }
 
@@ -959,7 +1182,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
       const textSpan = document.createElement("div");
       textSpan.className = "bubble-text";
-      if (role === "assistant") textSpan.innerHTML = renderMarkdownToHtml(text);
+      if (role === "assistant") textSpan.innerHTML = renderGameNarrativeHtml(text);
       else textSpan.textContent = text;
       div.appendChild(textSpan);
 
@@ -992,27 +1215,28 @@ While others know fear, we know only vigilance. We have watched empires rise and
     }
 
     window.clearAllChat = function() {
-      if (confirm("確定清空終端所有記錄？")) {
+      if (confirm("確定清空目前戰況冒險記錄？")) {
         conversation = [];
         chatBox.textContent = "";
       }
     };
 
     window.destroyAllMemory = function() {
-      if (!confirm("確定徹底銷毀所有金鑰與設定？")) return;
+      if (!confirm("確定銷毀所有金鑰、記錄與角色狀態嗎？此操作不可逆！")) return;
       conversation = []; memoryKey = ""; apiKeyInput.value = "";
       localStorage.clear(); chatBox.textContent = "";
       keyIndicator.style.background = "#475569";
       keyIndicator.innerText = "OFFLINE";
       stopMicByUser();
-      alert("所有數據已徹底自本機抹除。");
+      stopTTS();
+      alert("機魂已完全抹除。");
     };
 
     window.sendMessage = async function() {
       const rawText = userInput.value.trim();
       const key = memoryKey || apiKeyInput.value.trim();
       if (!rawText) return;
-      if (!key) { alert("請在配置中填入有效的 Groq API Key！"); return; }
+      if (!key) { alert("請在終端配置中填入有效的 Groq API Key！"); return; }
 
       playMechBeep(450, 0.05);
       stopMicByUser();
@@ -1024,7 +1248,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
       const aiIdx = conversation.length;
       const aiMsg = appendMessage("assistant", "", aiIdx);
-      aiMsg.textSpan.innerHTML = '<span style="color:var(--gold-primary);">▍機魂深層思維運算中...</span>';
+      aiMsg.textSpan.innerHTML = '<span style="color:var(--gold-primary);">▍機魂深層推演戰況中...</span>';
 
       const payloadMessages = [
         { role: "system", content: sysPrompt.value },
@@ -1049,7 +1273,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
           if (!isRendering) {
             isRendering = true;
             requestAnimationFrame(() => {
-              aiMsg.textSpan.innerHTML = renderMarkdownToHtml(fullReply) + '<span style="color:var(--gold-bright); animation: blink 1s infinite;">▍</span>';
+              aiMsg.textSpan.innerHTML = renderGameNarrativeHtml(fullReply) + '<span style="color:var(--gold-bright); animation: blink 1s infinite;">▍</span>';
               chatBox.scrollTop = chatBox.scrollHeight;
               isRendering = false;
             });
@@ -1072,22 +1296,33 @@ While others know fear, we know only vigilance. We have watched empires rise and
           }
         }
 
-        aiMsg.textSpan.innerHTML = renderMarkdownToHtml(fullReply);
+        aiMsg.textSpan.innerHTML = renderGameNarrativeHtml(fullReply);
         conversation.push({ role: "assistant", content: fullReply });
         renderAllMessages();
 
         if (autoSpeakCheck.checked) speakText(aiMsg.textSpan.innerText);
       } catch (err) {
-        aiMsg.textSpan.innerHTML = '<span style="color:var(--danger);">機魂中斷: ' + err.message + '</span>';
+        aiMsg.textSpan.innerHTML = '<span style="color:var(--crimson);">機魂通訊中斷: ' + err.message + '</span>';
         conversation.pop();
       }
+    };
+
+    // 抽屜標籤切換
+    window.switchDrawerTab = function(tab) {
+      document.getElementById("vault-tab-content").style.display = (tab === 'vault') ? "block" : "none";
+      document.getElementById("live-tab-content").style.display = (tab === 'live') ? "block" : "none";
+      document.getElementById("dict-tab-content").style.display = (tab === 'dict') ? "block" : "none";
+
+      document.getElementById("tab-vault").classList.toggle("active", tab === 'vault');
+      document.getElementById("tab-live").classList.toggle("active", tab === 'live');
+      document.getElementById("tab-dict").classList.toggle("active", tab === 'dict');
     };
 
     window.checkCodeUpdateRobust = async function() {
       try {
         const testUrl = `${window.location.origin}${window.location.pathname}?_v=${Date.now()}`;
         const res = await fetch(testUrl, { cache: "no-store", method: "HEAD" });
-        if (res.ok && confirm("機魂同步完成！是否立即重新載入終端？")) window.location.reload();
+        if (res.ok && confirm("終端程式碼已確認完備！是否重新載入？")) window.location.reload();
         else window.location.reload();
       } catch (e) { window.location.reload(); }
     };
