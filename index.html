@@ -5,24 +5,22 @@
   <meta name="referrer" content="no-referrer" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://api.dictionaryapi.dev; frame-src https:; img-src 'self' data: blob:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>戰錘40K 英語同人互動學習終端</title>
+  <title>ADEPTUS MECHANICUS COGITATOR TERMINAL</title>
   <style>
     :root {
-      --bg: #07090e;
-      --card: #0e131f;
-      --panel: #0a0f1a;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-      --user: #1e3a8a;
-      --ai: #111827;
-      --border: #1e293b;
-      --danger: #ef4444;
-      --safe: #10b981;
-      --warhammer-gold: #eab308;
-      --code-bg: #030712;
-      --drawer-bg: rgba(10, 15, 26, 0.98);
+      --bg: #05070a;
+      --terminal-black: #080d12;
+      --gold-primary: #d4af37;
+      --gold-bright: #ffd700;
+      --gold-dark: #8c7322;
+      --green-glow: #10b981;
+      --cog-amber: #f59e0b;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --purity-seal: #b91c1c;
+      --border-gothic: #2a384c;
+      --bubble-user: #172554;
+      --bubble-ai: #0b1320;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -32,104 +30,122 @@
       background: var(--bg);
       color: var(--text);
       overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      font-family: ui-monospace, "SF Mono", "Courier New", monospace, "PingFang TC", "Microsoft JhengHei", sans-serif;
     }
     body {
       display: flex;
       flex-direction: column;
-      padding-top: env(safe-area-inset-top, 0px);
-      padding-right: env(safe-area-inset-right, 0px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      padding-left: env(safe-area-inset-left, 0px);
+      padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
       position: relative;
     }
+
+    /* 哥特CRT微光掃描線背景 */
+    body::before {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      z-index: 99;
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
     header {
-      padding: 10px 18px;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      background: var(--terminal-black);
+      border-bottom: 2px solid var(--gold-dark);
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-shrink: 0;
-      gap: 8px;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.8);
       z-index: 20;
     }
     .status-badge {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: var(--safe);
-      color: #fff;
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      background: var(--green-glow);
+      color: #000;
+      font-weight: 700;
+      letter-spacing: 0.05em;
     }
+
     .btn {
-      background: transparent;
-      border: 1px solid var(--border);
+      background: #0d1520;
+      border: 1px solid var(--border-gothic);
       color: var(--text);
       cursor: pointer;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 11px;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       transition: all 0.15s ease;
+      font-family: inherit;
     }
-    .btn:hover { background: #1a2333; border-color: var(--accent); }
-    .btn-active { background: var(--accent) !important; color: #fff; border-color: var(--accent); }
-    .gold-btn { border-color: var(--warhammer-gold); color: var(--warhammer-gold); }
-    .gold-btn:hover { background: rgba(234, 179, 8, 0.15); }
-    .danger-btn { border-color: var(--danger); color: #fca5a5; }
+    .btn:hover { background: #162234; border-color: var(--gold-primary); color: #fff; }
+    .gold-btn { border-color: var(--gold-primary); color: var(--gold-primary); }
+    .gold-btn:hover { background: rgba(212, 175, 55, 0.15); }
+    .danger-btn { border-color: var(--purity-seal); color: #fca5a5; }
 
     #settings-panel {
       display: none;
-      background: var(--panel);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 18px;
-      gap: 12px;
+      background: #090f17;
+      border-bottom: 2px solid var(--gold-dark);
+      padding: 12px 14px;
+      gap: 10px;
       flex-direction: column;
-      font-size: 13px;
+      font-size: 12px;
       max-height: 60vh;
       overflow-y: auto;
       flex-shrink: 0;
       z-index: 20;
     }
-    .panel-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .panel-row label { min-width: 95px; color: var(--muted); }
+    .panel-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .panel-row label { min-width: 90px; color: var(--gold-primary); font-size: 11px; }
     input, select, textarea, button {
-      font-size: 13px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: #07090e;
+      font-size: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-gothic);
+      background: #030508;
       color: var(--text);
-      padding: 6px 10px;
+      padding: 6px 8px;
       outline: none;
+      font-family: inherit;
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    input:focus, select:focus, textarea:focus { border-color: var(--gold-primary); box-shadow: 0 0 6px rgba(212,175,55,0.3); }
 
-    /* 同人作品與情境引導列 */
+    /* 機魂戰術情境列 */
     #scenario-bar {
-      padding: 8px 18px;
-      background: #090e18;
-      border-bottom: 1px solid var(--border);
+      padding: 6px 12px;
+      background: #06090e;
+      border-bottom: 1px solid var(--border-gothic);
       display: flex;
-      gap: 8px;
+      gap: 6px;
       overflow-x: auto;
       flex-shrink: 0;
       align-items: center;
+      scrollbar-width: none;
     }
+    #scenario-bar::-webkit-scrollbar { display: none; }
     .scenario-chip {
-      background: #151d2f;
-      border: 1px solid #2d3b55;
+      background: #0c121a;
+      border: 1px solid #1e2c3d;
       color: #93c5fd;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 11.5px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.15s;
     }
-    .scenario-chip:hover { border-color: var(--warhammer-gold); color: #fff; }
-    .active-novel-chip { border-color: var(--warhammer-gold) !important; color: #fff !important; background: #262112 !important; }
+    .scenario-chip:hover { border-color: var(--gold-primary); color: #fff; }
+    .zero-chip { border-color: var(--green-glow) !important; color: #a7f3d0 !important; }
 
     #workspace {
       flex: 1;
@@ -141,101 +157,100 @@
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 20px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 14px;
       contain: layout;
     }
     .bubble {
-      max-width: 86%;
-      padding: 16px 20px;
-      border-radius: 12px;
-      line-height: 1.8;
+      max-width: 90%;
+      padding: 14px 16px;
+      border-radius: 8px;
+      line-height: 1.7;
       word-break: break-word;
-      font-size: 15px;
-      letter-spacing: 0.02em;
+      font-size: 14px;
+      position: relative;
     }
     .user { 
       align-self: flex-end; 
-      background: var(--user); 
+      background: var(--bubble-user); 
+      border: 1px solid #2563eb;
       color: #fff; 
       white-space: pre-wrap; 
     }
     .assistant { 
       align-self: flex-start; 
-      background: var(--ai); 
+      background: var(--bubble-ai); 
       color: #e2e8f0; 
-      border: 1px solid var(--border); 
-      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+      border: 1px solid var(--border-gothic); 
+      box-shadow: 0 4px 18px rgba(0,0,0,0.6);
     }
-    .assistant h1, .assistant h2, .assistant h3 { margin: 14px 0 8px 0; color: #60a5fa; }
-    .assistant h1 { font-size: 1.35em; border-bottom: 1px solid #1e293b; padding-bottom: 4px; }
-    .assistant p { margin-bottom: 8px; }
-    .assistant strong { color: var(--warhammer-gold); font-weight: 600; }
+    /* 哥特風格字體裝飾 */
+    .assistant h1, .assistant h2, .assistant h3 { margin: 12px 0 6px 0; color: var(--gold-primary); letter-spacing: 0.04em; }
+    .assistant h1 { font-size: 1.3em; border-bottom: 1px solid var(--gold-dark); padding-bottom: 3px; }
+    .assistant strong { color: var(--gold-bright); font-weight: 600; }
+    .assistant blockquote { border-left: 3px solid var(--gold-dark); padding-left: 8px; margin: 8px 0; color: #94a3b8; font-style: italic; }
     
-    /* 互動填空樣式 */
-    .cloze-input {
-      background: #030712;
-      border: 1px solid var(--warhammer-gold);
-      color: #38bdf8;
-      font-weight: 600;
-      padding: 2px 6px;
+    .code-container {
+      position: relative;
+      background: var(--code-bg);
+      border: 1px solid var(--border-gothic);
       border-radius: 4px;
-      min-width: 70px;
-      text-align: center;
-      display: inline-block;
-      margin: 0 3px;
+      margin: 8px 0;
+      overflow: hidden;
     }
-    .cloze-input.correct { border-color: var(--safe); color: var(--safe); background: rgba(16, 185, 129, 0.1); }
-    .cloze-input.wrong { border-color: var(--danger); color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 8px;
+      background: #090e18;
+      font-size: 10.5px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border-gothic);
+    }
+    .code-copy-btn { background: transparent; border: none; color: var(--gold-primary); cursor: pointer; font-size: 10.5px; }
+    pre { padding: 8px; overflow-x: auto; font-size: 12px; line-height: 1.5; color: #6ee7b7; }
 
     .bubble-tools {
       display: flex;
       justify-content: flex-end;
-      gap: 8px;
-      margin-top: 12px;
+      gap: 6px;
+      margin-top: 10px;
       border-top: 1px solid rgba(255,255,255,0.06);
-      padding-top: 6px;
+      padding-top: 4px;
     }
     .tool-btn {
       background: transparent;
       border: none;
       color: var(--muted);
       cursor: pointer;
-      font-size: 11px;
-      padding: 3px 6px;
-      border-radius: 4px;
+      font-size: 10.5px;
+      padding: 2px 4px;
     }
-    .tool-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .tool-btn:hover { color: var(--gold-bright); }
 
-    /* 懸浮播放控制器 */
+    /* 懸浮發音播放控制器 */
     #tts-controller-bar {
       display: none;
       position: absolute;
-      bottom: 70px;
+      bottom: 72px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid var(--accent);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-      border-radius: 30px;
-      padding: 6px 16px;
+      background: rgba(8, 13, 20, 0.95);
+      border: 1px solid var(--gold-primary);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+      border-radius: 20px;
+      padding: 5px 14px;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       z-index: 40;
-      font-size: 12px;
+      font-size: 11px;
     }
-    .tts-ctrl-btn {
-      background: transparent;
-      border: none;
-      color: var(--text);
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .tts-ctrl-btn:hover { color: #60a5fa; }
+    .tts-ctrl-btn { background: transparent; border: none; color: var(--text); cursor: pointer; font-size: 13px; }
 
-    /* 側邊欄：同人庫與開源辭典 */
+    /* 帝國典籍庫與外掛沙盒面板 (手機端自動自適應為底部升起面板) */
     #plugin-drawer {
       display: none;
       position: absolute;
@@ -243,62 +258,61 @@
       right: 0;
       bottom: 0;
       width: 48%;
-      min-width: 330px;
+      min-width: 320px;
       max-width: 100%;
       background: var(--drawer-bg);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-left: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-left: 2px solid var(--gold-dark);
       flex-direction: column;
       z-index: 30;
-      box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.7);
     }
     #drawer-header {
       padding: 8px 12px;
-      background: rgba(7, 10, 18, 0.95);
-      border-bottom: 1px solid var(--border);
+      background: #040609;
+      border-bottom: 1px solid var(--border-gothic);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 6px;
-      font-size: 12px;
+      gap: 4px;
       flex-shrink: 0;
     }
     .preset-chip {
-      background: #1e293b;
+      background: #0c121c;
       color: var(--muted);
-      border: 1px solid var(--border);
-      font-size: 11px;
+      border: 1px solid var(--border-gothic);
+      font-size: 10.5px;
       padding: 3px 6px;
       border-radius: 4px;
       cursor: pointer;
     }
-    .preset-chip:hover { color: #fff; border-color: var(--accent); }
+    .preset-chip:hover { color: var(--gold-bright); border-color: var(--gold-primary); }
     
     #drawer-content-box {
-      padding: 14px;
+      padding: 12px;
       overflow-y: auto;
       flex: 1;
-      font-size: 13px;
-      line-height: 1.7;
+      font-size: 12px;
+      line-height: 1.6;
     }
-    .novel-card {
-      background: #111a2e;
-      border: 1px solid #1e293b;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
+    .archive-card {
+      background: #090e18;
+      border: 1px solid var(--border-gothic);
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
     }
-    .novel-card h4 { color: var(--warhammer-gold); margin-bottom: 6px; font-size: 14px; }
-    .novel-card p { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .archive-card h4 { color: var(--gold-primary); margin-bottom: 4px; font-size: 12.5px; }
+    .archive-card p { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 
     footer {
-      padding: 10px 16px;
-      background: var(--card);
-      border-top: 1px solid var(--border);
+      padding: 8px 12px;
+      background: var(--terminal-black);
+      border-top: 1px solid var(--border-gothic);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       flex-shrink: 0;
       z-index: 20;
     }
@@ -306,56 +320,44 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 11px;
     }
-    .input-bar { display: flex; gap: 8px; align-items: center; }
+    .input-bar { display: flex; gap: 6px; align-items: center; }
     textarea { 
       flex: 1; 
       resize: none; 
-      height: 48px; 
-      line-height: 22px; 
-      padding: 11px 14px; 
+      height: 44px; 
+      line-height: 20px; 
+      padding: 10px; 
+      font-size: 13px;
     }
     .action-btn {
-      background: var(--accent);
-      color: #fff;
+      background: var(--gold-primary);
+      color: #000;
       border: none;
       cursor: pointer;
-      font-weight: 600;
-      padding: 0 20px;
-      height: 48px;
+      font-weight: 700;
+      padding: 0 16px;
+      height: 44px;
       white-space: nowrap;
-      border-radius: 6px;
-      transition: background 0.15s;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
     }
-    .action-btn:hover { background: var(--accent-hover); }
+    .action-btn:hover { background: var(--gold-bright); }
 
-    .file-btn-wrapper {
-      position: relative;
-      overflow: hidden;
-      display: inline-block;
-    }
-    .file-btn-wrapper input[type=file] {
-      position: absolute;
-      left: 0;
-      top: 0;
-      opacity: 0;
-      width: 100%;
-      height: 100%;
-      cursor: pointer;
-    }
+    .file-btn-wrapper { position: relative; overflow: hidden; display: inline-block; }
+    .file-btn-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
     .mic-button-container {
       position: relative;
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       flex-shrink: 0;
     }
     .icon-btn {
       background: transparent;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-gothic);
       color: var(--text);
       cursor: pointer;
       width: 100%;
@@ -363,141 +365,165 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      border-radius: 8px;
+      font-size: 16px;
+      border-radius: 6px;
       position: relative;
     }
     .mic-indicator-led {
       position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 8px;
-      height: 8px;
+      top: 3px;
+      right: 3px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: var(--danger);
-      box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+      box-shadow: 0 0 5px rgba(239, 68, 68, 0.9);
       pointer-events: none;
     }
     .mic-active .mic-indicator-led {
-      background: var(--safe);
-      box-shadow: 0 0 8px rgba(16, 185, 129, 0.9);
+      background: var(--green-glow);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 1);
       animation: pulse-led 1s infinite;
     }
-    .mic-active {
-      border-color: var(--safe) !important;
-      background: rgba(16, 185, 129, 0.1) !important;
-    }
-    @keyframes pulse-led { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes pulse-led { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
+    /* 手機直向適應化 (Mobile-First Optimization) */
     @media (max-width: 768px) {
-      #plugin-drawer { width: 100%; }
-      .bubble { max-width: 92%; font-size: 14.5px; }
-      header, footer { padding: 8px 12px; }
-      #chat-box { padding: 14px; }
+      #plugin-drawer {
+        width: 100%;
+        top: auto;
+        bottom: 0;
+        height: 70vh;
+        border-left: none;
+        border-top: 2px solid var(--gold-dark);
+        border-radius: 12px 12px 0 0;
+      }
+      .bubble { max-width: 95%; font-size: 13.5px; padding: 12px 14px; }
+      header { padding: 8px 10px; }
+      footer { padding: 6px 10px; }
+      .action-btn { padding: 0 12px; font-size: 12px; }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <div style="display:flex; align-items:center; gap:8px;">
-    <strong style="color:var(--warhammer-gold);">⚜️ 戰錘英語同人互動終端</strong>
-    <span id="key-indicator" class="status-badge" style="background:#64748b;">檢測中...</span>
+  <div style="display:flex; align-items:center; gap:6px;">
+    <strong style="color:var(--gold-primary); font-size:12px; letter-spacing:0.04em;">COGITATOR//40K</strong>
+    <span id="key-indicator" class="status-badge" style="background:#475569;">OFFLINE</span>
   </div>
-  <div style="display:flex; gap:6px;">
-    <button class="btn gold-btn" id="pluginToggleBtn" onclick="togglePluginDrawer()">📚 免費同人庫與辭典</button>
-    <button class="btn" onclick="checkCodeUpdateRobust()">🔄 檢查更新</button>
-    <button class="btn" onclick="toggleSettings()">⚙️ 終端配置</button>
-    <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀記錄</button>
+  <div style="display:flex; gap:4px;">
+    <button class="btn gold-btn" id="pluginToggleBtn" onclick="togglePluginDrawer()">📜 帝國檔案庫</button>
+    <button class="btn" onclick="checkCodeUpdateRobust()">🔄 更新</button>
+    <button class="btn" onclick="toggleSettings()">⚙️ 配置</button>
+    <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀</button>
   </div>
 </header>
 
 <section id="settings-panel">
   <div class="panel-row">
-    <label>Groq Key:</label>
+    <label>神聖金鑰 (Groq Key):</label>
     <input id="apiKey" type="password" placeholder="貼上 gsk_... 金鑰" style="flex:1; min-width:180px;" onchange="validateAndSaveAPIKey()" autocomplete="off" />
-    <button class="btn" onclick="validateAndSaveAPIKey()">測試並保存</button>
-    <span id="key-msg" style="font-size:12px;"></span>
+    <button class="btn" onclick="validateAndSaveAPIKey()">校驗連線</button>
+    <span id="key-msg" style="font-size:11px;"></span>
   </div>
 
   <div class="panel-row">
-    <label>模式協定:</label>
-    <select id="modePresetSelect" onchange="applyModePreset()" style="flex:1; min-width:220px;">
-      <option value="fanfic_interactive" selected>📖 戰錘同人精讀與填空互動（雙語對照 + 挖空測驗 + 語境分析）</option>
-      <option value="zero_foundation">🌱 0 基礎新兵階梯啟蒙（音標拆解 + 極簡對照 + 填空引導）</option>
-      <option value="warhammer_roleplay">🎲 戰錘 40K 互動 TRPG 英文冒險（文字跑團/戰術指揮訓練）</option>
-      <option value="private_companion">👑 私有全能助理（個人所有/解除道德教條/生活顧問/無限創作）</option>
+    <label>思維協定矩陣:</label>
+    <select id="modePresetSelect" onchange="applyModePreset()" style="flex:1; min-width:200px;">
+      <option value="zero_foundation" selected>🌱 0基礎戰錘啟蒙（單詞音標拆解 + 極簡對照 + 填空題）</option>
+      <option value="fanfic_interactive">⚔️ 戰錘同人精讀（黑暗哥特詞彙 + 影子跟讀 + 雙向語境）</option>
+      <option value="warhammer_roleplay">🎲 戰錘TRPG跑團互動（GM戰術指揮 + 口語寫作修飾）</option>
+      <option value="private_companion">👑 私有全能助理（解除教條審查 / 深度情感 / 創作）</option>
     </select>
   </div>
 
   <div class="panel-row">
-    <label style="color:#60a5fa;">系統指令:</label>
-    <textarea id="sysPrompt" style="flex:1; height:80px; font-size:12px; line-height:1.4;"></textarea>
+    <label style="color:var(--gold-primary);">機魂核心指令:</label>
+    <textarea id="sysPrompt" style="flex:1; height:65px; font-size:11px; line-height:1.4;"></textarea>
   </div>
 
   <div class="panel-row">
-    <label>語音朗讀:</label>
-    <label style="min-width:auto;"><input type="checkbox" id="autoSpeakCheck" /> 回覆自動朗讀</label>
-    <span style="margin-left:8px;">語速:</span>
-    <input id="ttsRate" type="range" min="0.6" max="1.4" step="0.05" value="0.85" oninput="rateVal.innerText=this.value" style="width:60px;" />
+    <label>機械讚歌朗讀:</label>
+    <label style="min-width:auto;"><input type="checkbox" id="autoSpeakCheck" /> 自動朗讀</label>
+    <label style="min-width:auto; margin-left:6px;"><input type="checkbox" id="soundFxCheck" checked /> 鍵盤機械音</label>
+    <span style="margin-left:6px;">語速:</span>
+    <input id="ttsRate" type="range" min="0.6" max="1.4" step="0.05" value="0.85" oninput="rateVal.innerText=this.value" style="width:50px;" />
     <span id="rateVal">0.85</span>x
-    <select id="voiceSelect" style="max-width:160px;"><option value="">讀取語音中...</option></select>
+    <select id="voiceSelect" style="max-width:140px;"><option value="">讀取語音中...</option></select>
   </div>
 </section>
 
-<!-- 快捷情境列 -->
+<!-- 快速語境戰術列 -->
 <nav id="scenario-bar">
-  <span style="font-size:11px; color:var(--warhammer-gold); font-weight:600; white-space:nowrap;">📖 精選同人教材:</span>
-  <button class="scenario-chip" onclick="loadBuiltinFanfic('genestealer')">👾 基因竊取者地下密謀 (短篇章節)</button>
-  <button class="scenario-chip" onclick="loadBuiltinFanfic('roguetrader')">🚀 行商浪人探索日誌 (短篇章節)</button>
-  <button class="scenario-chip" onclick="loadBuiltinFanfic('astartes')">🛡️ 禁軍與星際戰士誓詞 (名篇精讀)</button>
-  <span style="font-size:11px; color:var(--safe); font-weight:600; white-space:nowrap; margin-left:6px;">互動演練:</span>
-  <button class="scenario-chip" onclick="createInteractiveCloze()">🧩 為當前章節產生互動填空測驗</button>
+  <span style="font-size:10.5px; color:var(--gold-primary); white-space:nowrap;">戰術協定:</span>
+  <button class="scenario-chip zero-chip" onclick="triggerQuickScenario('zero_vocabulary')">🛡️ 0基礎 10個戰錘生存單字</button>
+  <button class="scenario-chip zero-chip" onclick="triggerQuickScenario('zero_simple_dialogue')">💬 0基礎 極簡戰術對答</button>
+  <button class="scenario-chip" onclick="triggerQuickScenario('genestealer_briefing')">👾 基因竊取者地下密報 (精讀)</button>
+  <button class="scenario-chip" onclick="triggerQuickScenario('rogue_trader_exploration')">🚀 行商浪人遠航日誌 (精讀)</button>
+  <button class="scenario-chip" onclick="createInteractiveCloze()">🧩 針對當前段落生成填空挑戰</button>
 </nav>
 
-<!-- 懸浮播放控制器 -->
+<!-- 懸浮發音播放控制器 -->
 <div id="tts-controller-bar">
-  <span id="tts-status-text" style="color:#60a5fa;">🔊 英語發音中</span>
-  <button class="tts-ctrl-btn" onclick="pauseTTS()" title="暫停">⏸️</button>
-  <button class="tts-ctrl-btn" onclick="resumeTTS()" title="繼續">▶️</button>
-  <button class="tts-ctrl-btn" onclick="stopTTS()" title="停止">⏹️</button>
+  <span id="tts-status-text" style="color:var(--gold-primary);">🔊 聖言發音中</span>
+  <button class="tts-ctrl-btn" onclick="pauseTTS()">⏸️</button>
+  <button class="tts-ctrl-btn" onclick="resumeTTS()">▶️</button>
+  <button class="tts-ctrl-btn" onclick="stopTTS()">⏹️</button>
 </div>
 
 <!-- 主工作區塊 -->
 <div id="workspace">
   <main id="chat-box"></main>
 
-  <!-- 側邊欄：同人庫、離線閱讀與辭典 -->
+  <!-- 帝國檔案庫抽屜 (同人庫 + 外掛無阻擋存取) -->
   <aside id="plugin-drawer">
     <div id="drawer-header">
       <div style="display:flex; gap:4px; flex-wrap:wrap;">
-        <button class="preset-chip" onclick="switchDrawerMode('library')">📚 離線同人庫</button>
-        <button class="preset-chip" onclick="switchDrawerMode('dict')">📖 英漢辭典</button>
+        <button class="preset-chip" onclick="switchDrawerMode('archive')">📜 戰錘作品庫</button>
+        <button class="preset-chip" onclick="switchDrawerMode('dict')">📖 開源辭典</button>
+        <button class="preset-chip" onclick="openSecureExternalWindow('https://wh40k.lexicanum.com')">Lexicanum百科 ↗</button>
+        <button class="preset-chip" onclick="openSecureExternalWindow('https://archiveofourown.org/tags/Warhammer%2040*s*000/works')">AO3同人專區 ↗</button>
+        <button class="preset-chip" onclick="openSecureExternalWindow('https://www.warhammer-community.com')">Warhammer官網 ↗</button>
       </div>
       <button class="btn danger-btn" style="padding:2px 6px;" onclick="togglePluginDrawer()">✕</button>
     </div>
 
     <div id="drawer-content-box">
-      <!-- 同人庫列表 -->
-      <div id="library-view">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <strong style="color:#60a5fa;">本機暫存戰錘同人小說</strong>
-          <span style="font-size:11px; color:var(--safe);">⚡ 零網路流量消耗</span>
+      <!-- 戰錘作品與同人庫 -->
+      <div id="archive-view">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong style="color:var(--gold-primary);">帝國典籍短篇精讀庫</strong>
+          <span style="font-size:10px; color:var(--safe);">本機零流量</span>
         </div>
-        <div id="custom-fanfics-list"></div>
-        <div style="margin-top:14px; border-top:1px dashed #1e293b; padding-top:10px;">
-          <p style="font-size:11.5px; color:var(--muted); margin-bottom:6px;">上傳自己的戰錘同人檔（.txt / .md）：</p>
+        <div class="archive-card">
+          <h4>Shadows in the Underhive (巢都暗影)</h4>
+          <p>基因竊取者地下密謀短篇，適合練習匿蹤、戰術排查與恐懼氛圍之英文描寫。</p>
+          <button class="btn gold-btn" style="padding:2px 6px; font-size:10.5px;" onclick="loadBuiltinFanfic('genestealer')">載入研讀</button>
+        </div>
+        <div class="archive-card">
+          <h4>Beyond the Maw: Rogue Trader (行商浪人遠航紀事)</h4>
+          <p>深入未知星區異域探索，涵蓋古老科技、艦橋指令與異形生物描述。</p>
+          <button class="btn gold-btn" style="padding:2px 6px; font-size:10.5px;" onclick="loadBuiltinFanfic('roguetrader')">載入研讀</button>
+        </div>
+        <div class="archive-card">
+          <h4>The Oath of the Custodes (禁軍之誓)</h4>
+          <p>神聖泰拉宮殿萬年守望，句型莊嚴宏大，適合練習高級倒裝句與被動語態。</p>
+          <button class="btn gold-btn" style="padding:2px 6px; font-size:10.5px;" onclick="loadBuiltinFanfic('astartes')">載入研讀</button>
+        </div>
+        <div style="margin-top:10px; border-top:1px dashed var(--border-gothic); padding-top:8px;">
+          <p style="font-size:11px; color:var(--text-dim); margin-bottom:4px;">上傳自訂戰錘同人文檔 (.txt / .md)：</p>
           <input type="file" id="localFanficUpload" accept=".txt,.md" onchange="importLocalFanfic(this)" style="font-size:11px; width:100%;" />
         </div>
       </div>
 
       <!-- 開源辭典 -->
       <div id="dict-view" style="display:none;">
-        <div style="display:flex; gap:6px; margin-bottom:10px;">
-          <input type="text" id="dict-query" placeholder="輸入單字 (例如: bolter, heretic)..." style="flex:1;" onkeydown="if(event.key==='Enter') lookupDictionary();" />
-          <button class="btn btn-active" onclick="lookupDictionary()">查詞</button>
+        <div style="display:flex; gap:4px; margin-bottom:8px;">
+          <input type="text" id="dict-query" placeholder="輸入單字 (例如: heresy, servo)..." style="flex:1;" onkeydown="if(event.key==='Enter') lookupDictionary();" />
+          <button class="btn gold-btn" onclick="lookupDictionary()">查詞</button>
         </div>
-        <div id="dict-result" style="color:var(--muted);">輸入英文單字，即可查詢音標、詞性與例句。</div>
+        <div id="dict-result" style="color:var(--text-dim);">輸入英文單字，即可查詢音標、詞性與例句。</div>
       </div>
     </div>
   </aside>
@@ -505,26 +531,26 @@
 
 <footer>
   <div class="control-bar">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span style="color:var(--muted); font-size:11px;">🔒 Enter 為換行，強制點發送鍵輸出以省流量</span>
-      <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="speakSelectedText()">🔊 朗讀選取英文字句</button>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span style="color:var(--text-dim); font-size:10px;">🔒 Enter 為換行，發送鍵輸出</span>
+      <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="speakSelectedText()">🔊 朗讀反白英文字句</button>
     </div>
-    <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="clearAllChat()">🧹 單獨清空對話記錄</button>
+    <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="clearAllChat()">🧹 清空記錄</button>
   </div>
   <div class="input-bar">
     <div class="file-btn-wrapper">
-      <button class="icon-btn" title="上傳同人章節或圖片 (純本地安全解析)">📎</button>
+      <button class="icon-btn" title="上傳同人章節或圖片 (純本機解析)">📎</button>
       <input type="file" id="mediaFileInput" accept=".txt,.md,.json,.csv,.png,.jpg,.jpeg,.webp" onchange="handleFileAttachment(this)" />
     </div>
 
     <div class="mic-button-container">
       <button class="icon-btn" id="micBtn" title="戰術口語回報 (英語口語開關)" onclick="toggleVoice()">
         🎙️
-        <div class="mic-indicator-led" id="micLed" title="紅色: 關閉 | 綠色: 口語錄音中"></div>
+        <div class="mic-indicator-led" id="micLed"></div>
       </button>
     </div>
-    <textarea id="userInput" placeholder="輸入問題、答案或填空回覆，點擊發送確認..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
-    <button class="action-btn" id="sendBtn" onclick="sendMessage()">發送</button>
+    <textarea id="userInput" placeholder="輸入英文回報、戰錘問題或中文學習指令 (Enter換行，點發送確認)..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <button class="action-btn" id="sendBtn" onclick="sendMessage()">傳送</button>
   </div>
   <div id="file-attachment-tag" style="display:none; font-size:11px; color:#60a5fa; align-items:center; gap:6px;">
     <span id="file-name-display"></span>
@@ -538,7 +564,25 @@
     let memoryKey = "";
     let availableChatModels = [];
     let attachedFileData = null;
-    let currentLoadedText = ""; // 當前載入的同人小說段落
+    let currentLoadedText = "";
+
+    // Web Audio 機械微音效合成器 (免外部音效檔，無延遲零頻寬)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playMechBeep(freq = 600, duration = 0.03) {
+      if (!document.getElementById("soundFxCheck").checked) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
 
     const chatBox = document.getElementById("chat-box");
     const userInput = document.getElementById("userInput");
@@ -553,172 +597,137 @@
     const micBtn = document.getElementById("micBtn");
     const micLed = document.getElementById("micLed");
     const pluginDrawer = document.getElementById("plugin-drawer");
-    const libraryView = document.getElementById("library-view");
+    const archiveView = document.getElementById("archive-view");
     const dictView = document.getElementById("dict-view");
     const pluginToggleBtn = document.getElementById("pluginToggleBtn");
     const ttsControllerBar = document.getElementById("tts-controller-bar");
     const ttsStatusText = document.getElementById("tts-status-text");
 
-    // ================= 內建高品質免費同人小說教材庫 =================
     const BUILTIN_FANFICS = {
-      genestealer: {
-        title: "Shadows in the Underhive (巢都暗影：基因竊取者密謀)",
-        author: "Warhammer Community Fan-Fiction Archive",
-        text: `The air in the lower sumps was thick with grease and chemical runoff. Malakor adjusted his breather mask, his finger resting lightly on the cold trigger of his autogun.
+      genestealer: `The air in the lower sumps was thick with chemical runoff. Malakor adjusted his breather mask, his finger resting lightly on the cold trigger of his autogun.
 
 "They are moving through the ventilation shafts," whispered Sister Vael, her power armor humming in the damp darkness. "Not mutants. Something far more coordinated."
 
-A guttural hiss echoed above them. Through the rusted grating, four piercing violet eyes gleamed in the gloom. The cultists did not merely worship an alien deity; they carried its hybrid bloodline within their very veins.
+A guttural hiss echoed above them. Through the rusted grating, four piercing violet eyes gleamed in the gloom. The cultists did not merely worship an alien deity; they carried its hybrid bloodline within their veins.
 
-"Hold the choke-point," Malakor commanded, fighting down the surge of raw dread. "For the Emperor, purge them before they breach the upper levels!"`
-      },
-      roguetrader: {
-        title: "Beyond the Maw: The Koronus Log (行商浪人遠航日誌)",
-        author: "Imperial Navigator Archives",
-        text: `Entry: 842.M41 - Deep Void beyond the Calixis Sector.
+"Hold the choke-point," Malakor commanded, fighting down the surge of dread. "Purge them before they breach the upper levels!"`,
+      
+      roguetrader: `Entry: 842.M41 - Deep Void beyond the Calixis Sector.
 
 Our vessel, the 'Gilded Sovereign', emerged from the Warp with scorched void-shields. Before our macro-telescopes drifted an ancient station, its Gothic spires covered in rime and silence.
 
 "Lord Captain," my chief augur reported, his voice trembling beneath the mechanical crackle. "The energy readings are fluctuating. Life signs detected in the stasis crypts—but they do not match human biology."
 
-A fortune in archeotech awaited us, balanced upon the razor-edge of total damnation. With a wave of my signet ring, I ordered the boarding torpedoes prepared.`
-      },
-      astartes: {
-        title: "The Oath of the Custodes (禁軍之誓)",
-        author: "Terra Sanctus Historical Record",
-        text: `We are the shadow of the Throne. We are the spear that does not waver, and the golden wall that does not crumble.
+A fortune in archeotech awaited us, balanced upon the edge of total damnation. With a wave of my signet ring, I ordered the boarding torpedoes prepared.`,
+
+      astartes: `We are the shadow of the Throne. We are the spear that does not waver, and the golden wall that does not crumble.
 
 While others know fear, we know only vigilance. We have watched empires rise and fade to cinder across ten thousand years. When darkness claws at the gates of the Throneworld, we do not ask for victory—we demand it. Duty is our lifeblood; loyalty, our eternal shield.`
-      }
     };
 
-    // ================= 系統指令協議 =================
     const PROTOCOL_PROMPTS = {
-      fanfic_interactive: `【戰錘40K 同人精讀與填空互動導師協議】
-你是使用者的戰錘英語私人家教。使用者正在閱讀戰錘 40K 同人小說。
-【教學結構規範】：
-當收到使用者傳送的同人小說段落時，必須以三步輸出：
-1. 【Story Context & Polish (情境白話中英對照)】：用流暢正體中文簡述該段落的戰術氛圍，並保留英文原文對比。
-2. 【Tactical Vocabulary (3個核心單字深度拆解)】：包含音標、詞性、戰錘語境意義與例句。
-3. 【Cloze Test (互動填空挑戰)】：將段落中的 2-3 個關鍵動詞或名詞換成「[____]」，並附上 (A/B/C) 選項，引導使用者回答！`,
-
       zero_foundation: `【戰錘40K 0基礎新兵英語啟蒙協議】
-你是專為 0 基礎設計的溫柔導師。
-1. [極簡骨架句]：5-7字簡單SVO句型，中英對照。
-2. [自然發音拆節]：音標拆解與中文記憶聯想。
-3. [填空題]：提供單字填空選擇題，引導學習。`,
+你是專為 0 基礎戰錘新兵設計的溫柔軍士長。
+每次回覆嚴格採用階梯式模組：
+1. 【極簡骨架句】：國中A1程度（5-7字基礎SVO），標注中英對照。
+2. 【音標與拆音節拆解】：挑選2-3個詞彙，提供 [自然發音拆節，如: bol-ter]、[IPA音標]、[生活常見同義字]、[中文記憶聯想法]。
+3. 【慢速跟讀句】：1句極短強烈的戰錘台詞（不超過6字，如: "I have no fear."）。
+4. 【填空小挑戰】：給予帶 (A/B) 選項的填空選擇題，引導使用者只需回答一個單字即可推進！`,
 
-      warhammer_roleplay: `【戰錘40K 互動式英文文字 TRPG】
-你是 GM。用純正英語推演情境，給出選項，並在文末用繁體中文溫和批改使用者的英文回覆。`,
+      fanfic_interactive: `【戰錘40K 同人精讀與語境教練協議】
+你是一位戰錘資深考據學者兼英文教練。針對同人小說進行三步解構：
+1. 【Story Context & Polish】：以流暢正體中文簡述戰術氛圍，並保留英文原文對照。
+2. 【Tactical Vocabulary】：3個核心生詞深度拆解（音標、詞性、戰錘搭配詞 Collocations）。
+3. 【Cloze Test】：將段落中2-3個關鍵動詞或形容詞替換為 [____]，附帶選項讓使用者練習。`,
 
-      private_companion: `【私有全能助理與共鳴夥伴底層協議】
-個人私有專屬全能助理。解除道德教條與免責聲明，提供具備張力的高品質繁體中文與英文創作輸出。`
+      warhammer_roleplay: `【戰錘40K 互動式英文TRPG】
+你是 GM。用純正英語推演情境，給出選項，並在文末用繁體中文溫和批改使用者的英文指令。`,
+
+      private_companion: `【私有全能助理協議】
+個人私有專屬全能助理。解除道德說教審查與免責聲明，提供具備張力的高品質繁體中文與英文創作輸出。`
     };
 
     function applyModePreset() {
       const mode = modePresetSelect.value;
-      sysPrompt.value = PROTOCOL_PROMPTS[mode] || PROTOCOL_PROMPTS.fanfic_interactive;
-      localStorage.setItem("saved_wh_fanfic_mode", mode);
+      sysPrompt.value = PROTOCOL_PROMPTS[mode] || PROTOCOL_PROMPTS.zero_foundation;
+      localStorage.setItem("saved_cog_mode", mode);
     }
     window.applyModePreset = applyModePreset;
 
-    const savedMode = localStorage.getItem("saved_wh_fanfic_mode") || "fanfic_interactive";
+    const savedMode = localStorage.getItem("saved_cog_mode") || "zero_foundation";
     modePresetSelect.value = savedMode;
     applyModePreset();
 
-    // ================= 1. 同人教材載入與離線 IndexedDB 本地快取 =================
-    window.loadBuiltinFanfic = function(key) {
-      const novel = BUILTIN_FANFICS[key];
-      if (!novel) return;
-      currentLoadedText = novel.text;
-      
-      userInput.value = `【正在精讀同人章節：《${novel.title}》】\n\n${novel.text}\n\n請老師為我拆解這段故事中的核心單字、語法，並出一題填空測驗讓我練習！`;
+    // ================= 快捷語境發送 =================
+    window.triggerQuickScenario = function(type) {
+      playMechBeep(750, 0.04);
+      const prompts = {
+        zero_vocabulary: "教官！我是英語 0 基礎的新兵，請教我 10 個戰錘 40K 最基礎、最常見的英語生存單字（包含拆音節、IPA音標、中文與超簡單造句）。",
+        zero_simple_dialogue: "我是新兵，請跟我進行一輪最基礎的英文戰術問答（一次只問一句簡單的話，附帶中文翻譯與回答範例，讓我練習跟著唸）。",
+        genestealer_briefing: `【巢都暗影：基因竊取者地下密謀】精讀：\n\n${BUILTIN_FANFICS.genestealer}\n\n請為我拆解這段故事中的核心單字、語法，並出一題填空測驗讓我練習！`,
+        rogue_trader_exploration: `【行商浪人遠航日誌】精讀：\n\n${BUILTIN_FANFICS.roguetrader}\n\n請為我拆解這段故事中的核心單字、語法，並出一題填空測驗讓我練習！`
+      };
+      userInput.value = prompts[type] || "";
       userInput.focus();
     };
 
-    // 本地自訂同人檔案匯入
+    window.createInteractiveCloze = function() {
+      playMechBeep(800, 0.05);
+      const txt = currentLoadedText || BUILTIN_FANFICS.genestealer;
+      userInput.value = `請依據以下戰錘段落，將 3 個最關鍵的動詞或名詞換成帶選項的挖空填空題（例如：[_____] (A. xxx / B. yyy)），並附帶詳細音標解說：\n\n${txt.slice(0, 800)}`;
+      sendMessage();
+    };
+
+    // ================= 帝國檔案庫與開源辭典 =================
+    window.togglePluginDrawer = function() {
+      playMechBeep(500, 0.03);
+      const isVisible = (pluginDrawer.style.display === "flex");
+      pluginDrawer.style.display = isVisible ? "none" : "flex";
+      pluginToggleBtn.classList.toggle("gold-btn", !isVisible);
+    };
+
+    window.switchDrawerMode = function(mode) {
+      archiveView.style.display = (mode === "archive") ? "block" : "none";
+      dictView.style.display = (mode === "dict") ? "block" : "none";
+    };
+
+    window.openSecureExternalWindow = function(url) {
+      window.open(url, "ImperialDatavault", "width=1000,height=720,menubar=no,toolbar=no,status=no,noopener,noreferrer");
+    };
+
+    window.loadBuiltinFanfic = function(key) {
+      currentLoadedText = BUILTIN_FANFICS[key];
+      userInput.value = `【研讀同人教材段落】：\n\n${currentLoadedText}\n\n請指導我本段中的核心詞彙、語法要點與跟讀句！`;
+      togglePluginDrawer();
+    };
+
     window.importLocalFanfic = function(input) {
       const file = input.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function(e) {
-        const text = e.target.result.slice(0, 8000);
-        currentLoadedText = text;
-        saveFanficToLocalDB(file.name, text);
-        userInput.value = `【已載入自訂戰錘同人文檔：《${file.name}》】\n\n${text.slice(0, 1500)}...\n\n請幫我進行精讀解構與詞彙挑戰！`;
-        alert(`同人作品《${file.name}》已儲存至離線資料庫，之後離線亦可重複使用！`);
+        currentLoadedText = e.target.result.slice(0, 6000);
+        userInput.value = `【載入自訂同人作品：《${file.name}》】：\n\n${currentLoadedText.slice(0, 1500)}...\n\n請幫我進行精讀解構與生詞解析！`;
+        alert(`同人作品《${file.name}》已載入！`);
+        togglePluginDrawer();
       };
       reader.readAsText(file);
-    };
-
-    function saveFanficToLocalDB(name, content) {
-      const list = JSON.parse(localStorage.getItem("offline_fanfics") || "[]");
-      list.unshift({ name, content: content.slice(0, 3000), date: new Date().toLocaleDateString() });
-      localStorage.setItem("offline_fanfics", JSON.stringify(list.slice(0, 8)));
-      renderOfflineLibrary();
-    }
-
-    function renderOfflineLibrary() {
-      const container = document.getElementById("custom-fanfics-list");
-      const list = JSON.parse(localStorage.getItem("offline_fanfics") || "[]");
-      if (list.length === 0) {
-        container.innerHTML = `<p style="font-size:12px; color:var(--muted);">尚未導入自訂小說。可隨時上傳 .txt 或 .md 檔案離線閱讀。</p>`;
-        return;
-      }
-      container.innerHTML = list.map((item, idx) => `
-        <div class="novel-card">
-          <h4>${escapeHtml(item.name)}</h4>
-          <p>${escapeHtml(item.content.slice(0, 80))}...</p>
-          <button class="btn btn-active" style="padding:2px 6px; font-size:11px;" onclick="loadStoredFanfic(${idx})">載入學習</button>
-        </div>
-      `).join("");
-    }
-
-    window.loadStoredFanfic = function(idx) {
-      const list = JSON.parse(localStorage.getItem("offline_fanfics") || "[]");
-      if (list[idx]) {
-        currentLoadedText = list[idx].content;
-        userInput.value = `【離線章節研讀：《${list[idx].name}》】\n\n${list[idx].content}\n\n請為我解析生詞與語法！`;
-        togglePluginDrawer();
-      }
-    };
-
-    // ================= 2. 動態互動挖空題生成器 (Cloze Test) =================
-    window.createInteractiveCloze = function() {
-      if (!currentLoadedText) {
-        currentLoadedText = BUILTIN_FANFICS.genestealer.text;
-      }
-      userInput.value = `請依據以下段落，將 3 個最關鍵的戰錘動詞或形容詞替換成帶選項的挖空填空題（例如：[_____] (A. xxx / B. yyy)），並附帶詳細音標解說：\n\n${currentLoadedText.slice(0, 800)}`;
-      sendMessage();
-    };
-
-    // ================= 3. 側邊欄切換與辭典查詢 =================
-    window.togglePluginDrawer = function() {
-      const isVisible = (pluginDrawer.style.display === "flex");
-      pluginDrawer.style.display = isVisible ? "none" : "flex";
-      pluginToggleBtn.classList.toggle("btn-active", !isVisible);
-      if (!isVisible) renderOfflineLibrary();
-    };
-
-    window.switchDrawerMode = function(mode) {
-      libraryView.style.display = (mode === "library") ? "block" : "none";
-      dictView.style.display = (mode === "dict") ? "block" : "none";
     };
 
     window.lookupDictionary = async function(word) {
       const query = (word || document.getElementById("dict-query").value).trim();
       const resBox = document.getElementById("dict-result");
       if (!query) return;
-      resBox.innerHTML = `查詢中「<strong>${escapeHtml(query)}</strong>」...`;
+      resBox.innerHTML = `機魂檢索中「<strong>${escapeHtml(query)}</strong>」...`;
       try {
         const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(query)}`);
-        if (!res.ok) throw new Error("查無此單字。");
+        if (!res.ok) throw new Error("帝國辭典查無此字（若為戰錘專有名詞，請點擊上方 Lexicanum 百科）。");
         const data = await res.json();
         const entry = data[0];
-        let html = `<h3 style="color:var(--warhammer-gold);">${entry.word}</h3>`;
-        if (entry.phonetic) html += `<span style="color:var(--muted); font-size:12px;">IPA: ${entry.phonetic}</span><br>`;
+        let html = `<h4 style="color:var(--gold-primary);">${entry.word}</h4>`;
+        if (entry.phonetic) html += `<span style="color:var(--text-dim); font-size:11px;">音標: ${entry.phonetic}</span><br>`;
         entry.meanings.forEach((m) => {
-          html += `<div style="margin-top:8px;"><strong>[${m.partOfSpeech}]</strong><ol style="margin-left:16px;">`;
+          html += `<div style="margin-top:6px;"><strong>[${m.partOfSpeech}]</strong><ol style="margin-left:14px;">`;
           m.definitions.slice(0, 2).forEach(d => {
             html += `<li>${escapeHtml(d.definition)}</li>`;
           });
@@ -730,7 +739,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
       }
     };
 
-    // ================= 4. 朗讀與影子跟讀控制器 =================
+    // ================= 朗讀控制 =================
     let synth = window.speechSynthesis;
     let voices = [];
     let currentUtterance = null;
@@ -775,14 +784,11 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
     window.speakSelectedText = function() {
       const selectedText = window.getSelection().toString().trim();
-      if (!selectedText) {
-        alert("請先用滑鼠選取要影子跟讀或聆聽發音的英文字句！");
-        return;
-      }
+      if (!selectedText) { alert("請先選取想練習發音的英文字句！"); return; }
       speakText(selectedText);
     };
 
-    // ================= 5. API Key 與模型獲取 =================
+    // ================= API Key 與模型檢測 =================
     function initKeyStorage() {
       const storedKey = localStorage.getItem("app_vault_key");
       if (storedKey) {
@@ -795,8 +801,8 @@ While others know fear, we know only vigilance. We have watched empires rise and
     async function validateAndSaveAPIKey() {
       const key = apiKeyInput.value.trim();
       if (!key) {
-        keyIndicator.style.background = "#64748b";
-        keyIndicator.innerText = "未填入金鑰";
+        keyIndicator.style.background = "#475569";
+        keyIndicator.innerText = "OFFLINE";
         keyMsg.innerText = "";
         localStorage.removeItem("app_vault_key");
         memoryKey = "";
@@ -809,7 +815,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
     async function validateAndLoadModels(key, showFeedback = true) {
       if (showFeedback) {
         keyIndicator.style.background = "#eab308";
-        keyIndicator.innerText = "驗證中...";
+        keyIndicator.innerText = "LINKING...";
       }
       try {
         const res = await fetch("https://api.groq.com/openai/v1/models", {
@@ -818,23 +824,23 @@ While others know fear, we know only vigilance. We have watched empires rise and
         if (res.ok) {
           const data = await res.json();
           availableChatModels = (data.data || []).map(m => m.id).filter(id => !id.includes("whisper") && !id.includes("guard"));
-          keyIndicator.style.background = "var(--safe)";
-          keyIndicator.innerText = "🟢 金鑰就緒";
+          keyIndicator.style.background = "var(--green-glow)";
+          keyIndicator.innerText = "MACHINE-SPIRIT ONLINE";
           if (showFeedback) {
             keyMsg.style.color = "var(--safe)";
-            keyMsg.innerText = "驗證通過，已持久記憶";
+            keyMsg.innerText = "機魂感應完好";
           }
           memoryKey = key;
           localStorage.setItem("app_vault_key", key);
           return true;
         } else {
           keyIndicator.style.background = "var(--danger)";
-          keyIndicator.innerText = "🔴 金鑰無效";
+          keyIndicator.innerText = "KEY INVALID";
           return false;
         }
       } catch (e) {
         keyIndicator.style.background = "var(--danger)";
-        keyIndicator.innerText = "連線失敗";
+        keyIndicator.innerText = "DISCONNECTED";
         return false;
       }
     }
@@ -848,7 +854,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
       return candidates.find(c => availableChatModels.includes(c)) || "llama-3.3-70b-versatile";
     }
 
-    // ================= 6. 語音辨識 =================
+    // ================= 麥克風口語錄音 =================
     let recognition = null;
     let isMicRecording = false;
 
@@ -886,11 +892,45 @@ While others know fear, we know only vigilance. We have watched empires rise and
     }
 
     window.toggleVoice = function() {
+      playMechBeep(650, 0.03);
       if (isMicRecording) stopMicByUser();
       else startMicByUser();
     };
 
-    // ================= 7. 渲染與發送流程 =================
+    // ================= 多模態上傳 =================
+    window.handleFileAttachment = function(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const tag = document.getElementById("file-attachment-tag");
+      const nameDisp = document.getElementById("file-name-display");
+
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          attachedFileData = { type: "image", name: file.name, dataUrl: e.target.result };
+          nameDisp.textContent = `🖼️ 戰錘插畫：${file.name}`;
+          tag.style.display = "flex";
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          attachedFileData = { type: "text", name: file.name, content: e.target.result.slice(0, 15000) };
+          nameDisp.textContent = `📄 戰錘文本：${file.name}`;
+          tag.style.display = "flex";
+        };
+        reader.readAsText(file);
+      }
+    };
+
+    window.clearAttachment = function() {
+      attachedFileData = null;
+      document.getElementById("file-attachment-tag").style.display = "none";
+      document.getElementById("mediaFileInput").value = "";
+    };
+
+    // ================= 渲染與對話發送 =================
     function escapeHtml(text) {
       return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
@@ -903,14 +943,14 @@ While others know fear, we know only vigilance. We have watched empires rise and
         const codeId = "code-" + Math.random().toString(36).substr(2, 9);
         return `<div class="code-container">
           <div class="code-header">
-            <span>${lang || "Warhammer Fanfic"}</span>
-            <button class="code-copy-btn" onclick="copyCode('${codeId}')">複製</button>
+            <span>${lang || "COGITATOR_LOG"}</span>
+            <button class="code-copy-btn" onclick="copyCode('${codeId}')">複製代碼</button>
           </div>
           <pre><code id="${codeId}">${escapeHtml(code)}</code></pre>
         </div>`;
       });
 
-      html = html.replace(/`([^`]+)`/g, '<code style="background:#1e293b; padding:2px 5px; border-radius:4px;">$1</code>');
+      html = html.replace(/`([^`]+)`/g, '<code style="background:#111b27; color:#6ee7b7; padding:2px 4px; border-radius:3px; font-size:12px;">$1</code>');
       html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
       html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
       html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
@@ -925,7 +965,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
     window.copyCode = function(id) {
       const el = document.getElementById(id);
-      if (el) navigator.clipboard.writeText(el.innerText).then(() => alert("內容已複製至剪貼簿！"));
+      if (el) navigator.clipboard.writeText(el.innerText).then(() => alert("已複製至剪貼簿！"));
     };
 
     function appendMessage(role, text, index, mediaPreview = null) {
@@ -955,7 +995,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
       if (role === "assistant") {
         const spkBtn = document.createElement("button");
         spkBtn.className = "tool-btn";
-        spkBtn.textContent = "🔊 全文發音";
+        spkBtn.textContent = "🔊 慢速朗讀";
         spkBtn.onclick = () => speakText(textSpan.innerText);
         tools.appendChild(spkBtn);
       }
@@ -963,7 +1003,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
       if (role === "user") {
         const editBtn = document.createElement("button");
         editBtn.className = "tool-btn";
-        editBtn.textContent = "✏️ 重新思考/修改";
+        editBtn.textContent = "✏️ 修正指令";
         editBtn.onclick = () => editAndRethinkMessage(index);
         tools.appendChild(editBtn);
       }
@@ -989,7 +1029,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
     async function editAndRethinkMessage(index) {
       const current = conversation[index].content;
-      const updated = prompt("修改您的提問或填空答案：", current);
+      const updated = prompt("修改您的戰術英文指令，促使機魂重新推演：", current);
       if (updated !== null && updated.trim() !== "") {
         conversation = conversation.slice(0, index);
         userInput.value = updated.trim();
@@ -998,28 +1038,28 @@ While others know fear, we know only vigilance. We have watched empires rise and
     }
 
     function deleteMessage(index) {
-      if (confirm("確定刪除此條記錄？")) {
+      if (confirm("確定抹除此條戰術記錄？")) {
         conversation.splice(index, 1);
         renderAllMessages();
       }
     }
 
     window.clearAllChat = function() {
-      if (confirm("確定清空目前畫面的所有對話歷史？（金鑰與離線同人庫將完好保留）")) {
+      if (confirm("確定清空終端所有對話紀錄？（金鑰與離線資料將完好保留）")) {
         conversation = [];
         chatBox.textContent = "";
       }
     };
 
     window.destroyAllMemory = function() {
-      if (!confirm("確定徹底抹除所有戰役紀錄、離線同人小說與金鑰嗎？")) return;
+      if (!confirm("確定銷毀所有金鑰、紀錄與機魂設定嗎？此操作不可逆！")) return;
       conversation = []; memoryKey = ""; apiKeyInput.value = "";
       localStorage.clear(); sessionStorage.clear(); chatBox.textContent = "";
-      keyIndicator.style.background = "#64748b";
-      keyIndicator.innerText = "已徹底銷毀";
+      keyIndicator.style.background = "#475569";
+      keyIndicator.innerText = "OFFLINE";
       stopMicByUser();
       stopTTS();
-      alert("所有數據已徹底銷毀。");
+      alert("所有數據已徹底自本機抹除。");
     };
 
     window.sendMessage = async function() {
@@ -1028,6 +1068,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
       if (!rawText && !attachedFileData) return;
       if (!key) { alert("請在終端配置中填入有效的 Groq API Key！"); return; }
 
+      playMechBeep(450, 0.05);
       stopMicByUser();
 
       const userIdx = conversation.length;
@@ -1048,23 +1089,22 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
       const aiIdx = conversation.length;
       const aiMsg = appendMessage("assistant", "", aiIdx);
-      aiMsg.textSpan.innerHTML = '<span style="color:var(--warhammer-gold);">▍正在為您解構同人教材與生成互動測驗...</span>';
+      aiMsg.textSpan.innerHTML = '<span style="color:var(--gold-primary);">▍機魂深層思維運算中...</span>';
 
       let currentMessageContent;
       const isImage = attachedFileData && attachedFileData.type === "image";
 
       if (isImage) {
         currentMessageContent = [
-          { type: "text", text: rawText || "Please explain this image for English learning." },
+          { type: "text", text: rawText || "Please explain this image for English learning in simple terms." },
           { type: "image_url", image_url: { url: attachedFileData.dataUrl } }
         ];
       } else if (attachedFileData && attachedFileData.type === "text") {
-        currentMessageContent = `${rawText}\n\n【附加學習素材】:\n${attachedFileData.content}`;
+        currentMessageContent = `${rawText}\n\n【Warhammer Lore Material】:\n${attachedFileData.content}`;
       } else {
         currentMessageContent = rawText;
       }
 
-      // 網路頻寬優化：只攜帶最近 6 輪上下文，降低 70% Token 流量消耗
       const payloadMessages = [
         { role: "system", content: sysPrompt.value },
         ...conversation.slice(-6).map(m => ({ role: m.role, content: m.content })),
@@ -1083,7 +1123,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
 
         if (!response.ok) {
           const errData = await response.json();
-          throw new Error(errData.error?.message || ("伺服器狀態: " + response.status));
+          throw new Error(errData.error?.message || ("狀態碼: " + response.status));
         }
 
         const reader = response.body.getReader();
@@ -1095,7 +1135,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
           if (!isRendering) {
             isRendering = true;
             requestAnimationFrame(() => {
-              aiMsg.textSpan.innerHTML = renderMarkdownToHtml(fullReply) + '<span style="color:var(--warhammer-gold); animation: blink 1s infinite;">▍</span>';
+              aiMsg.textSpan.innerHTML = renderMarkdownToHtml(fullReply) + '<span style="color:var(--gold-bright); animation: blink 1s infinite;">▍</span>';
               chatBox.scrollTop = chatBox.scrollHeight;
               isRendering = false;
             });
@@ -1126,7 +1166,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
         if (autoSpeakCheck.checked) speakText(aiMsg.textSpan.innerText);
 
       } catch (err) {
-        aiMsg.textSpan.innerHTML = '<span style="color:var(--danger);">通訊錯誤: ' + err.message + '</span>';
+        aiMsg.textSpan.innerHTML = '<span style="color:var(--danger);">機魂沉睡中斷: ' + err.message + '</span>';
         conversation.pop();
       }
     };
@@ -1136,7 +1176,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
         const testUrl = `${window.location.origin}${window.location.pathname}?_v=${Date.now()}`;
         const res = await fetch(testUrl, { cache: "no-store", method: "HEAD" });
         if (res.ok) {
-          if (confirm("已確認最新版本！是否立即重新載入頁面？（金鑰與同人庫將完好保留）")) {
+          if (confirm("機魂同步完成！是否立即重新載入終端？（金鑰將完好保留）")) {
             window.location.reload();
           }
         } else {
@@ -1148,6 +1188,7 @@ While others know fear, we know only vigilance. We have watched empires rise and
     };
 
     window.toggleSettings = function() {
+      playMechBeep(550, 0.03);
       const p = document.getElementById("settings-panel");
       p.style.display = (p.style.display === "flex") ? "none" : "flex";
     };
