@@ -68,10 +68,8 @@
       gap: 4px;
     }
     .btn:hover { background: #1a2438; border-color: var(--accent); }
-    .btn-active { background: var(--accent) !important; color: #fff; border-color: var(--accent); }
     .danger-btn { border-color: var(--danger); color: #fca5a5; }
 
-    /* 設定控制面板 */
     #settings-panel {
       display: none;
       background: var(--card);
@@ -97,7 +95,6 @@
     }
     input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
-    /* 聊天主體視窗 */
     #chat-box {
       flex: 1;
       overflow-y: auto;
@@ -117,7 +114,6 @@
       word-break: break-word;
       font-size: 15px;
       letter-spacing: 0.02em;
-      position: relative;
     }
     .user { align-self: flex-end; background: var(--user); color: #fff; }
     .assistant { 
@@ -127,8 +123,6 @@
       border: 1px solid var(--border); 
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
-    /* 人性化段落微調 */
-    .assistant p { margin-bottom: 8px; }
     .bubble-tools {
       display: flex;
       justify-content: flex-end;
@@ -148,7 +142,6 @@
     }
     .tool-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
 
-    /* 底部發送列與複雜度選擇 */
     footer {
       padding: 10px 14px;
       background: var(--card);
@@ -164,6 +157,7 @@
       align-items: center;
       gap: 8px;
       font-size: 12px;
+      flex-wrap: wrap;
     }
     .input-bar { display: flex; gap: 8px; align-items: center; }
     textarea { flex: 1; resize: none; height: 44px; line-height: 22px; padding: 10px; }
@@ -205,7 +199,7 @@
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
     <strong style="color:#60a5fa;">司法鑑識工作終端</strong>
-    <span id="key-indicator" class="status-badge" style="background:#64748b;">驗證金鑰中...</span>
+    <span id="key-indicator" class="status-badge" style="background:#64748b;">檢測中...</span>
   </div>
   <div style="display:flex; gap:6px;">
     <button class="btn" onclick="checkCodeUpdate()">🔄 檢查更新</button>
@@ -226,9 +220,14 @@
 
   <div class="panel-row">
     <label>Groq Key:</label>
-    <input id="apiKey" type="password" placeholder="貼上 gsk_... 金鑰" style="flex:1; min-width:180px;" onchange="validateAPIKey()" />
-    <button class="btn" onclick="validateAPIKey()">測試連線</button>
+    <input id="apiKey" type="password" placeholder="貼上 gsk_... 金鑰" style="flex:1; min-width:180px;" onchange="validateAndLoadModels()" />
+    <button class="btn" onclick="validateAndLoadModels()">測試連線與載入模型</button>
     <span id="key-msg" style="font-size:12px;"></span>
+  </div>
+
+  <div class="panel-row">
+    <label>可用對話模型:</label>
+    <span id="loaded-models-preview" style="color:var(--muted); font-size:12px;">等待金鑰驗證...</span>
   </div>
 
   <div class="panel-row">
@@ -253,7 +252,7 @@
   </div>
 </section>
 
-<!-- 聊天對話主視窗 -->
+<!-- 聊天對話視窗 -->
 <main id="chat-box"></main>
 
 <!-- 底部控制與輸入列 -->
@@ -262,10 +261,11 @@
     <div style="display:flex; align-items:center; gap:6px;">
       <span style="color:var(--muted);">🧠 思考複雜度:</span>
       <select id="complexitySelect" style="background:#070a12; color:#60a5fa; font-weight:600; padding:3px 6px;">
-        <option value="auto">✨ 自動路由 (依問題長短與難易切換)</option>
-        <option value="fast">⚡ 極速筆錄模式 (秒級記錄/傷情摘要)</option>
-        <option value="deep">🔬 深度鑑識推理 (案情重建/長篇病理演算)</option>
+        <option value="auto">✨ 自動路由 (依問題長短與難度切換)</option>
+        <option value="fast">⚡ 極速筆錄模式 (優先秒級低延遲對話模型)</option>
+        <option value="deep">🔬 深度鑑識推理 (優先旗艦深度推理模型)</option>
       </select>
+      <span id="current-routed-model" style="font-size:11px; color:var(--muted);"></span>
     </div>
     <button class="btn" style="padding:2px 6px; font-size:11px;" onclick="clearAllChat()">清空目前對話</button>
   </div>
@@ -281,6 +281,7 @@
     let conversation = [];
     let permanentContext = "";
     let memoryKey = "";
+    let availableChatModels = []; // 動態存儲該帳號真正具備對話能力之模型名單
 
     const chatBox = document.getElementById("chat-box");
     const userInput = document.getElementById("userInput");
@@ -288,6 +289,8 @@
     const keyIndicator = document.getElementById("key-indicator");
     const keyMsg = document.getElementById("key-msg");
     const complexitySelect = document.getElementById("complexitySelect");
+    const currentRoutedModel = document.getElementById("current-routed-model");
+    const loadedModelsPreview = document.getElementById("loaded-models-preview");
     const masterPwd = document.getElementById("masterPwd");
     const encStatus = document.getElementById("enc-status");
     const sysPrompt = document.getElementById("sysPrompt");
@@ -297,8 +300,8 @@
     const fileMemoryInfo = document.getElementById("fileMemoryInfo");
     const micBtn = document.getElementById("micBtn");
 
-    // ================= 1. API Key 正確性即時校驗 =================
-    async function validateAPIKey() {
+    // ================= 1. 動態取得真實對話模型庫 =================
+    async function validateAndLoadModels() {
       const key = apiKeyInput.value.trim();
       if (!key) {
         keyIndicator.style.background = "#64748b";
@@ -313,41 +316,79 @@
           headers: { "Authorization": "Bearer " + key }
         });
         if (res.ok) {
+          const data = await res.json();
+          // 過濾非對話模型 (音訊 whisper、內容審查 guard)
+          availableChatModels = (data.data || [])
+            .map(m => m.id)
+            .filter(id => !id.includes("whisper") && !id.includes("guard") && !id.includes("distil"));
+
           keyIndicator.style.background = "var(--safe)";
-          keyIndicator.innerText = "🟢 金鑰有效就緒";
+          keyIndicator.innerText = "🟢 金鑰就緒 (" + availableChatModels.length + " 個模型)";
           keyMsg.style.color = "var(--safe)";
-          keyMsg.innerText = "驗證成功！通訊正常";
+          keyMsg.innerText = "連線正常";
+          loadedModelsPreview.innerText = availableChatModels.slice(0, 4).join(", ") + (availableChatModels.length > 4 ? " 等..." : "");
           memoryKey = key;
+          updateRouteHint();
           return true;
         } else {
           keyIndicator.style.background = "var(--danger)";
           keyIndicator.innerText = "🔴 金鑰無效";
           keyMsg.style.color = "var(--danger)";
-          keyMsg.innerText = "API Key 錯誤或已過期";
+          keyMsg.innerText = "驗證失敗，請檢查金鑰";
           return false;
         }
       } catch (e) {
         keyIndicator.style.background = "var(--danger)";
         keyIndicator.innerText = "連線失敗";
-        keyMsg.innerText = "網路中斷";
+        keyMsg.innerText = e.message;
         return false;
       }
     }
-    window.validateAPIKey = validateAPIKey;
+    window.validateAndLoadModels = validateAndLoadModels;
 
-    // ================= 2. 思考複雜度與模型路由 =================
+    // ================= 2. 動態複雜度模型調用 =================
     function resolveModel(promptText) {
+      if (availableChatModels.length === 0) {
+        return "llama-3.3-70b-versatile"; // 預設降級
+      }
+
+      // 深度模型候選優先順序（由高至低）
+      const deepCandidates = [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-70b-versatile",
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b"
+      ];
+      // 極速模型候選優先順序
+      const fastCandidates = [
+        "llama-3.1-8b-instant",
+        "llama3-8b-8192",
+        "gemma2-9b-it",
+        "openai/gpt-oss-20b"
+      ];
+
+      const bestDeep = deepCandidates.find(c => availableChatModels.includes(c)) || availableChatModels[0];
+      const bestFast = fastCandidates.find(c => availableChatModels.includes(c)) || availableChatModels[availableChatModels.length - 1];
+
       const mode = complexitySelect.value;
-      if (mode === "fast") return "llama-3.1-8b-instant";
-      if (mode === "deep") return "llama-3.3-70b-versatile";
-      
-      // 自動判定 (Auto Router)：若輸入包含複雜醫學術語、案情重建關鍵字或字數大於 40 字，使用 70B 深度推論
-      const isComplex = promptText.length > 40 || 
-        /(死因|解剖|創口|病理|中毒|鑑識|責任|痕跡|法規|因果|顱內)/i.test(promptText);
-      return isComplex ? "llama-3.3-70b-versatile" : "llama-3.1-8b-instant";
+      if (mode === "fast") return bestFast;
+      if (mode === "deep") return bestDeep;
+
+      // 自動判定
+      const isComplex = promptText.length > 35 || /(死因|解剖|創口|病理|中毒|鑑識|刑法|骨折|急救|出血)/i.test(promptText);
+      return isComplex ? bestDeep : bestFast;
     }
 
-    // ================= 3. 安全加密存儲 (單次解鎖) =================
+    function updateRouteHint() {
+      if (availableChatModels.length > 0) {
+        const testModel = resolveModel(userInput.value.trim() || "預設");
+        currentRoutedModel.innerText = `[當前調用: ${testModel}]`;
+      }
+    }
+    complexitySelect.addEventListener("change", updateRouteHint);
+    userInput.addEventListener("input", updateRouteHint);
+
+    // ================= 3. 本地安全加密與單次解鎖 =================
     async function deriveKey(password, salt) {
       const enc = new TextEncoder();
       const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
@@ -370,7 +411,7 @@
           localStorage.setItem("secure_ai_vault", btoa(String.fromCharCode(...combined)));
           sessionStorage.setItem("ai_session_unlocked", payload);
           encStatus.innerText = "🔒 已加密存儲";
-          validateAPIKey();
+          validateAndLoadModels();
           alert("金鑰已加密保存！重新整理網頁無需再輸密碼。");
         } catch (e) { alert("加密失敗：" + e.message); }
       },
@@ -393,7 +434,7 @@
           permanentContext = data.permMem || "";
           sessionStorage.setItem("ai_session_unlocked", rawPayload);
           encStatus.innerText = "🔓 已解密就緒";
-          validateAPIKey();
+          validateAndLoadModels();
           alert("解密成功！");
         } catch (e) { alert("密碼錯誤，解密失敗！"); }
       }
@@ -407,7 +448,7 @@
           apiKeyInput.value = data.apiKey || "";
           memoryKey = data.apiKey || "";
           permanentContext = data.permMem || "";
-          validateAPIKey();
+          validateAndLoadModels();
         } catch (e) {}
       }
     }
@@ -416,7 +457,7 @@
       if (!confirm("確定要抹除全部資料、對話、金鑰與卷宗嗎？")) return;
       conversation = []; permanentContext = ""; memoryKey = ""; apiKeyInput.value = ""; masterPwd.value = "";
       localStorage.clear(); sessionStorage.clear(); chatBox.textContent = ""; encStatus.innerText = "";
-      validateAPIKey();
+      validateAndLoadModels();
       if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
       alert("所有數據已徹底銷毀。");
     };
@@ -432,7 +473,6 @@
       textSpan.textContent = text;
       div.appendChild(textSpan);
 
-      // 工具列：朗讀、編輯、刪除
       const tools = document.createElement("div");
       tools.className = "bubble-tools";
 
@@ -492,7 +532,7 @@
       }
     };
 
-    // ================= 5. 人性化流式輸出 (平滑分塊輸出，防止視覺疲勞) =================
+    // ================= 5. 人性化流式發送 (輸出真實錯誤) =================
     window.sendMessage = async function() {
       const rawText = userInput.value.trim();
       const key = memoryKey || apiKeyInput.value.trim();
@@ -520,14 +560,17 @@
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
           body: JSON.stringify({ model: chosenModel, messages: payloadMessages, stream: true })
         });
-        if (!response.ok) throw new Error("通訊失敗，請確認金鑰狀態");
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error?.message || ("伺服器錯誤代碼: " + response.status));
+        }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let fullReply = "";
         let buffer = "";
 
-        // 柔和打字機：緩衝節奏輸出，非生硬字串瞬間傾倒
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -541,7 +584,6 @@
                 fullReply += token;
                 buffer += token;
 
-                // 每積累少許字元平滑呈現，避免高頻回流重繪眼花
                 if (buffer.length >= 3) {
                   aiMsg.textSpan.textContent = fullReply + "▍";
                   chatBox.scrollTop = chatBox.scrollHeight;
@@ -553,7 +595,7 @@
         }
         aiMsg.textSpan.textContent = fullReply;
         conversation.push({ role: "assistant", content: fullReply });
-        renderAllMessages(); // 刷新以綁定編輯與刪除索引
+        renderAllMessages();
 
         if (autoSpeakCheck.checked) speakText(fullReply);
       } catch (err) {
@@ -562,7 +604,7 @@
       }
     };
 
-    // ================= 6. 語音辨識與 TTS 朗讀 =================
+    // ================= 6. 語音辨識與 TTS =================
     let synth = window.speechSynthesis;
     let voices = [];
     function loadVoices() {
@@ -628,7 +670,7 @@
       try {
         const currentUrl = window.location.href.split('?')[0];
         const res = await fetch(`${currentUrl}?_t=${Date.now()}`, { cache: "no-store" });
-        if (res.ok && confirm("已與伺服器通訊完畢！是否立即重新載入？（解鎖狀態將自動保留）")) {
+        if (res.ok && confirm("已連線確認！是否立即重新載入？（解鎖狀態將自動保留）")) {
           window.location.reload(true);
         }
       } catch (e) { alert("檢查失敗，請確認連線。"); }
