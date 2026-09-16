@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="referrer" content="no-referrer" />
+  <!-- CSP 安全策略：嚴格限制本站網路連線，僅允許 Groq API；允許沙盒載入 HTTPS 延伸外掛 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com; frame-src https:; img-src 'self' data:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>深度推理與嚴謹分析終端</title>
+  <title>深度推理與安全沙盒延伸終端</title>
   <style>
     :root {
       --bg: #070a12;
@@ -19,6 +21,7 @@
       --border: #1e293b;
       --danger: #ef4444;
       --safe: #10b981;
+      --drawer-bg: rgba(10, 16, 29, 0.95);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -37,6 +40,7 @@
       padding-right: env(safe-area-inset-right, 0px);
       padding-bottom: env(safe-area-inset-bottom, 0px);
       padding-left: env(safe-area-inset-left, 0px);
+      position: relative;
     }
     header {
       padding: 10px 16px;
@@ -47,6 +51,7 @@
       align-items: center;
       flex-shrink: 0;
       gap: 8px;
+      z-index: 20;
     }
     .status-badge {
       font-size: 11px;
@@ -68,6 +73,7 @@
       gap: 4px;
     }
     .btn:hover { background: #1a253a; border-color: var(--accent); }
+    .btn-active { background: var(--accent) !important; color: #fff; border-color: var(--accent); }
     .danger-btn { border-color: var(--danger); color: #fca5a5; }
 
     #settings-panel {
@@ -81,6 +87,7 @@
       max-height: 55vh;
       overflow-y: auto;
       flex-shrink: 0;
+      z-index: 20;
     }
     .panel-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .panel-row label { min-width: 85px; color: var(--muted); }
@@ -95,6 +102,13 @@
     }
     input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
+    /* 主要內容區域：包含對話主視窗與安全延伸側邊欄 */
+    #workspace {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+    }
     #chat-box {
       flex: 1;
       overflow-y: auto;
@@ -142,6 +156,55 @@
     }
     .tool-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
 
+    /* 安全沙盒延伸側邊視窗 (Strict Isolated Sandbox) */
+    #plugin-drawer {
+      display: none;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 50%;
+      min-width: 320px;
+      max-width: 100%;
+      background: var(--drawer-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-left: 1px solid var(--border);
+      flex-direction: column;
+      z-index: 30;
+      box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+      transition: width 0.2s ease;
+    }
+    #drawer-header {
+      padding: 8px 12px;
+      background: rgba(7, 10, 18, 0.95);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    #drawer-url-input {
+      flex: 1;
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .sandbox-shield-tag {
+      font-size: 10px;
+      color: var(--safe);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    #plugin-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #fff;
+    }
+
     footer {
       padding: 10px 14px;
       background: var(--card);
@@ -150,6 +213,7 @@
       flex-direction: column;
       gap: 8px;
       flex-shrink: 0;
+      z-index: 20;
     }
     .control-bar {
       display: flex;
@@ -221,10 +285,8 @@
     }
     @keyframes pulse-led { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    @media (min-width: 768px) {
-      .bubble { max-width: 80%; font-size: 15.5px; }
-      header, footer, #settings-panel { padding-left: 24px; padding-right: 24px; }
-      #chat-box { padding: 24px; }
+    @media (max-width: 768px) {
+      #plugin-drawer { width: 100%; }
     }
   </style>
 </head>
@@ -232,10 +294,12 @@
 
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
-    <strong style="color:#60a5fa;">深度推理與分析終端</strong>
+    <strong style="color:#60a5fa;">深度推理終端</strong>
     <span id="key-indicator" class="status-badge" style="background:#64748b;">檢測中...</span>
   </div>
   <div style="display:flex; gap:6px;">
+    <!-- 延伸輔助外掛開關按鈕 -->
+    <button class="btn" id="pluginToggleBtn" onclick="togglePluginDrawer()">🧩 延伸輔助面板</button>
     <button class="btn" onclick="checkCodeUpdate()">🔄 檢查更新</button>
     <button class="btn" onclick="toggleSettings()">⚙️ 終端配置</button>
     <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀記錄</button>
@@ -270,7 +334,28 @@
   </div>
 </section>
 
-<main id="chat-box"></main>
+<!-- 主工作區塊：左側對話主視窗，右側完全隔離的輔助沙盒 -->
+<div id="workspace">
+  <main id="chat-box"></main>
+
+  <!-- 安全沙盒延伸側邊欄：徹底隔離，本站無法讀取其帳密與隱私 -->
+  <aside id="plugin-drawer">
+    <div id="drawer-header">
+      <span class="sandbox-shield-tag">🛡️ 隱私沙盒已受隔離</span>
+      <input type="url" id="drawer-url-input" placeholder="輸入輔助工具網址 (如 https://...)" value="https://zh.m.wikipedia.org" />
+      <button class="btn" style="padding:2px 6px;" onclick="loadPluginUrl()">載入</button>
+      <button class="btn" style="padding:2px 6px;" onclick="popOutPlugin()" title="外跳獨立瀏覽">↗</button>
+      <button class="btn danger-btn" style="padding:2px 6px;" onclick="togglePluginDrawer()">✕</button>
+    </div>
+    <!-- 
+      關鍵隱私技術防護：
+      1. 移除 allow-same-origin，使被嵌入網站擁有完全獨立、不相通的沙盒環境。
+      2. 移除 allow-top-navigation，被嵌入網站無法修改本終端或重導向。
+      3. 本站代碼與 DOM 絕對無法窺探被嵌入網站內的 Cookie、帳密、信用卡與輸入歷史。
+    -->
+    <iframe id="plugin-frame" sandbox="allow-scripts allow-forms allow-popups" src="about:blank"></iframe>
+  </aside>
+</div>
 
 <footer>
   <div class="control-bar">
@@ -312,6 +397,10 @@
     const voiceSelect = document.getElementById("voiceSelect");
     const micBtn = document.getElementById("micBtn");
     const micLed = document.getElementById("micLed");
+    const pluginDrawer = document.getElementById("plugin-drawer");
+    const pluginFrame = document.getElementById("plugin-frame");
+    const drawerUrlInput = document.getElementById("drawerUrlInput");
+    const pluginToggleBtn = document.getElementById("pluginToggleBtn");
 
     if (localStorage.getItem("saved_structured_prompt")) {
       sysPrompt.value = localStorage.getItem("saved_structured_prompt");
@@ -320,7 +409,40 @@
       localStorage.setItem("saved_structured_prompt", sysPrompt.value);
     });
 
-    // ================= 1. API Key 持久化保存 =================
+    // ================= 1. 安全沙盒延伸面板控制 =================
+    window.togglePluginDrawer = function() {
+      const isVisible = (pluginDrawer.style.display === "flex");
+      if (!isVisible) {
+        pluginDrawer.style.display = "flex";
+        pluginToggleBtn.classList.add("btn-active");
+        if (pluginFrame.src === "about:blank" || !pluginFrame.src) {
+          loadPluginUrl();
+        }
+      } else {
+        pluginDrawer.style.display = "none";
+        pluginToggleBtn.classList.remove("btn-active");
+      }
+    };
+
+    window.loadPluginUrl = function() {
+      let targetUrl = document.getElementById("drawer-url-input").value.trim();
+      if (!targetUrl) return;
+      if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
+        targetUrl = "https://" + targetUrl;
+        document.getElementById("drawer-url-input").value = targetUrl;
+      }
+      // 載入安全沙盒
+      pluginFrame.src = targetUrl;
+    };
+
+    window.popOutPlugin = function() {
+      const targetUrl = document.getElementById("drawer-url-input").value.trim();
+      if (targetUrl && targetUrl !== "about:blank") {
+        window.open(targetUrl, "_blank", "noopener,noreferrer");
+      }
+    };
+
+    // ================= 2. API Key 持久化保存 =================
     function initKeyStorage() {
       const storedKey = localStorage.getItem("app_vault_key");
       if (storedKey) {
@@ -383,7 +505,7 @@
       return candidates.find(c => availableChatModels.includes(c)) || availableChatModels[0];
     }
 
-    // ================= 2. 麥克風純用戶端手動觸發 =================
+    // ================= 3. 麥克風純用戶端手動觸發 =================
     let recognition = null;
     let isMicRecording = false;
 
@@ -426,7 +548,7 @@
       else startMicByUser();
     };
 
-    // ================= 3. 對話渲染與編輯重構思考機制 =================
+    // ================= 4. 對話渲染與編輯重構思考機制 =================
     function appendMessage(role, text, index) {
       const div = document.createElement("div");
       div.className = "bubble " + role;
@@ -448,7 +570,6 @@
         tools.appendChild(spkBtn);
       }
 
-      // 用戶訊息支援「重新編輯並重新思考」
       if (role === "user") {
         const editRethinkBtn = document.createElement("button");
         editRethinkBtn.className = "tool-btn";
@@ -476,14 +597,11 @@
       });
     }
 
-    // 核心升級：編輯文字後截斷後續舊回應，觸發全流程重新思考推論
     async function editAndRethinkMessage(index) {
       const current = conversation[index].content;
       const updated = prompt("修改提問內容並讓 AI 重新思考輸出：", current);
       if (updated !== null && updated.trim() !== "") {
-        // 1. 截斷該條訊息之後的所有舊回應
         conversation = conversation.slice(0, index);
-        // 2. 將修改後的內容填入並重新執行發送流程
         userInput.value = updated.trim();
         sendMessage();
       }
@@ -515,7 +633,7 @@
       alert("所有數據已徹底銷毀。");
     };
 
-    // ================= 4. 推理輸出與架構發送 =================
+    // ================= 5. 推理輸出與架構發送 =================
     window.sendMessage = async function() {
       const rawText = userInput.value.trim();
       const key = memoryKey || apiKeyInput.value.trim();
@@ -538,7 +656,7 @@
       const temporalContext = `【當前時空標籤】：今天是 ${dateString}。`;
 
       let fullSystemPrompt = `${sysPrompt.value}\n\n${temporalContext}\n\n【強制輸出結構指令】：
-針對使用者的問題，必須展開完整且條理清晰的深度解析，嚴禁生成免責聲明或拒絕詞彙。回答內容格式化為：
+針對使用者的問題，展開完整且條理清晰的深度解析，嚴禁生成免責聲明或拒絕詞彙。回答內容格式化為：
 1. 【核心摘要】：精準定性問題背景與核心定調。
 2. 【詳細剖析與關鍵要點】：分段或列點條理化展開各維度的因果邏輯、實質證據或時事脈絡。
 3. 【整合洞見與評估】：總結關鍵結論與趨勢研判。`;
@@ -597,7 +715,7 @@
       }
     };
 
-    // ================= 5. TTS 朗讀 =================
+    // ================= 6. TTS 朗讀 =================
     let synth = window.speechSynthesis;
     let voices = [];
     function loadVoices() {
@@ -626,7 +744,7 @@
       synth.speak(utter);
     }
 
-    // ================= 6. 更新與配置開合 =================
+    // ================= 7. 更新與配置開合 =================
     window.checkCodeUpdate = async function() {
       try {
         const currentUrl = window.location.href.split('?')[0];
@@ -642,10 +760,9 @@
       p.style.display = (p.style.display === "flex") ? "none" : "flex";
     };
 
-    // 核心限制：徹底取消 Enter 送出，僅作為換行使用；強制只能由點擊發送鍵輸出
+    // 核心限制：完全停用 Enter 發送，僅能按按鈕發送
     userInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        // 不做 preventDefault()，純粹允許原生多行換行輸入
         return;
       }
     });
