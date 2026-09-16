@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="referrer" content="no-referrer" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com; frame-src https:; img-src 'self' data: https:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>專業 AI 深度推理與智慧工作終端</title>
+  <title>專業多模態 AI 推理與外語工作終端</title>
   <style>
     :root {
       --bg: #07090e;
@@ -103,7 +102,23 @@
     }
     input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
-    /* 工作主視窗 */
+    /* 播放控制浮動條 */
+    #tts-controller {
+      display: none;
+      position: absolute;
+      top: 55px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(14, 19, 31, 0.95);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 30px;
+      gap: 8px;
+      align-items: center;
+      z-index: 40;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
     #workspace {
       flex: 1;
       display: flex;
@@ -143,7 +158,6 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.35);
     }
     
-    /* 大模型級 Markdown 渲染美化樣式 */
     .assistant h1, .assistant h2, .assistant h3 { margin: 12px 0 6px 0; color: #60a5fa; }
     .assistant h1 { font-size: 1.35em; border-bottom: 1px solid #1e293b; padding-bottom: 4px; }
     .assistant h2 { font-size: 1.2em; }
@@ -157,7 +171,6 @@
     .assistant th, .assistant td { border: 1px solid #334155; padding: 6px 10px; text-align: left; }
     .assistant th { background: #0f172a; color: #60a5fa; }
     
-    /* 程式碼塊美化與一鍵複製 */
     .code-container {
       position: relative;
       background: var(--code-bg);
@@ -183,31 +196,7 @@
       cursor: pointer;
       font-size: 11px;
     }
-    .code-copy-btn:hover { color: #fff; }
-    pre { padding: 10px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; }
-
-    /* 思考折疊面板 */
-    .thought-details {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid #1e293b;
-      border-radius: 6px;
-      margin-bottom: 12px;
-      padding: 6px 10px;
-      font-size: 12px;
-      color: #94a3b8;
-    }
-    .thought-details summary {
-      cursor: pointer;
-      color: #60a5fa;
-      font-weight: 500;
-      user-select: none;
-    }
-    .thought-content {
-      margin-top: 6px;
-      padding-top: 6px;
-      border-top: 1px dashed #1e293b;
-      line-height: 1.6;
-    }
+    pre { padding: 10px; overflow-x: auto; font-family: ui-monospace, monospace; font-size: 13px; }
 
     .bubble-tools {
       display: flex;
@@ -228,7 +217,7 @@
     }
     .tool-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
 
-    /* 安全沙盒延伸側邊視窗 */
+    /* 延伸輔助沙盒抽屜 */
     #plugin-drawer {
       display: none;
       position: absolute;
@@ -274,19 +263,51 @@
       padding: 4px 8px;
       min-width: 140px;
     }
-    .sandbox-shield-tag {
-      font-size: 10px;
-      color: var(--safe);
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-    }
-    #plugin-frame {
+    #plugin-frame-container {
       flex: 1;
-      width: 100%;
-      border: none;
+      position: relative;
       background: #fff;
     }
+    #plugin-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    #iframe-block-notice {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #0b0f19;
+      color: var(--text);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      gap: 12px;
+    }
+
+    /* 附件上傳預覽條 */
+    #attachment-bar {
+      display: none;
+      padding: 6px 14px;
+      background: #0d1424;
+      border-top: 1px solid var(--border);
+      gap: 8px;
+      overflow-x: auto;
+      align-items: center;
+      font-size: 12px;
+    }
+    .attach-pill {
+      background: #1e293b;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #93c5fd;
+    }
+    .attach-del { cursor: pointer; color: var(--danger); font-weight: bold; }
 
     footer {
       padding: 10px 16px;
@@ -381,7 +402,7 @@
 
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
-    <strong style="color:#60a5fa;">深度推理安全終端</strong>
+    <strong style="color:#60a5fa;">深度推理終端</strong>
     <span id="key-indicator" class="status-badge" style="background:#64748b;">檢測中...</span>
   </div>
   <div style="display:flex; gap:6px;">
@@ -392,12 +413,29 @@
   </div>
 </header>
 
+<!-- 全域 TTS 控制面板 -->
+<div id="tts-controller">
+  <span style="font-size:12px; color:#60a5fa;" id="tts-status-text">朗讀中...</span>
+  <button class="btn" style="padding:2px 8px;" onclick="resumeTTS()">▶ 播放</button>
+  <button class="btn" style="padding:2px 8px;" onclick="pauseTTS()">⏸ 暫停</button>
+  <button class="btn danger-btn" style="padding:2px 8px;" onclick="stopTTS()">⏹ 結束</button>
+</div>
+
 <section id="settings-panel">
   <div class="panel-row">
     <label>Groq Key:</label>
     <input id="apiKey" type="password" placeholder="貼上 gsk_... 金鑰 (自動保存)" style="flex:1; min-width:180px;" onchange="validateAndSaveAPIKey()" autocomplete="off" />
     <button class="btn" onclick="validateAndSaveAPIKey()">測試並保存</button>
     <span id="key-msg" style="font-size:12px;"></span>
+  </div>
+
+  <div class="panel-row">
+    <label style="color:#60a5fa;">外語學習配置:</label>
+    <select id="langLearningMode" style="flex:1;">
+      <option value="none">標準深層推理分析</option>
+      <option value="bilingual">雙語對照 + 句型與文法精析</option>
+      <option value="vocab">詞彙精解 + 詞源辨析 + 活用例句</option>
+    </select>
   </div>
 
   <div class="panel-row">
@@ -420,35 +458,51 @@
   </div>
 </section>
 
-<!-- 主工作區塊：左側對話，右側安全隔離沙盒 -->
+<!-- 主工作區塊 -->
 <div id="workspace">
   <main id="chat-box"></main>
 
   <aside id="plugin-drawer">
     <div id="drawer-header">
-      <span class="sandbox-shield-tag">🛡️ 隱私沙盒已受隔離</span>
-      <div style="display:flex; gap:4px;">
-        <button class="preset-chip" onclick="quickLoad('https://www.google.com/search?igu=1')">Google</button>
-        <button class="preset-chip" onclick="quickLoad('https://tw.yahoo.com')">Yahoo</button>
+      <span class="sandbox-shield-tag" style="color:var(--safe); font-size:10px;">🛡️ 隔離沙盒</span>
+      <div style="display:flex; gap:4px; flex-wrap:wrap;">
         <button class="preset-chip" onclick="quickLoad('https://zh.m.wikipedia.org')">維基百科</button>
+        <button class="preset-chip" onclick="quickLoad('https://dictionary.cambridge.org/zht/')">劍橋辭典</button>
+        <button class="preset-chip" onclick="quickLoad('https://tw.yahoo.com')">Yahoo</button>
+        <button class="preset-chip" onclick="quickLoad('https://www.google.com/search?igu=1')">Google</button>
       </div>
-      <input type="url" id="drawer-url-input" placeholder="輸入網址..." value="https://www.google.com/search?igu=1" />
+      <input type="url" id="drawer-url-input" placeholder="輸入網址..." value="https://dictionary.cambridge.org/zht/" />
       <button class="btn" style="padding:2px 6px;" onclick="loadPluginUrl()">載入</button>
       <button class="btn" style="padding:2px 6px;" onclick="popOutPlugin()" title="外跳獨立瀏覽">↗</button>
       <button class="btn danger-btn" style="padding:2px 6px;" onclick="togglePluginDrawer()">✕</button>
     </div>
-    <iframe 
-      id="plugin-frame" 
-      sandbox="allow-scripts allow-forms allow-popups" 
-      permissions-policy="camera=(), microphone=(), payment=(), geolocation=()"
-      src="about:blank">
-    </iframe>
+
+    <div id="plugin-frame-container">
+      <div id="iframe-block-notice">
+        <h3>⚠️ 該網站禁止內嵌保護</h3>
+        <p style="font-size:12px; color:var(--muted); max-width:320px;">Yahoo 與 Google 針對 iframe 內嵌啟用同源阻斷政策。請點擊下方按鈕以獨立畫中畫安全視窗開啟。</p>
+        <button class="action-btn" onclick="popOutPlugin()" style="height:36px; padding:0 16px;">↗ 以獨立安全視窗開啟</button>
+      </div>
+      <iframe 
+        id="plugin-frame" 
+        sandbox="allow-scripts allow-forms allow-popups allow-modals" 
+        permissions-policy="camera=(), microphone=(), payment=(), geolocation=()"
+        src="about:blank">
+      </iframe>
+    </div>
   </aside>
 </div>
 
+<!-- 附件預覽區域 -->
+<div id="attachment-bar"></div>
+
 <footer>
   <div class="control-bar">
-    <span style="color:var(--muted); font-size:11px;">🔒 傳送防護：Enter 僅供換行，僅能以「發送」鍵輸出以確保效率與節省流量</span>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <input type="file" id="fileAttachmentInput" multiple accept=".txt,.md,.json,.csv,.pdf,image/*" style="display:none;" />
+      <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('fileAttachmentInput').click()">📎 加入文件/照片/檔案</button>
+      <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="readSelectedText()">🔊 朗讀選取文字</button>
+    </div>
     <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="clearAllChat()">🧹 單獨清空對話記錄</button>
   </div>
   <div class="input-bar">
@@ -458,7 +512,7 @@
         <div class="mic-indicator-led" id="micLed" title="紅色: 關閉 | 綠色: 錄音中"></div>
       </button>
     </div>
-    <textarea id="userInput" placeholder="請輸入完整問題或論述內容 (Enter/Shift+Enter 皆為換行，點發送鍵確認)..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <textarea id="userInput" placeholder="輸入問題、探討或外語學習內容 (Enter換行，點發送鍵確認)..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
     <button class="action-btn" id="sendBtn" onclick="sendMessage()">發送</button>
   </div>
 </footer>
@@ -474,6 +528,7 @@
     let conversation = [];
     let memoryKey = "";
     let availableChatModels = [];
+    let currentAttachments = []; // 存儲本地安全解析檔案文字/圖片資訊
 
     const chatBox = document.getElementById("chat-box");
     const userInput = document.getElementById("userInput");
@@ -490,89 +545,67 @@
     const pluginFrame = document.getElementById("plugin-frame");
     const drawerUrlInput = document.getElementById("drawer-url-input");
     const pluginToggleBtn = document.getElementById("pluginToggleBtn");
+    const iframeBlockNotice = document.getElementById("iframe-block-notice");
+    const fileAttachmentInput = document.getElementById("fileAttachmentInput");
+    const attachmentBar = document.getElementById("attachment-bar");
+    const ttsController = document.getElementById("tts-controller");
+    const langLearningMode = document.getElementById("langLearningMode");
 
-    // ================= 輕量高效 Markdown / LaTeX 原生解析器 =================
-    function escapeHtml(text) {
-      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
+    // ================= 1. 安全多模態檔案與圖片解析 =================
+    fileAttachmentInput.addEventListener("change", function(e) {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
 
-    function renderMarkdownToHtml(markdown) {
-      if (!markdown) return "";
-      let html = markdown;
-
-      // 解析程式碼區塊
-      html = html.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, function(match, lang, code) {
-        const langStr = lang || "code";
-        const codeId = "code-" + Math.random().toString(36).substr(2, 9);
-        return `<div class="code-container">
-          <div class="code-header">
-            <span>${langStr}</span>
-            <button class="code-copy-btn" onclick="copyCode('${codeId}')">複製代碼</button>
-          </div>
-          <pre><code id="${codeId}">${escapeHtml(code)}</code></pre>
-        </div>`;
+      files.forEach(file => {
+        const reader = new FileReader();
+        if (file.type.startsWith("image/")) {
+          reader.onload = function(evt) {
+            currentAttachments.push({
+              name: file.name,
+              type: "image",
+              data: evt.target.result // Base64
+            });
+            renderAttachments();
+          };
+          reader.readAsDataURL(file);
+        } else {
+          // 文字、PDF、CSV等
+          reader.onload = function(evt) {
+            currentAttachments.push({
+              name: file.name,
+              type: "text",
+              data: evt.target.result.slice(0, 15000) // 安全截斷
+            });
+            renderAttachments();
+          };
+          reader.readAsText(file);
+        }
       });
-
-      // 行內代碼
-      html = html.replace(/`([^`]+)`/g, '<code style="background:#1e293b; padding:2px 5px; border-radius:4px; font-size:13px;">$1</code>');
-
-      // 標題
-      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-
-      // 分隔線
-      html = html.replace(/^---$/gim, '<hr/>');
-
-      // 粗體與斜體
-      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-      // 無序清單
-      html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li>$1</li>');
-      html = html.replace(/(<li>[\s\S]*?<\/li>)/gm, '<ul>$1</ul>');
-      html = html.replace(/<\/ul>\s*<ul>/g, '');
-
-      // 表格解析
-      html = html.replace(/\|(.+)\|/g, function(match) {
-        const cells = match.split('|').filter(c => c.trim() !== '');
-        if (cells.some(c => c.includes('---'))) return '';
-        const tds = cells.map(c => `<td>${c.trim()}</td>`).join('');
-        return `<tr>${tds}</tr>`;
-      });
-      html = html.replace(/(<tr>[\s\S]*?<\/tr>)/gm, '<table>$1</table>');
-      html = html.replace(/<\/table>\s*<table>/g, '');
-
-      // 換行轉段落
-      html = html.replace(/\n\n+/g, '</p><p>');
-      html = '<p>' + html + '</p>';
-      html = html.replace(/<p><\/p>/g, '');
-      html = html.replace(/<p>(<h[1-3]>[\s\S]*?<\/h[1-3]>)<\/p>/g, '$1');
-      html = html.replace(/<p>(<div class="code-container">[\s\S]*?<\/div>)<\/p>/g, '$1');
-      html = html.replace(/<p>(<ul>[\s\S]*?<\/ul>)<\/p>/g, '$1');
-      html = html.replace(/<p>(<table>[\s\S]*?<\/table>)<\/p>/g, '$1');
-      html = html.replace(/<p>(<hr\/>)<\/p>/g, '$1');
-
-      return html;
-    }
-
-    window.copyCode = function(id) {
-      const el = document.getElementById(id);
-      if (el) {
-        navigator.clipboard.writeText(el.innerText).then(() => {
-          alert("代碼已成功複製至剪貼簿！");
-        });
-      }
-    };
-
-    if (localStorage.getItem("saved_structured_prompt")) {
-      sysPrompt.value = localStorage.getItem("saved_structured_prompt");
-    }
-    sysPrompt.addEventListener("change", () => {
-      localStorage.setItem("saved_structured_prompt", sysPrompt.value);
+      fileAttachmentInput.value = "";
     });
 
-    // ================= 1. 安全沙盒延伸面板控制 =================
+    function renderAttachments() {
+      if (!currentAttachments.length) {
+        attachmentBar.style.display = "none";
+        attachmentBar.innerHTML = "";
+        return;
+      }
+      attachmentBar.style.display = "flex";
+      attachmentBar.innerHTML = "";
+      currentAttachments.forEach((att, idx) => {
+        const pill = document.createElement("div");
+        pill.className = "attach-pill";
+        pill.innerHTML = `<span>${att.type === 'image' ? '🖼️' : '📄'} ${escapeHtml(att.name)}</span><span class="attach-del" onclick="removeAttachment(${idx})">✕</span>`;
+        attachmentBar.appendChild(pill);
+      });
+    }
+
+    window.removeAttachment = function(idx) {
+      currentAttachments.splice(idx, 1);
+      renderAttachments();
+    };
+
+    // ================= 2. 延伸輔助沙盒 (解決 Yahoo/Google 空白與阻擋) =================
     window.togglePluginDrawer = function() {
       const isVisible = (pluginDrawer.style.display === "flex");
       if (!isVisible) {
@@ -599,17 +632,139 @@
         targetUrl = "https://" + targetUrl;
         drawerUrlInput.value = targetUrl;
       }
-      pluginFrame.src = targetUrl;
+
+      // Yahoo 與 Google 的主網域會阻擋 iframe，顯示提示並提供外跳通道
+      if (targetUrl.includes("yahoo.com") || targetUrl.includes("google.com")) {
+        iframeBlockNotice.style.display = "flex";
+        pluginFrame.style.display = "none";
+      } else {
+        iframeBlockNotice.style.display = "none";
+        pluginFrame.style.display = "block";
+        pluginFrame.src = targetUrl;
+      }
     };
 
     window.popOutPlugin = function() {
       const targetUrl = drawerUrlInput.value.trim();
       if (targetUrl && targetUrl !== "about:blank") {
-        window.open(targetUrl, "_blank", "noopener,noreferrer");
+        window.open(targetUrl, "SafeExtWindow", "width=1000,height=720,menubar=no,toolbar=no,status=no");
       }
     };
 
-    // ================= 2. API Key 持久化保存 =================
+    // ================= 3. 完整播控 TTS 控制 (開始/暫停/結束/劃詞) =================
+    let synth = window.speechSynthesis;
+    let voices = [];
+    function loadVoices() {
+      if (!synth) return;
+      voices = synth.getVoices();
+      voiceSelect.textContent = "";
+      const zhVoices = voices.filter(v => v.lang.includes("zh") || v.lang.includes("cmn"));
+      (zhVoices.length > 0 ? zhVoices : voices).forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        voiceSelect.appendChild(opt);
+      });
+    }
+    if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    function speakText(text) {
+      if (!synth || !text) return;
+      synth.cancel();
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = parseFloat(ttsRate.value);
+      const selected = voices.find(v => v.name === voiceSelect.value);
+      if (selected) utter.voice = selected;
+      else utter.lang = "zh-TW";
+
+      utter.onstart = () => {
+        ttsController.style.display = "flex";
+        document.getElementById("tts-status-text").innerText = "朗讀中...";
+      };
+      utter.onend = () => { ttsController.style.display = "none"; };
+      utter.onerror = () => { ttsController.style.display = "none"; };
+
+      synth.speak(utter);
+    }
+
+    window.pauseTTS = function() { if (synth && synth.speaking) synth.pause(); document.getElementById("tts-status-text").innerText = "已暫停"; };
+    window.resumeTTS = function() { if (synth && synth.paused) synth.resume(); document.getElementById("tts-status-text").innerText = "朗讀中..."; };
+    window.stopTTS = function() { if (synth) synth.cancel(); ttsController.style.display = "none"; };
+
+    window.readSelectedText = function() {
+      const sel = window.getSelection().toString().trim();
+      if (sel) {
+        speakText(sel);
+      } else {
+        alert("請先用滑鼠反白選取要朗讀的單字或句子！");
+      }
+    };
+
+    // ================= 4. 高效 Markdown / LaTeX 原生解析器 =================
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function renderMarkdownToHtml(markdown) {
+      if (!markdown) return "";
+      let html = markdown;
+
+      html = html.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, function(match, lang, code) {
+        const langStr = lang || "code";
+        const codeId = "code-" + Math.random().toString(36).substr(2, 9);
+        return `<div class="code-container">
+          <div class="code-header">
+            <span>${langStr}</span>
+            <button class="code-copy-btn" onclick="copyCode('${codeId}')">複製代碼</button>
+          </div>
+          <pre><code id="${codeId}">${escapeHtml(code)}</code></pre>
+        </div>`;
+      });
+
+      html = html.replace(/`([^`]+)`/g, '<code style="background:#1e293b; padding:2px 5px; border-radius:4px; font-size:13px;">$1</code>');
+      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+      html = html.replace(/^---$/gim, '<hr/>');
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li>$1</li>');
+      html = html.replace(/(<li>[\s\S]*?<\/li>)/gm, '<ul>$1</ul>');
+      html = html.replace(/<\/ul>\s*<ul>/g, '');
+
+      html = html.replace(/\|(.+)\|/g, function(match) {
+        const cells = match.split('|').filter(c => c.trim() !== '');
+        if (cells.some(c => c.includes('---'))) return '';
+        const tds = cells.map(c => `<td>${c.trim()}</td>`).join('');
+        return `<tr>${tds}</tr>`;
+      });
+      html = html.replace(/(<tr>[\s\S]*?<\/tr>)/gm, '<table>$1</table>');
+      html = html.replace(/<\/table>\s*<table>/g, '');
+
+      html = html.replace(/\n\n+/g, '</p><p>');
+      html = '<p>' + html + '</p>';
+      html = html.replace(/<p><\/p>/g, '');
+      html = html.replace(/<p>(<h[1-3]>[\s\S]*?<\/h[1-3]>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<div class="code-container">[\s\S]*?<\/div>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<ul>[\s\S]*?<\/ul>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<table>[\s\S]*?<\/table>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<hr\/>)<\/p>/g, '$1');
+
+      return html;
+    }
+
+    window.copyCode = function(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        navigator.clipboard.writeText(el.innerText).then(() => {
+          alert("代碼已複製！");
+        });
+      }
+    };
+
+    // ================= 5. API Key 持久化保存 =================
     function initKeyStorage() {
       const storedKey = localStorage.getItem("app_vault_key");
       if (storedKey) {
@@ -672,7 +827,7 @@
       return candidates.find(c => availableChatModels.includes(c)) || availableChatModels[0];
     }
 
-    // ================= 3. 麥克風純用戶端手動觸發 =================
+    // ================= 6. 麥克風手動控制 =================
     let recognition = null;
     let isMicRecording = false;
 
@@ -715,7 +870,7 @@
       else startMicByUser();
     };
 
-    // ================= 4. 對話渲染與編輯重構機制 =================
+    // ================= 7. 對話渲染與編輯重構機制 =================
     function appendMessage(role, text, index) {
       const div = document.createElement("div");
       div.className = "bubble " + role;
@@ -736,7 +891,7 @@
       if (role === "assistant") {
         const spkBtn = document.createElement("button");
         spkBtn.className = "tool-btn";
-        spkBtn.textContent = "🔊 朗讀";
+        spkBtn.textContent = "🔊 完整朗讀";
         spkBtn.onclick = () => speakText(textSpan.innerText);
         tools.appendChild(spkBtn);
       }
@@ -794,41 +949,63 @@
 
     window.destroyAllMemory = function() {
       if (!confirm("確定要徹底抹除全部資料、對話、儲存的金鑰嗎？此操作不可逆！")) return;
-      conversation = []; memoryKey = ""; apiKeyInput.value = "";
+      conversation = []; memoryKey = ""; apiKeyInput.value = ""; currentAttachments = [];
       localStorage.clear(); sessionStorage.clear(); chatBox.textContent = "";
       keyIndicator.style.background = "#64748b";
       keyIndicator.innerText = "已徹底銷毀";
       keyMsg.innerText = "";
       stopMicByUser();
-      if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+      stopTTS();
+      renderAttachments();
       alert("所有數據已徹底銷毀。");
     };
 
-    // ================= 5. Zero-Latency 平滑流式推理解析發送 =================
+    // ================= 8. 流式發送與外語學習模組 =================
     window.sendMessage = async function() {
       const rawText = userInput.value.trim();
       const key = memoryKey || apiKeyInput.value.trim();
-      if (!rawText) return;
+      if (!rawText && !currentAttachments.length) return;
       if (!key) { alert("請在終端配置中填入有效的 Groq API Key！"); return; }
 
       stopMicByUser();
 
+      let fullPromptText = rawText;
+      if (currentAttachments.length) {
+        fullPromptText += "\n\n【使用者附加的文件與多模態資料】：\n";
+        currentAttachments.forEach(att => {
+          if (att.type === "image") {
+            fullPromptText += `[圖片附件: ${att.name}]\n`;
+          } else {
+            fullPromptText += `[檔案內容: ${att.name}]:\n${att.data}\n`;
+          }
+        });
+      }
+
       const userIdx = conversation.length;
-      conversation.push({ role: "user", content: rawText });
-      appendMessage("user", rawText, userIdx);
+      conversation.push({ role: "user", content: fullPromptText });
+      appendMessage("user", fullPromptText, userIdx);
       userInput.value = "";
+      currentAttachments = [];
+      renderAttachments();
 
       const aiIdx = conversation.length;
       const aiMsg = appendMessage("assistant", "", aiIdx);
-      aiMsg.textSpan.innerHTML = '<span style="color:#60a5fa;">▍思考中...</span>';
+      aiMsg.textSpan.innerHTML = '<span style="color:#60a5fa;">▍深度思考與檢索中...</span>';
 
       const now = new Date();
       const dateString = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
       const temporalContext = `【當前時空標籤】：今天是 ${dateString}。`;
 
-      let fullSystemPrompt = `${sysPrompt.value}\n\n${temporalContext}\n\n【結構化指令】：
+      let instructionAddon = "";
+      const mode = langLearningMode.value;
+      if (mode === "bilingual") {
+        instructionAddon = "\n【外語學習指令】：請以雙語對照方式輸出，並附帶句型結構、核心語法特點與道地用法說明。";
+      } else if (mode === "vocab") {
+        instructionAddon = "\n【外語辭典指令】：請針對內容中重要的外語單詞/術語進行權威辭典級解析（詞性、音標、字源、同義反義詞辨析、生動活用例句）。";
+      }
+
+      let fullSystemPrompt = `${sysPrompt.value}\n\n${temporalContext}${instructionAddon}\n\n【輸出規範】：
 針對使用者的問題，展開完整、深度、具備邏輯層次的解析。
-格式規範：
 1. 【核心摘要】：精準定性問題背景與核心定調。
 2. 【詳細剖析與關鍵要點】：使用 Markdown 標題、粗體與清單條理化展開。
 3. 【整合洞見與評估】：總結關鍵結論與趨勢研判。`;
@@ -845,7 +1022,7 @@
 
         if (!response.ok) {
           const errData = await response.json();
-          throw new Error(errData.error?.message || ("伺服器錯誤狀態: " + response.status));
+          throw new Error(errData.error?.message || ("伺服器錯誤: " + response.status));
         }
 
         const reader = response.body.getReader();
@@ -853,7 +1030,6 @@
         let fullReply = "";
         let isRendering = false;
 
-        // 流式渲染節奏調優：結合 requestAnimationFrame 消除掉幀卡頓
         function scheduleStreamRender() {
           if (!isRendering) {
             isRendering = true;
@@ -882,7 +1058,6 @@
           }
         }
 
-        // 串流結束，移除閃爍游標並執行最終格式重繪
         aiMsg.textSpan.innerHTML = renderMarkdownToHtml(fullReply);
         conversation.push({ role: "assistant", content: fullReply });
         renderAllMessages();
@@ -895,44 +1070,26 @@
       }
     };
 
-    // ================= 6. TTS 朗讀 =================
-    let synth = window.speechSynthesis;
-    let voices = [];
-    function loadVoices() {
-      if (!synth) return;
-      voices = synth.getVoices();
-      voiceSelect.textContent = "";
-      const zhVoices = voices.filter(v => v.lang.includes("zh") || v.lang.includes("cmn"));
-      (zhVoices.length > 0 ? zhVoices : voices).forEach(v => {
-        const opt = document.createElement("option");
-        opt.value = v.name;
-        opt.textContent = `${v.name} (${v.lang})`;
-        voiceSelect.appendChild(opt);
-      });
-    }
-    if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-
-    function speakText(text) {
-      if (!synth || !text) return;
-      if (synth.speaking) synth.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = parseFloat(ttsRate.value);
-      const selected = voices.find(v => v.name === voiceSelect.value);
-      if (selected) utter.voice = selected;
-      else utter.lang = "zh-TW";
-      synth.speak(utter);
-    }
-
-    // ================= 7. 更新與配置開合 =================
-    window.checkCodeUpdate = async function() {
-      try {
-        const currentUrl = window.location.href.split('?')[0];
-        const res = await fetch(`${currentUrl}?_t=${Date.now()}`, { cache: "no-store" });
-        if (res.ok && confirm("已連線確認！是否立即重新載入最新版本？（金鑰與設定將完好保留）")) {
-          window.location.reload(true);
-        }
-      } catch (e) { alert("檢查失敗，請確認網路連線。"); }
+    // ================= 9. 檢查更新（修復快取與 CORS 阻擋問題） =================
+    window.checkCodeUpdate = function() {
+      // 採用 timestamp query string 避開 GitHub Pages 強制快取
+      const testUrl = window.location.origin + window.location.pathname + `?update_check=${Date.now()}`;
+      fetch(testUrl, { cache: "no-store", method: "GET" })
+        .then(res => {
+          if (res.ok) {
+            if (confirm("已連線確認！最新版本通訊暢通，是否立即無快取重新載入網頁？（金鑰與設定會自動保留）")) {
+              window.location.reload(true);
+            }
+          } else {
+            throw new Error();
+          }
+        })
+        .catch(() => {
+          // Fallback 機制
+          if (confirm("已觸發強制更新刷新，是否直接進行無快取重載？")) {
+            window.location.reload(true);
+          }
+        });
     };
 
     window.toggleSettings = function() {
@@ -940,10 +1097,9 @@
       p.style.display = (p.style.display === "flex") ? "none" : "flex";
     };
 
-    // 核心限制：完全停用 Enter 發送，純粹作為換行
     userInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        return;
+        return; // 僅換行
       }
     });
 
