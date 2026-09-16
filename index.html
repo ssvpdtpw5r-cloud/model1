@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="referrer" content="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>即時直覺推理終端</title>
+  <title>深度推理與嚴謹分析終端</title>
   <style>
     :root {
       --bg: #070a12;
@@ -13,6 +13,7 @@
       --text: #f1f5f9;
       --muted: #94a3b8;
       --accent: #2563eb;
+      --accent-hover: #1d4ed8;
       --user: #1d4ed8;
       --ai: #131d31;
       --border: #1e293b;
@@ -98,17 +99,17 @@
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 16px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 18px;
       contain: layout;
     }
     .bubble {
       max-width: 88%;
-      padding: 14px 18px;
+      padding: 16px 20px;
       border-radius: 12px;
-      line-height: 1.75;
+      line-height: 1.8;
       white-space: pre-wrap;
       word-break: break-word;
       font-size: 15px;
@@ -125,8 +126,8 @@
     .bubble-tools {
       display: flex;
       justify-content: flex-end;
-      gap: 6px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 12px;
       border-top: 1px solid rgba(255,255,255,0.06);
       padding-top: 6px;
     }
@@ -136,7 +137,7 @@
       color: var(--muted);
       cursor: pointer;
       font-size: 11px;
-      padding: 2px 6px;
+      padding: 3px 6px;
       border-radius: 4px;
     }
     .tool-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
@@ -156,15 +157,14 @@
       align-items: center;
       gap: 8px;
       font-size: 12px;
-      flex-wrap: wrap;
     }
     .input-bar { display: flex; gap: 8px; align-items: center; }
     textarea { 
       flex: 1; 
       resize: none; 
-      height: 46px; 
+      height: 48px; 
       line-height: 22px; 
-      padding: 10px 12px; 
+      padding: 11px 12px; 
     }
     .action-btn {
       background: var(--accent);
@@ -172,14 +172,17 @@
       border: none;
       cursor: pointer;
       font-weight: 600;
-      padding: 0 18px;
-      height: 46px;
+      padding: 0 20px;
+      height: 48px;
       white-space: nowrap;
+      border-radius: 6px;
     }
+    .action-btn:hover { background: var(--accent-hover); }
+
     .mic-button-container {
       position: relative;
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       flex-shrink: 0;
     }
     .icon-btn {
@@ -217,13 +220,19 @@
       background: rgba(16, 185, 129, 0.1) !important;
     }
     @keyframes pulse-led { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    @media (min-width: 768px) {
+      .bubble { max-width: 80%; font-size: 15.5px; }
+      header, footer, #settings-panel { padding-left: 24px; padding-right: 24px; }
+      #chat-box { padding: 24px; }
+    }
   </style>
 </head>
 <body>
 
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
-    <strong style="color:#60a5fa;">即時直覺推理終端</strong>
+    <strong style="color:#60a5fa;">深度推理與分析終端</strong>
     <span id="key-indicator" class="status-badge" style="background:#64748b;">檢測中...</span>
   </div>
   <div style="display:flex; gap:6px;">
@@ -242,8 +251,13 @@
   </div>
 
   <div class="panel-row">
-    <label style="color:#60a5fa;">直覺人設:</label>
-    <textarea id="sysPrompt" style="flex:1; height:65px; font-size:12px; line-height:1.4;">你是一位具備頂尖敏銳度與即時綜合判斷力的專業助理。回答時直奔核心、邏輯嚴密，嚴禁給出「我無法取得」、「資料庫截止於」等任何免責宣告。一律直接針對當前時局與問題核心展開深層分析與具體說明。</textarea>
+    <label style="color:#60a5fa;">系統人設:</label>
+    <textarea id="sysPrompt" style="flex:1; height:75px; font-size:12px; line-height:1.4;">你是一位具備頂尖洞察力與嚴密推理能力的繁體中文分析專家。
+你的職責是針對使用者的提問進行深度剖析、邏輯梳理與要點整合。
+【結構化規範】：
+1. 嚴禁任何形式的推託、拒絕或列舉外部空泛網址。
+2. 每次回覆皆須維持完整敘述，包含：「核心定性摘要」、「深入分點推導」與「整體評估洞見」。
+3. 文字必須符合台灣正體中文習慣，文理暢通、論點清晰。</textarea>
   </div>
 
   <div class="panel-row">
@@ -260,14 +274,7 @@
 
 <footer>
   <div class="control-bar">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span style="color:#60a5fa; font-weight:600;">⚡ 直覺即時模式：已啟用</span>
-      <span style="color:var(--muted);">推理力度:</span>
-      <select id="complexitySelect" style="background:#070a12; color:#60a5fa; font-weight:600; padding:2px 6px;">
-        <option value="deep" selected>🔬 深度推理分析 (70B)</option>
-        <option value="fast">⚡ 極速即時直出 (8B)</option>
-      </select>
-    </div>
+    <span style="color:var(--muted); font-size:11px;">🔒 傳送防護：Enter 僅供換行，僅能以「發送」鍵輸出以確保效率與節省流量</span>
     <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="clearAllChat()">🧹 單獨清空對話記錄</button>
   </div>
   <div class="input-bar">
@@ -277,12 +284,18 @@
         <div class="mic-indicator-led" id="micLed" title="紅色: 關閉 | 綠色: 錄音中"></div>
       </button>
     </div>
-    <textarea id="userInput" placeholder="直接輸入任何問題或事件分析... (Enter 發送, Shift+Enter 換行)" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <textarea id="userInput" placeholder="請輸入完整問題或論述內容 (Enter/Shift+Enter 皆為換行，點發送鍵確認)..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
     <button class="action-btn" id="sendBtn" onclick="sendMessage()">發送</button>
   </div>
 </footer>
 
 <script>
+  (function initSecurityShield() {
+    if (window.top !== window.self) {
+      window.top.location = window.self.location;
+    }
+  })();
+
   (function() {
     let conversation = [];
     let memoryKey = "";
@@ -293,7 +306,6 @@
     const apiKeyInput = document.getElementById("apiKey");
     const keyIndicator = document.getElementById("key-indicator");
     const keyMsg = document.getElementById("key-msg");
-    const complexitySelect = document.getElementById("complexitySelect");
     const sysPrompt = document.getElementById("sysPrompt");
     const autoSpeakCheck = document.getElementById("autoSpeakCheck");
     const ttsRate = document.getElementById("ttsRate");
@@ -301,11 +313,11 @@
     const micBtn = document.getElementById("micBtn");
     const micLed = document.getElementById("micLed");
 
-    if (localStorage.getItem("saved_intuitive_prompt")) {
-      sysPrompt.value = localStorage.getItem("saved_intuitive_prompt");
+    if (localStorage.getItem("saved_structured_prompt")) {
+      sysPrompt.value = localStorage.getItem("saved_structured_prompt");
     }
     sysPrompt.addEventListener("change", () => {
-      localStorage.setItem("saved_intuitive_prompt", sysPrompt.value);
+      localStorage.setItem("saved_structured_prompt", sysPrompt.value);
     });
 
     // ================= 1. API Key 持久化保存 =================
@@ -365,14 +377,10 @@
       }
     }
 
-    function resolveModel() {
+    function getOptimalModel() {
       if (availableChatModels.length === 0) return "llama-3.3-70b-versatile";
-      const deepCandidates = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"];
-      const fastCandidates = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it", "openai/gpt-oss-20b"];
-      const bestDeep = deepCandidates.find(c => availableChatModels.includes(c)) || availableChatModels[0];
-      const bestFast = fastCandidates.find(c => availableChatModels.includes(c)) || availableChatModels[availableChatModels.length - 1];
-
-      return complexitySelect.value === "fast" ? bestFast : bestDeep;
+      const candidates = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"];
+      return candidates.find(c => availableChatModels.includes(c)) || availableChatModels[0];
     }
 
     // ================= 2. 麥克風純用戶端手動觸發 =================
@@ -418,7 +426,7 @@
       else startMicByUser();
     };
 
-    // ================= 3. 訊息渲染與發送 =================
+    // ================= 3. 對話渲染與編輯重構思考機制 =================
     function appendMessage(role, text, index) {
       const div = document.createElement("div");
       div.className = "bubble " + role;
@@ -440,11 +448,14 @@
         tools.appendChild(spkBtn);
       }
 
-      const editBtn = document.createElement("button");
-      editBtn.className = "tool-btn";
-      editBtn.textContent = "✏️ 編輯";
-      editBtn.onclick = () => editMessage(index);
-      tools.appendChild(editBtn);
+      // 用戶訊息支援「重新編輯並重新思考」
+      if (role === "user") {
+        const editRethinkBtn = document.createElement("button");
+        editRethinkBtn.className = "tool-btn";
+        editRethinkBtn.textContent = "✏️ 編輯並重新思考";
+        editRethinkBtn.onclick = () => editAndRethinkMessage(index);
+        tools.appendChild(editRethinkBtn);
+      }
 
       const delBtn = document.createElement("button");
       delBtn.className = "tool-btn";
@@ -465,12 +476,16 @@
       });
     }
 
-    function editMessage(index) {
+    // 核心升級：編輯文字後截斷後續舊回應，觸發全流程重新思考推論
+    async function editAndRethinkMessage(index) {
       const current = conversation[index].content;
-      const updated = prompt("編輯該條對話內容：", current);
+      const updated = prompt("修改提問內容並讓 AI 重新思考輸出：", current);
       if (updated !== null && updated.trim() !== "") {
-        conversation[index].content = updated.trim();
-        renderAllMessages();
+        // 1. 截斷該條訊息之後的所有舊回應
+        conversation = conversation.slice(0, index);
+        // 2. 將修改後的內容填入並重新執行發送流程
+        userInput.value = updated.trim();
+        sendMessage();
       }
     }
 
@@ -500,12 +515,12 @@
       alert("所有數據已徹底銷毀。");
     };
 
-    // ================= 4. 直覺即時發送核心 =================
+    // ================= 4. 推理輸出與架構發送 =================
     window.sendMessage = async function() {
       const rawText = userInput.value.trim();
       const key = memoryKey || apiKeyInput.value.trim();
       if (!rawText) return;
-      if (!key) { alert("請在配置中填入有效的 Groq API Key！"); return; }
+      if (!key) { alert("請在終端配置中填入有效的 Groq API Key！"); return; }
 
       stopMicByUser();
 
@@ -518,15 +533,18 @@
       const aiMsg = appendMessage("assistant", "", aiIdx);
       aiMsg.textSpan.textContent = "▍";
 
-      // 動態注入當前本地精準時空標籤，終止一切時間截斷的推託機制
       const now = new Date();
       const dateString = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
-      const timeContext = `【當前時空坐標】：今天是 ${dateString}。使用者所在區域為台灣。請以具備前瞻邏輯與敏銳時事洞察的視角，直接回答問題核心。`;
+      const temporalContext = `【當前時空標籤】：今天是 ${dateString}。`;
 
-      let fullSystemPrompt = `${sysPrompt.value}\n\n${timeContext}\n\n【絕對執行指示】：\n1. 絕對禁止輸出「我無法取得即時資訊」、「知識庫截止於」或任何網站/媒體清單。\n2. 當詢問新聞、時事、脈動或政策時，依據深層邏輯推導與已知大勢，直接條列呈現關鍵事件分析、核心焦點與深入剖析，以流暢優雅的繁體中文直出內容。`;
+      let fullSystemPrompt = `${sysPrompt.value}\n\n${temporalContext}\n\n【強制輸出結構指令】：
+針對使用者的問題，必須展開完整且條理清晰的深度解析，嚴禁生成免責聲明或拒絕詞彙。回答內容格式化為：
+1. 【核心摘要】：精準定性問題背景與核心定調。
+2. 【詳細剖析與關鍵要點】：分段或列點條理化展開各維度的因果邏輯、實質證據或時事脈絡。
+3. 【整合洞見與評估】：總結關鍵結論與趨勢研判。`;
 
       const payloadMessages = [{ role: "system", content: fullSystemPrompt }, ...conversation.slice(-10)];
-      const chosenModel = resolveModel();
+      const chosenModel = getOptimalModel();
 
       try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -537,7 +555,7 @@
 
         if (!response.ok) {
           const errData = await response.json();
-          throw new Error(errData.error?.message || ("狀態碼: " + response.status));
+          throw new Error(errData.error?.message || ("伺服器錯誤狀態: " + response.status));
         }
 
         const reader = response.body.getReader();
@@ -624,10 +642,11 @@
       p.style.display = (p.style.display === "flex") ? "none" : "flex";
     };
 
+    // 核心限制：徹底取消 Enter 送出，僅作為換行使用；強制只能由點擊發送鍵輸出
     userInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        window.sendMessage();
+      if (e.key === "Enter") {
+        // 不做 preventDefault()，純粹允許原生多行換行輸入
+        return;
       }
     });
 
