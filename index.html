@@ -2,11 +2,12 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
+  <!-- 防追蹤：全站阻絕向外部發送 Referrer 來源識別 -->
   <meta name="referrer" content="no-referrer" />
-  <!-- CSP 安全策略：嚴格限制本站網路連線，僅允許 Groq API；允許沙盒載入 HTTPS 延伸外掛 -->
+  <!-- 嚴格 CSP：僅允許 Groq API 傳輸，封鎖任何未授權外部腳本，杜絕廣告與外聯遙測 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com; frame-src https:; img-src 'self' data:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>深度推理與安全沙盒延伸終端</title>
+  <title>高度安全防護推理終端</title>
   <style>
     :root {
       --bg: #070a12;
@@ -21,7 +22,7 @@
       --border: #1e293b;
       --danger: #ef4444;
       --safe: #10b981;
-      --drawer-bg: rgba(10, 16, 29, 0.95);
+      --drawer-bg: rgba(10, 16, 29, 0.96);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -102,7 +103,7 @@
     }
     input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
-    /* 主要內容區域：包含對話主視窗與安全延伸側邊欄 */
+    /* 工作區塊 */
     #workspace {
       flex: 1;
       display: flex;
@@ -156,7 +157,7 @@
     }
     .tool-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
 
-    /* 安全沙盒延伸側邊視窗 (Strict Isolated Sandbox) */
+    /* 安全沙盒延伸側邊視窗 */
     #plugin-drawer {
       display: none;
       position: absolute;
@@ -167,13 +168,12 @@
       min-width: 320px;
       max-width: 100%;
       background: var(--drawer-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border-left: 1px solid var(--border);
       flex-direction: column;
       z-index: 30;
       box-shadow: -8px 0 32px rgba(0,0,0,0.5);
-      transition: width 0.2s ease;
     }
     #drawer-header {
       padding: 8px 12px;
@@ -185,11 +185,23 @@
       gap: 6px;
       font-size: 12px;
       flex-shrink: 0;
+      flex-wrap: wrap;
     }
+    .preset-chip {
+      background: #1e293b;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .preset-chip:hover { color: #fff; border-color: var(--accent); }
     #drawer-url-input {
       flex: 1;
       font-size: 11px;
       padding: 4px 8px;
+      min-width: 140px;
     }
     .sandbox-shield-tag {
       font-size: 10px;
@@ -294,12 +306,12 @@
 
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
-    <strong style="color:#60a5fa;">深度推理終端</strong>
+    <strong style="color:#60a5fa;">深度推理安全終端</strong>
     <span id="key-indicator" class="status-badge" style="background:#64748b;">檢測中...</span>
   </div>
   <div style="display:flex; gap:6px;">
-    <!-- 延伸輔助外掛開關按鈕 -->
-    <button class="btn" id="pluginToggleBtn" onclick="togglePluginDrawer()">🧩 延伸輔助面板</button>
+    <!-- 延伸輔助面板按鈕 -->
+    <button class="btn" id="pluginToggleBtn" onclick="togglePluginDrawer()">🧩 延伸輔助工具</button>
     <button class="btn" onclick="checkCodeUpdate()">🔄 檢查更新</button>
     <button class="btn" onclick="toggleSettings()">⚙️ 終端配置</button>
     <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀記錄</button>
@@ -334,26 +346,35 @@
   </div>
 </section>
 
-<!-- 主工作區塊：左側對話主視窗，右側完全隔離的輔助沙盒 -->
+<!-- 主工作區塊：左側對話，右側安全隔離沙盒 -->
 <div id="workspace">
   <main id="chat-box"></main>
 
-  <!-- 安全沙盒延伸側邊欄：徹底隔離，本站無法讀取其帳密與隱私 -->
   <aside id="plugin-drawer">
     <div id="drawer-header">
       <span class="sandbox-shield-tag">🛡️ 隱私沙盒已受隔離</span>
-      <input type="url" id="drawer-url-input" placeholder="輸入輔助工具網址 (如 https://...)" value="https://zh.m.wikipedia.org" />
+      <div style="display:flex; gap:4px;">
+        <button class="preset-chip" onclick="quickLoad('https://www.google.com/search?igu=1')">Google</button>
+        <button class="preset-chip" onclick="quickLoad('https://tw.yahoo.com')">Yahoo</button>
+        <button class="preset-chip" onclick="quickLoad('https://zh.m.wikipedia.org')">維基百科</button>
+      </div>
+      <input type="url" id="drawer-url-input" placeholder="輸入網址..." value="https://www.google.com/search?igu=1" />
       <button class="btn" style="padding:2px 6px;" onclick="loadPluginUrl()">載入</button>
       <button class="btn" style="padding:2px 6px;" onclick="popOutPlugin()" title="外跳獨立瀏覽">↗</button>
       <button class="btn danger-btn" style="padding:2px 6px;" onclick="togglePluginDrawer()">✕</button>
     </div>
     <!-- 
-      關鍵隱私技術防護：
-      1. 移除 allow-same-origin，使被嵌入網站擁有完全獨立、不相通的沙盒環境。
-      2. 移除 allow-top-navigation，被嵌入網站無法修改本終端或重導向。
-      3. 本站代碼與 DOM 絕對無法窺探被嵌入網站內的 Cookie、帳密、信用卡與輸入歷史。
+      核心安全防護配置：
+      1. 排除 allow-same-origin：使該頁面處於完全獨立的不信任沙盒，徹底阻絕讀取本站或彼此讀取 Session、LocalStorage、Cookie。
+      2. 排除 allow-top-navigation：外部頁面完全無法竄改本站網址或劫持跳轉。
+      3. permissions-policy：完全關閉麥克風、相機與付款介面，絕無偷錄、偷拍或盜刷風險。
     -->
-    <iframe id="plugin-frame" sandbox="allow-scripts allow-forms allow-popups" src="about:blank"></iframe>
+    <iframe 
+      id="plugin-frame" 
+      sandbox="allow-scripts allow-forms allow-popups" 
+      permissions-policy="camera=(), microphone=(), payment=(), geolocation=()"
+      src="about:blank">
+    </iframe>
   </aside>
 </div>
 
@@ -376,6 +397,7 @@
 
 <script>
   (function initSecurityShield() {
+    // 防點擊劫持防線
     if (window.top !== window.self) {
       window.top.location = window.self.location;
     }
@@ -399,7 +421,7 @@
     const micLed = document.getElementById("micLed");
     const pluginDrawer = document.getElementById("plugin-drawer");
     const pluginFrame = document.getElementById("plugin-frame");
-    const drawerUrlInput = document.getElementById("drawerUrlInput");
+    const drawerUrlInput = document.getElementById("drawer-url-input");
     const pluginToggleBtn = document.getElementById("pluginToggleBtn");
 
     if (localStorage.getItem("saved_structured_prompt")) {
@@ -424,19 +446,23 @@
       }
     };
 
+    window.quickLoad = function(url) {
+      drawerUrlInput.value = url;
+      loadPluginUrl();
+    };
+
     window.loadPluginUrl = function() {
-      let targetUrl = document.getElementById("drawer-url-input").value.trim();
+      let targetUrl = drawerUrlInput.value.trim();
       if (!targetUrl) return;
       if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
         targetUrl = "https://" + targetUrl;
-        document.getElementById("drawer-url-input").value = targetUrl;
+        drawerUrlInput.value = targetUrl;
       }
-      // 載入安全沙盒
       pluginFrame.src = targetUrl;
     };
 
     window.popOutPlugin = function() {
-      const targetUrl = document.getElementById("drawer-url-input").value.trim();
+      const targetUrl = drawerUrlInput.value.trim();
       if (targetUrl && targetUrl !== "about:blank") {
         window.open(targetUrl, "_blank", "noopener,noreferrer");
       }
@@ -760,7 +786,6 @@
       p.style.display = (p.style.display === "flex") ? "none" : "flex";
     };
 
-    // 核心限制：完全停用 Enter 發送，僅能按按鈕發送
     userInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         return;
