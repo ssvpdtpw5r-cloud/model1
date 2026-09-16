@@ -2,12 +2,11 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <!-- 防追蹤：杜絕向任何第三方洩漏來源 Referrer -->
   <meta name="referrer" content="no-referrer" />
-  <!-- 嚴格 CSP：禁止未授權腳本注入，僅允許特定白名單通訊，杜絕廣告與外聯遙測 -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://zh.wikipedia.org https://api.duckduckgo.com; img-src 'self' data:; frame-ancestors 'none';" />
+  <!-- 擴充 CSP 允許即時新聞 RSS/XML 解析端點 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://api.rss2json.com https://api.allorigins.win; img-src 'self' data:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>專業高安全防護 AI 鑑識工作終端</title>
+  <title>專業 AI 即時新聞與鑑識終端</title>
   <style>
     :root {
       --bg: #070a12;
@@ -22,7 +21,6 @@
       --border: #1e293b;
       --danger: #ef4444;
       --safe: #10b981;
-      --fact: #06b6d4;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -183,8 +181,6 @@
       height: 46px;
       white-space: nowrap;
     }
-    
-    /* 物理級麥克風硬體狀態指示燈按鈕（純用戶端觸發） */
     .mic-button-container {
       position: relative;
       width: 46px;
@@ -205,7 +201,6 @@
       border-radius: 8px;
       position: relative;
     }
-    /* 紅綠狀態指示燈 */
     .mic-indicator-led {
       position: absolute;
       top: 4px;
@@ -213,12 +208,12 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--danger); /* 預設紅色：關閉 */
+      background: var(--danger);
       box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
       pointer-events: none;
     }
     .mic-active .mic-indicator-led {
-      background: var(--safe); /* 綠色：使用中 */
+      background: var(--safe);
       box-shadow: 0 0 8px rgba(16, 185, 129, 0.9);
       animation: pulse-led 1s infinite;
     }
@@ -233,12 +228,10 @@
 
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
-    <strong style="color:#60a5fa;">高安全 AI 鑑識工作終端</strong>
+    <strong style="color:#60a5fa;">AI 即時資訊終端</strong>
     <span id="key-indicator" class="status-badge" style="background:#64748b;">檢測中...</span>
-    <span id="tamper-guard" style="font-size:11px; color:var(--safe);">🔒 記憶體沙盒受保護</span>
   </div>
   <div style="display:flex; gap:6px;">
-    <!-- 更新無需輸入 API Key -->
     <button class="btn" onclick="checkCodeUpdate()">🔄 檢查更新</button>
     <button class="btn" onclick="toggleSettings()">⚙️ 終端配置</button>
     <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀記錄</button>
@@ -248,23 +241,14 @@
 <section id="settings-panel">
   <div class="panel-row">
     <label>Groq Key:</label>
-    <input id="apiKey" type="password" placeholder="貼上 gsk_... 金鑰 (輸入後自動記憶)" style="flex:1; min-width:180px;" onchange="validateAndSaveAPIKey()" autocomplete="off" />
+    <input id="apiKey" type="password" placeholder="貼上 gsk_... 金鑰 (自動記憶不遺失)" style="flex:1; min-width:180px;" onchange="validateAndSaveAPIKey()" autocomplete="off" />
     <button class="btn" onclick="validateAndSaveAPIKey()">測試並保存</button>
     <span id="key-msg" style="font-size:12px;"></span>
   </div>
 
   <div class="panel-row">
-    <label>人設模板:</label>
-    <select id="presetPromptSelect" onchange="applyPresetPrompt()" style="flex:1; min-width:200px;">
-      <option value="fact_checker">🔍 客觀事實查核員（公信力優先、繁中邏輯梳理）</option>
-      <option value="research_analyst">📊 深度數據研究員（長文脈絡、因果推導）</option>
-      <option value="custom">✍️ 完全自定義人設</option>
-    </select>
-  </div>
-
-  <div class="panel-row">
-    <label style="color:#60a5fa;">System Prompt:</label>
-    <textarea id="sysPrompt" style="flex:1; height:75px; font-size:12px; line-height:1.4;"></textarea>
+    <label style="color:#60a5fa;">系統人設:</label>
+    <textarea id="sysPrompt" style="flex:1; height:65px; font-size:12px; line-height:1.4;">你是一位高效率、精準客觀的繁體中文資訊整合助手。當提供最新即時資訊時，請依據提供的各平台即時快訊，直接彙整、列出具體的真實新聞事件與內容，絕不回答「無法取得」或「知識庫截止」，也不要提供空泛的網站清單。</textarea>
   </div>
 
   <div class="panel-row">
@@ -277,7 +261,7 @@
   </div>
 
   <div class="panel-row">
-    <label>持久常駐檔案:</label>
+    <label>常駐案件資料:</label>
     <input type="file" id="fileInput" accept=".txt,.md,.json,.csv" />
     <span id="fileMemoryInfo" style="color:var(--muted); font-size:11px;">尚未綁定資料</span>
   </div>
@@ -288,42 +272,33 @@
 <footer>
   <div class="control-bar">
     <div style="display:flex; align-items:center; gap:8px;">
-      <button class="btn btn-active" id="webSearchToggle" onclick="toggleWebSearch()" title="開啟後聯網驗證">🌐 查核導入: 開啟</button>
+      <button class="btn btn-active" id="webSearchToggle" onclick="toggleWebSearch()" title="開啟後自動連線抓取台灣各大平台真實即時新聞">🌐 即時新聞串接: 開啟</button>
       <span style="color:var(--muted);">思考複雜度:</span>
       <select id="complexitySelect" style="background:#070a12; color:#60a5fa; font-weight:600; padding:2px 6px;">
         <option value="auto">✨ 自動路由</option>
         <option value="fast">⚡ 極速秒回</option>
-        <option value="deep">🔬 深度推導</option>
+        <option value="deep" selected>🔬 深度推導</option>
       </select>
     </div>
-    <!-- 獨立清除對話歷史，完全不影響 API Key、人設與其他配置 -->
     <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="clearAllChat()">🧹 單獨清空對話記錄</button>
   </div>
   <div class="input-bar">
     <div class="mic-button-container">
       <button class="icon-btn" id="micBtn" title="手動開關麥克風 (點擊啟動/關閉)" onclick="toggleVoice()">
         🎙️
-        <div class="mic-indicator-led" id="micLed" title="紅色: 關閉 | 綠色: 錄音使用中"></div>
+        <div class="mic-indicator-led" id="micLed" title="紅色: 關閉 | 綠色: 錄音中"></div>
       </button>
     </div>
-    <!-- 防側錄防護配置：關閉瀏覽器快取、拼寫推薦與歷史記住 -->
-    <textarea id="userInput" placeholder="輸入問題或消息 (Enter 發送, Shift+Enter 換行)..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <textarea id="userInput" placeholder="輸入問題（例如：今天台灣的新聞）... (Enter 發送, Shift+Enter 換行)" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
     <button class="action-btn" id="sendBtn" onclick="sendMessage()">發送</button>
   </div>
 </footer>
 
 <script>
-  // ================= 1. 防劫持、防竄改與防點擊劫持 (Frame-Busting & Anti-Tamper) =================
   (function initSecurityShield() {
-    // 防點擊劫持：若被嵌入外部 iframe，強制跳出還原
     if (window.top !== window.self) {
       window.top.location = window.self.location;
     }
-    // 凍結關鍵原型，防範惡意腳本竄改 fetch 竊取封包
-    try {
-      Object.freeze(Object.prototype);
-      Object.freeze(Array.prototype);
-    } catch (e) {}
   })();
 
   (function() {
@@ -341,7 +316,6 @@
     const complexitySelect = document.getElementById("complexitySelect");
     const webSearchToggle = document.getElementById("webSearchToggle");
     const sysPrompt = document.getElementById("sysPrompt");
-    const presetPromptSelect = document.getElementById("presetPromptSelect");
     const autoSpeakCheck = document.getElementById("autoSpeakCheck");
     const ttsRate = document.getElementById("ttsRate");
     const voiceSelect = document.getElementById("voiceSelect");
@@ -349,41 +323,52 @@
     const micBtn = document.getElementById("micBtn");
     const micLed = document.getElementById("micLed");
 
-    const PRESETS = {
-      fact_checker: `你是一位客觀、嚴謹的中立事實查核與資訊彙整專家。
-當用戶提供消息或查詢特定議題時：
-1. 優先依據所導入之客觀第三方驗證資料進行核對。
-2. 輸出時使用通順、符合台灣習慣的繁體中文，消除生硬機翻痕跡，文法流暢且邏輯嚴謹。
-3. 區分「已知事實」、「各方說法」與「未經證實之傳聞」，明確標註客觀出處。`,
-      research_analyst: `你是一位資深政策與產業研究分析師。請以嚴謹的學術與邏輯推導架構深入剖析，梳理因果脈絡，保持繁體中文結構分明、要點清晰。`,
-      custom: `你是一位具備高度同理心與嚴謹思維的繁體中文 AI 專家助手。`
-    };
-
-    function applyPresetPrompt() {
-      const selected = presetPromptSelect.value;
-      sysPrompt.value = PRESETS[selected] || PRESETS.custom;
-      localStorage.setItem("saved_sys_prompt", sysPrompt.value);
-    }
-    window.applyPresetPrompt = applyPresetPrompt;
-
-    if (localStorage.getItem("saved_sys_prompt")) {
-      sysPrompt.value = localStorage.getItem("saved_sys_prompt");
-    } else {
-      applyPresetPrompt();
+    if (localStorage.getItem("saved_custom_prompt")) {
+      sysPrompt.value = localStorage.getItem("saved_custom_prompt");
     }
     sysPrompt.addEventListener("change", () => {
-      localStorage.setItem("saved_sys_prompt", sysPrompt.value);
+      localStorage.setItem("saved_custom_prompt", sysPrompt.value);
     });
 
     window.toggleWebSearch = function() {
       isWebSearchEnabled = !isWebSearchEnabled;
       webSearchToggle.classList.toggle("btn-active", isWebSearchEnabled);
-      webSearchToggle.innerText = isWebSearchEnabled ? "🌐 查核導入: 開啟" : "🌐 查核導入: 關閉";
+      webSearchToggle.innerText = isWebSearchEnabled ? "🌐 即時新聞串接: 開啟" : "🌐 即時新聞串接: 關閉";
     };
 
-    // ================= 2. API Key 持久免重輸管理（更新不遺失） =================
+    // ================= 1. 真實新聞多源 RSS 聯網聚合器 =================
+    async function fetchLiveNewsContext() {
+      if (!isWebSearchEnabled) return "";
+      let newsDigest = "";
+      
+      // 聚合來源：中央社 (CNA)、公視新聞 (PNN)、Yahoo 奇摩即時焦點
+      const feeds = [
+        { name: "中央通訊社 (CNA)", url: "https://feeds.feedburner.com/cnaFirstNews" },
+        { name: "公視新聞網 (PNN)", url: "https://news.pts.org.tw/xml/index.xml" },
+        { name: "Yahoo 奇摩頭條", url: "https://tw.news.yahoo.com/rss/realtime" }
+      ];
+
+      for (const feed of feeds) {
+        try {
+          const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=&count=5`;
+          const res = await fetch(proxyUrl);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.items && data.items.length > 0) {
+              newsDigest += `\n【${feed.name} 即時焦點】：\n`;
+              data.items.slice(0, 4).forEach((item, idx) => {
+                const cleanDesc = (item.description || "").replace(/<[^>]*>?/gm, '').slice(0, 100);
+                newsDigest += `${idx + 1}. ${item.title}\n   摘要: ${cleanDesc}...\n`;
+              });
+            }
+          }
+        } catch (e) {}
+      }
+      return newsDigest.trim();
+    }
+
+    // ================= 2. API Key 持久化保存 =================
     function initKeyStorage() {
-      // 優先從本地隔離庫讀取已儲存的金鑰
       const storedKey = localStorage.getItem("app_vault_key");
       if (storedKey) {
         apiKeyInput.value = storedKey;
@@ -425,16 +410,11 @@
             keyMsg.innerText = "驗證通過，已持久記憶";
           }
           memoryKey = key;
-          // 持久寫入，更新代碼或刷新頁面永不遺失
           localStorage.setItem("app_vault_key", key);
           return true;
         } else {
           keyIndicator.style.background = "var(--danger)";
           keyIndicator.innerText = "🔴 金鑰無效";
-          if (showFeedback) {
-            keyMsg.style.color = "var(--danger)";
-            keyMsg.innerText = "API Key 錯誤";
-          }
           return false;
         }
       } catch (e) {
@@ -444,7 +424,7 @@
       }
     }
 
-    function resolveModel(promptText) {
+    function resolveModel() {
       if (availableChatModels.length === 0) return "llama-3.3-70b-versatile";
       const deepCandidates = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"];
       const fastCandidates = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it", "openai/gpt-oss-20b"];
@@ -453,11 +433,10 @@
 
       const mode = complexitySelect.value;
       if (mode === "fast") return bestFast;
-      if (mode === "deep") return bestDeep;
-      return (promptText.length > 40 || /(查核|真偽|來源|邏輯|分析|研究)/i.test(promptText)) ? bestDeep : bestFast;
+      return bestDeep;
     }
 
-    // ================= 3. 麥克風硬體狀態燈（純用戶端手動觸發） =================
+    // ================= 3. 麥克風純用戶端手動觸發 =================
     let recognition = null;
     let isMicRecording = false;
 
@@ -471,82 +450,36 @@
       recognition.onresult = (e) => {
         let finalStr = "";
         for (let i = e.resultIndex; i < e.results.length; ++i) {
-          if (e.results[i].isFinal) {
-            finalStr += e.results[i][0].transcript;
-          }
+          if (e.results[i].isFinal) finalStr += e.results[i][0].transcript;
         }
         if (finalStr) userInput.value += finalStr;
       };
 
       recognition.onerror = () => stopMicByUser();
-      recognition.onend = () => {
-        // 嚴格限制：僅由用戶端主動控制，非用戶手動觸發時絕不自動重啟
-        stopMicByUser();
-      };
+      recognition.onend = () => stopMicByUser();
     }
 
     function startMicByUser() {
-      if (!recognition) {
-        alert("瀏覽器不支援語音輸入，請使用 Safari 或 Chrome。");
-        return;
-      }
+      if (!recognition) { alert("瀏覽器不支援語音輸入"); return; }
       try {
         recognition.start();
         isMicRecording = true;
         micBtn.classList.add("mic-active");
-        micLed.title = "綠色: 正在錄音使用中";
       } catch (e) {}
     }
 
     function stopMicByUser() {
-      if (recognition && isMicRecording) {
-        recognition.stop();
-      }
+      if (recognition && isMicRecording) recognition.stop();
       isMicRecording = false;
       micBtn.classList.remove("mic-active");
-      micLed.title = "紅色: 已關閉";
     }
 
-    // 強制僅能由用戶點擊按鈕切換
     window.toggleVoice = function() {
-      if (isMicRecording) {
-        stopMicByUser();
-      } else {
-        startMicByUser();
-      }
+      if (isMicRecording) stopMicByUser();
+      else startMicByUser();
     };
 
-    // ================= 4. 背景公信數據查核 =================
-    async function fetchFactContext(query) {
-      if (!isWebSearchEnabled) return "";
-      let collectedData = "";
-      try {
-        const cleanQuery = query.replace(/[?？!！,，。]/g, " ").trim().slice(0, 30);
-        const wikiUrl = `https://zh.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(cleanQuery)}`;
-        const wikiRes = await fetch(wikiUrl);
-        if (wikiRes.ok) {
-          const wikiData = await wikiRes.json();
-          if (wikiData.extract) {
-            collectedData += `【官方百科背景條目 (${wikiData.title})】：\n${wikiData.extract}\n\n`;
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-        const ddgRes = await fetch(ddgUrl);
-        if (ddgRes.ok) {
-          const ddgData = await ddgRes.json();
-          if (ddgData.AbstractText) {
-            collectedData += `【第三方公信資料庫摘要】：\n${ddgData.AbstractText}\n來源: ${ddgData.AbstractSource || '公開文獻'}\n\n`;
-          }
-        }
-      } catch (e) {}
-
-      return collectedData.trim();
-    }
-
-    // ================= 5. 訊息渲染與單獨清除歷史 =================
+    // ================= 4. 訊息渲染與發送 =================
     function appendMessage(role, text, index) {
       const div = document.createElement("div");
       div.className = "bubble " + role;
@@ -603,23 +536,21 @@
     }
 
     function deleteMessage(index) {
-      if (confirm("確定刪除此條對話記錄？")) {
+      if (confirm("確定刪除此條記錄？")) {
         conversation.splice(index, 1);
         renderAllMessages();
       }
     }
 
-    // 單獨清空對話紀錄，完全不影響金鑰、模型與其他配置
     window.clearAllChat = function() {
-      if (confirm("確定清空目前畫面的所有對話歷史？（您的 API Key 與所有系統設定將完好保留）")) {
+      if (confirm("確定清空目前畫面的所有對話歷史？（您的 API Key 與設定將被完好保留）")) {
         conversation = [];
         chatBox.textContent = "";
       }
     };
 
-    // 徹底抹除（銷毀金鑰與所有本機記憶）
     window.destroyAllMemory = function() {
-      if (!confirm("確定要抹除全部資料、對話、儲存的 API Key 與常駐卷宗嗎？此操作不可逆！")) return;
+      if (!confirm("確定要徹底抹除全部資料、對話、儲存的金鑰嗎？此操作不可逆！")) return;
       conversation = []; permanentContext = ""; memoryKey = ""; apiKeyInput.value = "";
       localStorage.clear(); sessionStorage.clear(); chatBox.textContent = "";
       keyIndicator.style.background = "#64748b";
@@ -627,17 +558,15 @@
       keyMsg.innerText = "";
       stopMicByUser();
       if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
-      alert("所有數據已徹底自本機抹除。");
+      alert("所有數據已徹底銷毀。");
     };
 
-    // ================= 6. 訊息傳送與打字機輸出 =================
     window.sendMessage = async function() {
       const rawText = userInput.value.trim();
       const key = memoryKey || apiKeyInput.value.trim();
       if (!rawText) return;
       if (!key) { alert("請在配置中填入有效的 Groq API Key！"); return; }
 
-      // 若使用者仍在錄音，發送前關閉麥克風
       stopMicByUser();
 
       const userIdx = conversation.length;
@@ -649,20 +578,26 @@
       const aiMsg = appendMessage("assistant", "", aiIdx);
       aiMsg.textSpan.textContent = "▍";
 
-      let factContext = "";
-      if (isWebSearchEnabled) {
-        aiMsg.textSpan.textContent = "🔍 背景比對公信資料庫...";
-        factContext = await fetchFactContext(rawText);
+      let liveNewsData = "";
+      // 偵測到詢問新聞、時事或即時消息，自動擷取各大主流新聞平台即時資料
+      if (isWebSearchEnabled && /(新聞|時事|快訊|焦點|消息|發生|今天|現在)/i.test(rawText)) {
+        aiMsg.textSpan.textContent = "🌐 正在即時抓取各大主流平台（中央社、公視、Yahoo奇摩）即時新聞內容...";
+        liveNewsData = await fetchLiveNewsContext();
       }
 
       let fullSystemPrompt = sysPrompt.value;
       if (permanentContext) fullSystemPrompt += "\n\n【常駐背景資料】：\n" + permanentContext;
-      if (factContext) {
-        fullSystemPrompt += "\n\n【第三方公信數據】：\n" + factContext + "\n※ 請依上述客觀資料進行嚴謹論證並標註來源。";
+      
+      if (liveNewsData) {
+        fullSystemPrompt += "\n\n【各主流平台真實即時快訊】：\n" + liveNewsData + 
+          "\n\n【絕對遵循之回答指示】：\n" +
+          "1. 嚴禁回答「我無法提供即時新聞」、「我的知識庫截止於」等拒絕用語。\n" +
+          "2. 嚴禁只列出媒體連結或網站名稱清單。\n" +
+          "3. 必須直接從上方【各主流平台真實即時快訊】中，依不同平台（如：中央社、公視、Yahoo等）分類，條列寫出具體的真實新聞標題與詳細內容重點摘要，以通順的繁體中文呈現。";
       }
 
       const payloadMessages = [{ role: "system", content: fullSystemPrompt }, ...conversation.slice(-12)];
-      const chosenModel = resolveModel(rawText);
+      const chosenModel = resolveModel();
 
       try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -715,7 +650,7 @@
       }
     };
 
-    // ================= 7. 語音合成 (TTS) =================
+    // ================= 5. TTS 朗讀 =================
     let synth = window.speechSynthesis;
     let voices = [];
     function loadVoices() {
@@ -736,22 +671,20 @@
     function speakText(text) {
       if (!synth || !text) return;
       if (synth.speaking) synth.cancel();
-
       const utter = new SpeechSynthesisUtterance(text);
       utter.rate = parseFloat(ttsRate.value);
       const selected = voices.find(v => v.name === voiceSelect.value);
       if (selected) utter.voice = selected;
       else utter.lang = "zh-TW";
-
       synth.speak(utter);
     }
 
-    // ================= 8. 更新檢查（保持金鑰狀態） =================
+    // ================= 6. 更新與配置開合 =================
     window.checkCodeUpdate = async function() {
       try {
         const currentUrl = window.location.href.split('?')[0];
         const res = await fetch(`${currentUrl}?_t=${Date.now()}`, { cache: "no-store" });
-        if (res.ok && confirm("已與伺服器完成最新版本通訊！是否立即無快取重新載入？（您的 API Key 與設定將被完好保留）")) {
+        if (res.ok && confirm("已連線確認！是否立即重新載入最新版本？（金鑰與設定將完好保留）")) {
           window.location.reload(true);
         }
       } catch (e) { alert("檢查失敗，請確認網路連線。"); }
@@ -781,7 +714,6 @@
       }
     });
 
-    // 啟動初始化持久金鑰
     initKeyStorage();
   })();
 </script>
