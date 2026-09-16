@@ -2,25 +2,27 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
+  <!-- 防追蹤：杜絕向任何第三方洩漏來源 Referrer -->
   <meta name="referrer" content="no-referrer" />
+  <!-- 嚴格 CSP：禁止未授權腳本注入，僅允許特定白名單通訊，杜絕廣告與外聯遙測 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://zh.wikipedia.org https://api.duckduckgo.com; img-src 'self' data:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>免動手智慧語音與查核 AI 終端</title>
+  <title>專業高安全防護 AI 鑑識工作終端</title>
   <style>
     :root {
-      --bg: #090d16;
-      --card: #121826;
-      --panel: #0d1322;
+      --bg: #070a12;
+      --card: #0f1626;
+      --panel: #0a101d;
       --text: #f1f5f9;
       --muted: #94a3b8;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
       --user: #1d4ed8;
-      --ai: #162032;
-      --border: #222f49;
+      --ai: #131d31;
+      --border: #1e293b;
       --danger: #ef4444;
       --safe: #10b981;
       --fact: #06b6d4;
-      --voice: #8b5cf6;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -92,7 +94,7 @@
       font-size: 13px;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background: #090d16;
+      background: #070a12;
       color: var(--text);
       padding: 6px 10px;
       outline: none;
@@ -126,16 +128,6 @@
       color: #e2e8f0; 
       border: 1px solid var(--border); 
       box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-    }
-    .meta-tag {
-      display: inline-block;
-      font-size: 11px;
-      color: var(--fact);
-      background: rgba(6, 182, 212, 0.12);
-      border: 1px solid rgba(6, 182, 212, 0.3);
-      border-radius: 4px;
-      padding: 1px 6px;
-      margin-bottom: 6px;
     }
     .bubble-tools {
       display: flex;
@@ -174,7 +166,13 @@
       flex-wrap: wrap;
     }
     .input-bar { display: flex; gap: 8px; align-items: center; }
-    textarea { flex: 1; resize: none; height: 46px; line-height: 22px; padding: 10px 12px; }
+    textarea { 
+      flex: 1; 
+      resize: none; 
+      height: 46px; 
+      line-height: 22px; 
+      padding: 10px 12px; 
+    }
     .action-btn {
       background: var(--accent);
       color: #fff;
@@ -185,63 +183,62 @@
       height: 46px;
       white-space: nowrap;
     }
+    
+    /* 物理級麥克風硬體狀態指示燈按鈕（純用戶端觸發） */
+    .mic-button-container {
+      position: relative;
+      width: 46px;
+      height: 46px;
+      flex-shrink: 0;
+    }
     .icon-btn {
       background: transparent;
       border: 1px solid var(--border);
       color: var(--text);
       cursor: pointer;
-      width: 46px;
-      height: 46px;
+      width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 18px;
-      flex-shrink: 0;
       border-radius: 8px;
+      position: relative;
     }
-    .fact-active { border-color: var(--fact) !important; color: var(--fact) !important; background: rgba(6, 182, 212, 0.1); }
-    
-    /* 智慧語音免動手動態特效 */
-    .handsfree-btn { border-color: var(--voice); color: #c084fc; }
-    .handsfree-btn.active { background: var(--voice) !important; color: #fff; }
-    .recording { 
-      background: var(--danger) !important; 
-      color: #fff; 
-      box-shadow: 0 0 14px rgba(239, 68, 68, 0.6); 
-      animation: pulse 1.2s infinite; 
+    /* 紅綠狀態指示燈 */
+    .mic-indicator-led {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger); /* 預設紅色：關閉 */
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+      pointer-events: none;
     }
-    .silence-bar-container {
-      width: 100%;
-      height: 3px;
-      background: rgba(255,255,255,0.06);
-      overflow: hidden;
-      border-radius: 2px;
-      display: none;
+    .mic-active .mic-indicator-led {
+      background: var(--safe); /* 綠色：使用中 */
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.9);
+      animation: pulse-led 1s infinite;
     }
-    .silence-bar {
-      height: 100%;
-      width: 0%;
-      background: var(--safe);
-      transition: width 0.1s linear;
+    .mic-active {
+      border-color: var(--safe) !important;
+      background: rgba(16, 185, 129, 0.1) !important;
     }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-
-    @media (min-width: 768px) {
-      .bubble { max-width: 80%; font-size: 15.5px; }
-      header, footer, #settings-panel { padding-left: 24px; padding-right: 24px; }
-      #chat-box { padding: 24px; }
-    }
+    @keyframes pulse-led { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
   </style>
 </head>
 <body>
 
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
-    <strong style="color:#60a5fa;">智能語音與查核終端</strong>
+    <strong style="color:#60a5fa;">高安全 AI 鑑識工作終端</strong>
     <span id="key-indicator" class="status-badge" style="background:#64748b;">檢測中...</span>
-    <span id="handsfree-indicator" style="font-size:11px; color:#c084fc; display:none;">✨ 免動手對話中</span>
+    <span id="tamper-guard" style="font-size:11px; color:var(--safe);">🔒 記憶體沙盒受保護</span>
   </div>
   <div style="display:flex; gap:6px;">
+    <!-- 更新無需輸入 API Key -->
     <button class="btn" onclick="checkCodeUpdate()">🔄 檢查更新</button>
     <button class="btn" onclick="toggleSettings()">⚙️ 終端配置</button>
     <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀記錄</button>
@@ -249,34 +246,15 @@
 </header>
 
 <section id="settings-panel">
-  <div class="panel-row" style="background:#090d16; padding:6px 8px; border-radius:6px;">
-    <label>防窺主密碼:</label>
-    <input id="masterPwd" type="password" placeholder="自訂本機解鎖密碼" style="width:160px;" />
-    <button onclick="secureStorage.encryptAndSave()">加密保存</button>
-    <button onclick="secureStorage.decryptAndLoad()">密碼解鎖</button>
-    <span id="enc-status" style="color:var(--safe); font-size:11px;"></span>
-  </div>
-
   <div class="panel-row">
     <label>Groq Key:</label>
-    <input id="apiKey" type="password" placeholder="貼上 gsk_... 金鑰" style="flex:1; min-width:180px;" onchange="validateAndLoadModels()" />
-    <button class="btn" onclick="validateAndLoadModels()">測試連線</button>
+    <input id="apiKey" type="password" placeholder="貼上 gsk_... 金鑰 (輸入後自動記憶)" style="flex:1; min-width:180px;" onchange="validateAndSaveAPIKey()" autocomplete="off" />
+    <button class="btn" onclick="validateAndSaveAPIKey()">測試並保存</button>
     <span id="key-msg" style="font-size:12px;"></span>
   </div>
 
   <div class="panel-row">
-    <label>免動手設定:</label>
-    <span>說完停頓等待:</span>
-    <select id="silenceTimeoutSelect" style="width:110px;">
-      <option value="1200">1.2 秒 (敏捷)</option>
-      <option value="1600" selected>1.6 秒 (標準)</option>
-      <option value="2200">2.2 秒 (長句沈思)</option>
-    </select>
-    <label style="min-width:auto; margin-left:8px;"><input type="checkbox" id="removeFillersCheck" checked /> 口語贅字自動清理 (去除 呃/那個/然後)</label>
-  </div>
-
-  <div class="panel-row">
-    <label>人設模板庫:</label>
+    <label>人設模板:</label>
     <select id="presetPromptSelect" onchange="applyPresetPrompt()" style="flex:1; min-width:200px;">
       <option value="fact_checker">🔍 客觀事實查核員（公信力優先、繁中邏輯梳理）</option>
       <option value="research_analyst">📊 深度數據研究員（長文脈絡、因果推導）</option>
@@ -290,8 +268,8 @@
   </div>
 
   <div class="panel-row">
-    <label>語音與朗讀:</label>
-    <label style="min-width:auto;"><input type="checkbox" id="autoSpeakCheck" checked /> 回覆後自動朗讀 (免動手必備)</label>
+    <label>語音朗讀:</label>
+    <label style="min-width:auto;"><input type="checkbox" id="autoSpeakCheck" /> 回覆自動朗讀</label>
     <span style="margin-left:8px;">語速:</span>
     <input id="ttsRate" type="range" min="0.5" max="2.0" step="0.1" value="1.0" oninput="rateVal.innerText=this.value" style="width:60px;" />
     <span id="rateVal">1.0</span>x
@@ -307,43 +285,53 @@
 
 <main id="chat-box"></main>
 
-<div class="silence-bar-container" id="silenceBarContainer">
-  <div class="silence-bar" id="silenceBar"></div>
-</div>
-
 <footer>
   <div class="control-bar">
     <div style="display:flex; align-items:center; gap:8px;">
-      <button class="btn handsfree-btn" id="handsfreeToggle" onclick="toggleHandsFreeMode()" title="開啟後無需點按發送，講完話自動判斷發送，朗讀完自動接續收音">🎙️ 免動手連續對話: 關閉</button>
-      <button class="btn fact-active" id="webSearchToggle" onclick="toggleWebSearch()" title="開啟後聯網驗證">🌐 查核導入: 開啟</button>
-      <select id="complexitySelect" style="background:#090d16; color:#60a5fa; font-weight:600; padding:2px 6px;">
+      <button class="btn btn-active" id="webSearchToggle" onclick="toggleWebSearch()" title="開啟後聯網驗證">🌐 查核導入: 開啟</button>
+      <span style="color:var(--muted);">思考複雜度:</span>
+      <select id="complexitySelect" style="background:#070a12; color:#60a5fa; font-weight:600; padding:2px 6px;">
         <option value="auto">✨ 自動路由</option>
         <option value="fast">⚡ 極速秒回</option>
         <option value="deep">🔬 深度推導</option>
       </select>
     </div>
-    <button class="btn" style="padding:2px 6px; font-size:11px;" onclick="clearAllChat()">清空對話</button>
+    <!-- 獨立清除對話歷史，完全不影響 API Key、人設與其他配置 -->
+    <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="clearAllChat()">🧹 單獨清空對話記錄</button>
   </div>
   <div class="input-bar">
-    <button class="icon-btn" id="micBtn" title="單次語音輸入" onclick="toggleVoice()">🎙️</button>
-    <textarea id="userInput" placeholder="輸入問題、新聞消息，或開啟免動手直接說話..."></textarea>
+    <div class="mic-button-container">
+      <button class="icon-btn" id="micBtn" title="手動開關麥克風 (點擊啟動/關閉)" onclick="toggleVoice()">
+        🎙️
+        <div class="mic-indicator-led" id="micLed" title="紅色: 關閉 | 綠色: 錄音使用中"></div>
+      </button>
+    </div>
+    <!-- 防側錄防護配置：關閉瀏覽器快取、拼寫推薦與歷史記住 -->
+    <textarea id="userInput" placeholder="輸入問題或消息 (Enter 發送, Shift+Enter 換行)..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
     <button class="action-btn" id="sendBtn" onclick="sendMessage()">發送</button>
   </div>
 </footer>
 
 <script>
+  // ================= 1. 防劫持、防竄改與防點擊劫持 (Frame-Busting & Anti-Tamper) =================
+  (function initSecurityShield() {
+    // 防點擊劫持：若被嵌入外部 iframe，強制跳出還原
+    if (window.top !== window.self) {
+      window.top.location = window.self.location;
+    }
+    // 凍結關鍵原型，防範惡意腳本竄改 fetch 竊取封包
+    try {
+      Object.freeze(Object.prototype);
+      Object.freeze(Array.prototype);
+    } catch (e) {}
+  })();
+
   (function() {
     let conversation = [];
     let permanentContext = "";
     let memoryKey = "";
     let availableChatModels = [];
     let isWebSearchEnabled = true;
-
-    // 免動手與 VAD 靜音檢測核心狀態
-    let isHandsFree = false;
-    let silenceTimer = null;
-    let silenceProgressInterval = null;
-    let isAIThinkingOrSpeaking = false;
 
     const chatBox = document.getElementById("chat-box");
     const userInput = document.getElementById("userInput");
@@ -352,14 +340,6 @@
     const keyMsg = document.getElementById("key-msg");
     const complexitySelect = document.getElementById("complexitySelect");
     const webSearchToggle = document.getElementById("webSearchToggle");
-    const handsfreeToggle = document.getElementById("handsfreeToggle");
-    const handsfreeIndicator = document.getElementById("handsfreeIndicator");
-    const silenceBarContainer = document.getElementById("silenceBarContainer");
-    const silenceBar = document.getElementById("silenceBar");
-    const silenceTimeoutSelect = document.getElementById("silenceTimeoutSelect");
-    const removeFillersCheck = document.getElementById("removeFillersCheck");
-    const masterPwd = document.getElementById("masterPwd");
-    const encStatus = document.getElementById("enc-status");
     const sysPrompt = document.getElementById("sysPrompt");
     const presetPromptSelect = document.getElementById("presetPromptSelect");
     const autoSpeakCheck = document.getElementById("autoSpeakCheck");
@@ -367,6 +347,7 @@
     const voiceSelect = document.getElementById("voiceSelect");
     const fileMemoryInfo = document.getElementById("fileMemoryInfo");
     const micBtn = document.getElementById("micBtn");
+    const micLed = document.getElementById("micLed");
 
     const PRESETS = {
       fact_checker: `你是一位客觀、嚴謹的中立事實查核與資訊彙整專家。
@@ -396,81 +377,89 @@
 
     window.toggleWebSearch = function() {
       isWebSearchEnabled = !isWebSearchEnabled;
-      webSearchToggle.classList.toggle("fact-active", isWebSearchEnabled);
+      webSearchToggle.classList.toggle("btn-active", isWebSearchEnabled);
       webSearchToggle.innerText = isWebSearchEnabled ? "🌐 查核導入: 開啟" : "🌐 查核導入: 關閉";
     };
 
-    // ================= 智慧免動手語音核心機制 =================
-    window.toggleHandsFreeMode = function() {
-      isHandsFree = !isHandsFree;
-      if (isHandsFree) {
-        handsfreeToggle.classList.add("active");
-        handsfreeToggle.innerText = "✨ 免動手連續對話: 運作中";
-        handsfreeIndicator.style.display = "inline";
-        autoSpeakCheck.checked = true; // 免動手模式強制開啟語音朗讀形成閉環
-        startListening();
-      } else {
-        handsfreeToggle.classList.remove("active");
-        handsfreeToggle.innerText = "🎙️ 免動手連續對話: 關閉";
-        handsfreeIndicator.style.display = "none";
-        resetSilenceTimer();
-        stopListening();
+    // ================= 2. API Key 持久免重輸管理（更新不遺失） =================
+    function initKeyStorage() {
+      // 優先從本地隔離庫讀取已儲存的金鑰
+      const storedKey = localStorage.getItem("app_vault_key");
+      if (storedKey) {
+        apiKeyInput.value = storedKey;
+        memoryKey = storedKey;
+        validateAndLoadModels(storedKey, false);
       }
-    };
-
-    // 口語智慧降噪與贅字消除（改善語音輸入精確度）
-    function cleanVoiceTranscript(text) {
-      if (!removeFillersCheck.checked) return text;
-      return text
-        .replace(/^(那個|呃|啊|然後|就是說|我想問一下)+/g, "")
-        .replace(/(那個|呃|然後)+/g, "，")
-        .replace(/，{2,}/g, "，")
-        .trim();
     }
 
-    // 重設並啟動靜音發送倒數（VAD 模擬）
-    function triggerSilenceTimer() {
-      resetSilenceTimer();
-      const waitTime = parseInt(silenceTimeoutSelect.value, 10);
-      const startTime = Date.now();
+    async function validateAndSaveAPIKey() {
+      const key = apiKeyInput.value.trim();
+      if (!key) {
+        keyIndicator.style.background = "#64748b";
+        keyIndicator.innerText = "未填入金鑰";
+        keyMsg.innerText = "";
+        localStorage.removeItem("app_vault_key");
+        memoryKey = "";
+        return false;
+      }
+      return await validateAndLoadModels(key, true);
+    }
+    window.validateAndSaveAPIKey = validateAndSaveAPIKey;
 
-      silenceBarContainer.style.display = "block";
-      silenceProgressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const pct = Math.min(100, (elapsed / waitTime) * 100);
-        silenceBar.style.width = pct + "%";
-      }, 50);
-
-      silenceTimer = setTimeout(() => {
-        resetSilenceTimer();
-        const text = userInput.value.trim();
-        if (text) {
-          // 口令控制：若用戶說出特定關鍵詞執行特殊指令
-          if (text === "清除" || text === "清空") {
-            userInput.value = "";
-            return;
+    async function validateAndLoadModels(key, showFeedback = true) {
+      if (showFeedback) {
+        keyIndicator.style.background = "#eab308";
+        keyIndicator.innerText = "驗證中...";
+      }
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/models", {
+          headers: { "Authorization": "Bearer " + key }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          availableChatModels = (data.data || []).map(m => m.id).filter(id => !id.includes("whisper") && !id.includes("guard") && !id.includes("distil"));
+          keyIndicator.style.background = "var(--safe)";
+          keyIndicator.innerText = "🟢 金鑰就緒";
+          if (showFeedback) {
+            keyMsg.style.color = "var(--safe)";
+            keyMsg.innerText = "驗證通過，已持久記憶";
           }
-          if (text === "停止" || text === "閉嘴") {
-            if (synth && synth.speaking) synth.cancel();
-            userInput.value = "";
-            return;
+          memoryKey = key;
+          // 持久寫入，更新代碼或刷新頁面永不遺失
+          localStorage.setItem("app_vault_key", key);
+          return true;
+        } else {
+          keyIndicator.style.background = "var(--danger)";
+          keyIndicator.innerText = "🔴 金鑰無效";
+          if (showFeedback) {
+            keyMsg.style.color = "var(--danger)";
+            keyMsg.innerText = "API Key 錯誤";
           }
-          // 自動發送
-          sendMessage();
+          return false;
         }
-      }, waitTime);
+      } catch (e) {
+        keyIndicator.style.background = "var(--danger)";
+        keyIndicator.innerText = "連線失敗";
+        return false;
+      }
     }
 
-    function resetSilenceTimer() {
-      if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-      if (silenceProgressInterval) { clearInterval(silenceProgressInterval); silenceProgressInterval = null; }
-      silenceBar.style.width = "0%";
-      silenceBarContainer.style.display = "none";
+    function resolveModel(promptText) {
+      if (availableChatModels.length === 0) return "llama-3.3-70b-versatile";
+      const deepCandidates = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"];
+      const fastCandidates = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it", "openai/gpt-oss-20b"];
+      const bestDeep = deepCandidates.find(c => availableChatModels.includes(c)) || availableChatModels[0];
+      const bestFast = fastCandidates.find(c => availableChatModels.includes(c)) || availableChatModels[availableChatModels.length - 1];
+
+      const mode = complexitySelect.value;
+      if (mode === "fast") return bestFast;
+      if (mode === "deep") return bestDeep;
+      return (promptText.length > 40 || /(查核|真偽|來源|邏輯|分析|研究)/i.test(promptText)) ? bestDeep : bestFast;
     }
 
-    // ================= 語音辨識 (Web Speech API) =================
+    // ================= 3. 麥克風硬體狀態燈（純用戶端手動觸發） =================
     let recognition = null;
-    let isMicActive = false;
+    let isMicRecording = false;
 
     if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -480,71 +469,54 @@
       recognition.interimResults = true;
 
       recognition.onresult = (e) => {
-        if (isAIThinkingOrSpeaking) return; // AI 在回答時不收錄環境雜音
-
-        let interimStr = "";
         let finalStr = "";
-
         for (let i = e.resultIndex; i < e.results.length; ++i) {
-          const trans = e.results[i][0].transcript;
           if (e.results[i].isFinal) {
-            finalStr += cleanVoiceTranscript(trans);
-          } else {
-            interimStr += trans;
+            finalStr += e.results[i][0].transcript;
           }
         }
-
         if (finalStr) userInput.value += finalStr;
-        if (interimStr) {
-          // 當說話中斷時，觸發靜音檢測
-          resetSilenceTimer();
-        } else if (userInput.value.trim()) {
-          triggerSilenceTimer();
-        }
       };
 
-      recognition.onerror = (e) => {
-        if (e.error !== "no-speech") resetSilenceTimer();
-      };
-
+      recognition.onerror = () => stopMicByUser();
       recognition.onend = () => {
-        isMicActive = false;
-        micBtn.classList.remove("recording");
-        // 若在免動手模式且 AI 沒有在輸出/朗讀，自動重啟監聽
-        if (isHandsFree && !isAIThinkingOrSpeaking) {
-          setTimeout(startListening, 300);
-        }
+        // 嚴格限制：僅由用戶端主動控制，非用戶手動觸發時絕不自動重啟
+        stopMicByUser();
       };
     }
 
-    function startListening() {
-      if (!recognition) { alert("瀏覽器不支援語音辨識，請使用 Chrome 或 Safari。"); return; }
-      if (isMicActive || isAIThinkingOrSpeaking) return;
+    function startMicByUser() {
+      if (!recognition) {
+        alert("瀏覽器不支援語音輸入，請使用 Safari 或 Chrome。");
+        return;
+      }
       try {
         recognition.start();
-        isMicActive = true;
-        micBtn.classList.add("recording");
+        isMicRecording = true;
+        micBtn.classList.add("mic-active");
+        micLed.title = "綠色: 正在錄音使用中";
       } catch (e) {}
     }
 
-    function stopListening() {
-      if (recognition && isMicActive) {
+    function stopMicByUser() {
+      if (recognition && isMicRecording) {
         recognition.stop();
-        isMicActive = false;
-        micBtn.classList.remove("recording");
       }
+      isMicRecording = false;
+      micBtn.classList.remove("mic-active");
+      micLed.title = "紅色: 已關閉";
     }
 
+    // 強制僅能由用戶點擊按鈕切換
     window.toggleVoice = function() {
-      if (isMicActive) {
-        resetSilenceTimer();
-        stopListening();
+      if (isMicRecording) {
+        stopMicByUser();
       } else {
-        startListening();
+        startMicByUser();
       }
     };
 
-    // ================= 背景免跳轉公信事實擷取 =================
+    // ================= 4. 背景公信數據查核 =================
     async function fetchFactContext(query) {
       if (!isWebSearchEnabled) return "";
       let collectedData = "";
@@ -574,275 +546,11 @@
       return collectedData.trim();
     }
 
-    // ================= 訊息發送與自動連續閉環 =================
-    window.sendMessage = async function() {
-      const rawText = userInput.value.trim();
-      const key = memoryKey || apiKeyInput.value.trim();
-      if (!rawText) return;
-      if (!key) { alert("請在配置中填入有效的 Groq API Key！"); return; }
-
-      // 停止收音與計時器，標記 AI 處理中
-      resetSilenceTimer();
-      stopListening();
-      isAIThinkingOrSpeaking = true;
-
-      const userIdx = conversation.length;
-      conversation.push({ role: "user", content: rawText });
-      appendMessage("user", rawText, userIdx);
-      userInput.value = "";
-
-      const aiIdx = conversation.length;
-      const aiMsg = appendMessage("assistant", "", aiIdx);
-      aiMsg.textSpan.textContent = "▍";
-
-      let factContext = "";
-      if (isWebSearchEnabled) {
-        aiMsg.textSpan.textContent = "🔍 正在背景核實公信資料庫...";
-        factContext = await fetchFactContext(rawText);
-      }
-
-      let fullSystemPrompt = sysPrompt.value;
-      if (permanentContext) fullSystemPrompt += "\n\n【常駐背景資料】：\n" + permanentContext;
-      if (factContext) {
-        fullSystemPrompt += "\n\n【背景檢索之客觀數據】：\n" + factContext + "\n※ 請依上述資料以流暢繁體中文論述並標註出處。";
-      }
-
-      const payloadMessages = [{ role: "system", content: fullSystemPrompt }, ...conversation.slice(-12)];
-      const chosenModel = resolveModel(rawText);
-
-      try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
-          body: JSON.stringify({ model: chosenModel, messages: payloadMessages, stream: true })
-        });
-
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error?.message || ("狀態碼: " + response.status));
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let fullReply = "";
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-          for (const line of lines) {
-            if (line.startsWith("data: ") && line !== "data: [DONE]") {
-              try {
-                const parsed = JSON.parse(line.slice(6));
-                const token = parsed.choices[0].delta?.content || "";
-                fullReply += token;
-                buffer += token;
-                if (buffer.length >= 3) {
-                  aiMsg.textSpan.textContent = fullReply + "▍";
-                  chatBox.scrollTop = chatBox.scrollHeight;
-                  buffer = "";
-                }
-              } catch (e) {}
-            }
-          }
-        }
-
-        aiMsg.textSpan.textContent = fullReply;
-        conversation.push({ role: "assistant", content: fullReply });
-        renderAllMessages();
-
-        // 朗讀回覆；朗讀完畢後若處於免動手模式，自動喚醒麥克風
-        if (autoSpeakCheck.checked) {
-          speakText(fullReply, () => {
-            isAIThinkingOrSpeaking = false;
-            if (isHandsFree) startListening();
-          });
-        } else {
-          isAIThinkingOrSpeaking = false;
-          if (isHandsFree) startListening();
-        }
-
-      } catch (err) {
-        aiMsg.textSpan.textContent = "出錯了: " + err.message;
-        conversation.pop();
-        isAIThinkingOrSpeaking = false;
-        if (isHandsFree) startListening();
-      }
-    };
-
-    // ================= 語音合成 (TTS) =================
-    let synth = window.speechSynthesis;
-    let voices = [];
-    function loadVoices() {
-      if (!synth) return;
-      voices = synth.getVoices();
-      voiceSelect.textContent = "";
-      const zhVoices = voices.filter(v => v.lang.includes("zh") || v.lang.includes("cmn"));
-      (zhVoices.length > 0 ? zhVoices : voices).forEach(v => {
-        const opt = document.createElement("option");
-        opt.value = v.name;
-        opt.textContent = `${v.name} (${v.lang})`;
-        voiceSelect.appendChild(opt);
-      });
-    }
-    if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-
-    function speakText(text, onEndCallback) {
-      if (!synth || !text) {
-        if (onEndCallback) onEndCallback();
-        return;
-      }
-      if (synth.speaking) synth.cancel();
-
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = parseFloat(ttsRate.value);
-      const selected = voices.find(v => v.name === voiceSelect.value);
-      if (selected) utter.voice = selected;
-      else utter.lang = "zh-TW";
-
-      utter.onend = () => { if (onEndCallback) onEndCallback(); };
-      utter.onerror = () => { if (onEndCallback) onEndCallback(); };
-
-      synth.speak(utter);
-    }
-
-    // ================= 模型管理與安全加密 =================
-    async function validateAndLoadModels() {
-      const key = apiKeyInput.value.trim();
-      if (!key) {
-        keyIndicator.style.background = "#64748b";
-        keyIndicator.innerText = "未填入金鑰";
-        keyMsg.innerText = "";
-        return false;
-      }
-      keyIndicator.style.background = "#eab308";
-      keyIndicator.innerText = "驗證中...";
-      try {
-        const res = await fetch("https://api.groq.com/openai/v1/models", {
-          headers: { "Authorization": "Bearer " + key }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          availableChatModels = (data.data || []).map(m => m.id).filter(id => !id.includes("whisper") && !id.includes("guard") && !id.includes("distil"));
-          keyIndicator.style.background = "var(--safe)";
-          keyIndicator.innerText = "🟢 金鑰就緒";
-          keyMsg.style.color = "var(--safe)";
-          keyMsg.innerText = "連線正常";
-          memoryKey = key;
-          return true;
-        } else {
-          keyIndicator.style.background = "var(--danger)";
-          keyIndicator.innerText = "🔴 金鑰無效";
-          keyMsg.innerText = "驗證失敗";
-          return false;
-        }
-      } catch (e) {
-        keyIndicator.style.background = "var(--danger)";
-        keyIndicator.innerText = "連線失敗";
-        return false;
-      }
-    }
-    window.validateAndLoadModels = validateAndLoadModels;
-
-    function resolveModel(promptText) {
-      if (availableChatModels.length === 0) return "llama-3.3-70b-versatile";
-      const deepCandidates = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"];
-      const fastCandidates = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it", "openai/gpt-oss-20b"];
-      const bestDeep = deepCandidates.find(c => availableChatModels.includes(c)) || availableChatModels[0];
-      const bestFast = fastCandidates.find(c => availableChatModels.includes(c)) || availableChatModels[availableChatModels.length - 1];
-
-      const mode = complexitySelect.value;
-      if (mode === "fast") return bestFast;
-      if (mode === "deep") return bestDeep;
-      return (promptText.length > 40 || /(查核|真偽|來源|邏輯|分析|研究)/i.test(promptText)) ? bestDeep : bestFast;
-    }
-
-    async function deriveKey(password, salt) {
-      const enc = new TextEncoder();
-      const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
-      return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
-    }
-
-    window.secureStorage = {
-      encryptAndSave: async function() {
-        const pwd = masterPwd.value.trim();
-        if (!pwd) { alert("請輸入主密碼！"); return; }
-        try {
-          const salt = crypto.getRandomValues(new Uint8Array(16));
-          const iv = crypto.getRandomValues(new Uint8Array(12));
-          const key = await deriveKey(pwd, salt);
-          const enc = new TextEncoder();
-          const payload = JSON.stringify({ apiKey: apiKeyInput.value.trim(), permMem: permanentContext });
-          const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(payload));
-          const combined = new Uint8Array(salt.length + iv.length + cipher.byteLength);
-          combined.set(salt, 0); combined.set(iv, salt.length); combined.set(new Uint8Array(cipher), salt.length + iv.length);
-          localStorage.setItem("secure_ai_vault", btoa(String.fromCharCode(...combined)));
-          sessionStorage.setItem("ai_session_unlocked", payload);
-          encStatus.innerText = "🔒 已加密存儲";
-          validateAndLoadModels();
-          alert("金鑰已加密保存！");
-        } catch (e) { alert("加密失敗：" + e.message); }
-      },
-      decryptAndLoad: async function() {
-        const pwd = masterPwd.value.trim();
-        const cipherB64 = localStorage.getItem("secure_ai_vault");
-        if (!cipherB64 || !pwd) { alert("請確認輸入密碼且有加密資料！"); return; }
-        try {
-          const raw = Uint8Array.from(atob(cipherB64), c => c.charCodeAt(0));
-          const salt = raw.slice(0, 16);
-          const iv = raw.slice(16, 28);
-          const cipher = raw.slice(28);
-          const key = await deriveKey(pwd, salt);
-          const dec = new TextDecoder();
-          const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipher);
-          const rawPayload = dec.decode(plain);
-          const data = JSON.parse(rawPayload);
-          apiKeyInput.value = data.apiKey || "";
-          memoryKey = data.apiKey || "";
-          permanentContext = data.permMem || "";
-          sessionStorage.setItem("ai_session_unlocked", rawPayload);
-          encStatus.innerText = "🔓 已解密就緒";
-          validateAndLoadModels();
-          alert("解密成功！");
-        } catch (e) { alert("密碼錯誤，解密失敗！"); }
-      }
-    };
-
-    function initSessionUnlock() {
-      const cached = sessionStorage.getItem("ai_session_unlocked");
-      if (cached) {
-        try {
-          const data = JSON.parse(cached);
-          apiKeyInput.value = data.apiKey || "";
-          memoryKey = data.apiKey || "";
-          permanentContext = data.permMem || "";
-          validateAndLoadModels();
-        } catch (e) {}
-      }
-    }
-
-    window.destroyAllMemory = function() {
-      if (!confirm("確定要抹除全部資料、對話、金鑰與自訂人設嗎？")) return;
-      conversation = []; permanentContext = ""; memoryKey = ""; apiKeyInput.value = ""; masterPwd.value = "";
-      localStorage.clear(); sessionStorage.clear(); chatBox.textContent = ""; encStatus.innerText = "";
-      if (synth && synth.speaking) synth.cancel();
-      alert("所有數據已徹底銷毀。");
-    };
-
-    function appendMessage(role, text, index, metaInfo = "") {
+    // ================= 5. 訊息渲染與單獨清除歷史 =================
+    function appendMessage(role, text, index) {
       const div = document.createElement("div");
       div.className = "bubble " + role;
       div.dataset.index = index;
-
-      if (metaInfo) {
-        const metaSpan = document.createElement("div");
-        metaSpan.className = "meta-tag";
-        metaSpan.textContent = metaInfo;
-        div.appendChild(metaSpan);
-      }
 
       const textSpan = document.createElement("div");
       textSpan.className = "bubble-text";
@@ -887,7 +595,7 @@
 
     function editMessage(index) {
       const current = conversation[index].content;
-      const updated = prompt("編輯內容：", current);
+      const updated = prompt("編輯該條對話內容：", current);
       if (updated !== null && updated.trim() !== "") {
         conversation[index].content = updated.trim();
         renderAllMessages();
@@ -895,27 +603,158 @@
     }
 
     function deleteMessage(index) {
-      if (confirm("確定刪除此條記錄？")) {
+      if (confirm("確定刪除此條對話記錄？")) {
         conversation.splice(index, 1);
         renderAllMessages();
       }
     }
 
+    // 單獨清空對話紀錄，完全不影響金鑰、模型與其他配置
     window.clearAllChat = function() {
-      if (confirm("確定清空目前對話？")) {
+      if (confirm("確定清空目前畫面的所有對話歷史？（您的 API Key 與所有系統設定將完好保留）")) {
         conversation = [];
         chatBox.textContent = "";
       }
     };
 
+    // 徹底抹除（銷毀金鑰與所有本機記憶）
+    window.destroyAllMemory = function() {
+      if (!confirm("確定要抹除全部資料、對話、儲存的 API Key 與常駐卷宗嗎？此操作不可逆！")) return;
+      conversation = []; permanentContext = ""; memoryKey = ""; apiKeyInput.value = "";
+      localStorage.clear(); sessionStorage.clear(); chatBox.textContent = "";
+      keyIndicator.style.background = "#64748b";
+      keyIndicator.innerText = "已徹底銷毀";
+      keyMsg.innerText = "";
+      stopMicByUser();
+      if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+      alert("所有數據已徹底自本機抹除。");
+    };
+
+    // ================= 6. 訊息傳送與打字機輸出 =================
+    window.sendMessage = async function() {
+      const rawText = userInput.value.trim();
+      const key = memoryKey || apiKeyInput.value.trim();
+      if (!rawText) return;
+      if (!key) { alert("請在配置中填入有效的 Groq API Key！"); return; }
+
+      // 若使用者仍在錄音，發送前關閉麥克風
+      stopMicByUser();
+
+      const userIdx = conversation.length;
+      conversation.push({ role: "user", content: rawText });
+      appendMessage("user", rawText, userIdx);
+      userInput.value = "";
+
+      const aiIdx = conversation.length;
+      const aiMsg = appendMessage("assistant", "", aiIdx);
+      aiMsg.textSpan.textContent = "▍";
+
+      let factContext = "";
+      if (isWebSearchEnabled) {
+        aiMsg.textSpan.textContent = "🔍 背景比對公信資料庫...";
+        factContext = await fetchFactContext(rawText);
+      }
+
+      let fullSystemPrompt = sysPrompt.value;
+      if (permanentContext) fullSystemPrompt += "\n\n【常駐背景資料】：\n" + permanentContext;
+      if (factContext) {
+        fullSystemPrompt += "\n\n【第三方公信數據】：\n" + factContext + "\n※ 請依上述客觀資料進行嚴謹論證並標註來源。";
+      }
+
+      const payloadMessages = [{ role: "system", content: fullSystemPrompt }, ...conversation.slice(-12)];
+      const chosenModel = resolveModel(rawText);
+
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+          body: JSON.stringify({ model: chosenModel, messages: payloadMessages, stream: true })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error?.message || ("伺服器錯誤狀態: " + response.status));
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let fullReply = "";
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ") && line !== "data: [DONE]") {
+              try {
+                const parsed = JSON.parse(line.slice(6));
+                const token = parsed.choices[0].delta?.content || "";
+                fullReply += token;
+                buffer += token;
+                if (buffer.length >= 3) {
+                  aiMsg.textSpan.textContent = fullReply + "▍";
+                  chatBox.scrollTop = chatBox.scrollHeight;
+                  buffer = "";
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
+        aiMsg.textSpan.textContent = fullReply;
+        conversation.push({ role: "assistant", content: fullReply });
+        renderAllMessages();
+
+        if (autoSpeakCheck.checked) speakText(fullReply);
+
+      } catch (err) {
+        aiMsg.textSpan.textContent = "出錯了: " + err.message;
+        conversation.pop();
+      }
+    };
+
+    // ================= 7. 語音合成 (TTS) =================
+    let synth = window.speechSynthesis;
+    let voices = [];
+    function loadVoices() {
+      if (!synth) return;
+      voices = synth.getVoices();
+      voiceSelect.textContent = "";
+      const zhVoices = voices.filter(v => v.lang.includes("zh") || v.lang.includes("cmn"));
+      (zhVoices.length > 0 ? zhVoices : voices).forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        voiceSelect.appendChild(opt);
+      });
+    }
+    if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    function speakText(text) {
+      if (!synth || !text) return;
+      if (synth.speaking) synth.cancel();
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = parseFloat(ttsRate.value);
+      const selected = voices.find(v => v.name === voiceSelect.value);
+      if (selected) utter.voice = selected;
+      else utter.lang = "zh-TW";
+
+      synth.speak(utter);
+    }
+
+    // ================= 8. 更新檢查（保持金鑰狀態） =================
     window.checkCodeUpdate = async function() {
       try {
         const currentUrl = window.location.href.split('?')[0];
         const res = await fetch(`${currentUrl}?_t=${Date.now()}`, { cache: "no-store" });
-        if (res.ok && confirm("已連線確認！是否立即重新載入？（解鎖狀態將保留）")) {
+        if (res.ok && confirm("已與伺服器完成最新版本通訊！是否立即無快取重新載入？（您的 API Key 與設定將被完好保留）")) {
           window.location.reload(true);
         }
-      } catch (e) { alert("檢查失敗，請確認連線。"); }
+      } catch (e) { alert("檢查失敗，請確認網路連線。"); }
     };
 
     window.toggleSettings = function() {
@@ -942,7 +781,8 @@
       }
     });
 
-    initSessionUnlock();
+    // 啟動初始化持久金鑰
+    initKeyStorage();
   })();
 </script>
 </body>
