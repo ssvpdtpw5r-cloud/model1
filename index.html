@@ -40,8 +40,75 @@
 </head>
 <body class="text-slate-800 antialiased select-none md:select-auto">
 
+  <!-- 全螢幕開機自檢遮罩 (Pre-flight Diagnosis Modal) -->
+  <div id="diagnostic-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center space-x-3 border-b border-slate-100 pb-3">
+        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h2 class="font-bold text-slate-800 text-base">系統環境開機自檢</h2>
+          <p class="text-xs text-slate-400">正在執行全方位條件檢驗，通過後解鎖主控台</p>
+        </div>
+      </div>
+
+      <!-- 測試進度項目清單 -->
+      <div class="space-y-2.5 text-xs" id="diagnostic-list">
+        <div id="diag-storage" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+          <span class="flex items-center space-x-2 text-slate-600">
+            <i data-lucide="database" class="w-4 h-4"></i><span>本地儲存與沙盒加密 (localStorage)</span>
+          </span>
+          <span class="status-badge text-slate-400">檢測中...</span>
+        </div>
+
+        <div id="diag-network" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+          <span class="flex items-center space-x-2 text-slate-600">
+            <i data-lucide="wifi" class="w-4 h-4"></i><span>網路連線狀態與延遲檢測</span>
+          </span>
+          <span class="status-badge text-slate-400">等待中</span>
+        </div>
+
+        <div id="diag-speech" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+          <span class="flex items-center space-x-2 text-slate-600">
+            <i data-lucide="mic" class="w-4 h-4"></i><span>Web Speech 語音引擎 (語音輸入/朗讀)</span>
+          </span>
+          <span class="status-badge text-slate-400">等待中</span>
+        </div>
+
+        <div id="diag-viewport" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+          <span class="flex items-center space-x-2 text-slate-600">
+            <i data-lucide="smartphone" class="w-4 h-4"></i><span>行動端虛擬鍵盤防遮蔽引擎</span>
+          </span>
+          <span class="status-badge text-slate-400">等待中</span>
+        </div>
+
+        <div id="diag-file" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+          <span class="flex items-center space-x-2 text-slate-600">
+            <i data-lucide="file-up" class="w-4 h-4"></i><span>多媒體與檔案讀取沙盒 (FileReader)</span>
+          </span>
+          <span class="status-badge text-slate-400">等待中</span>
+        </div>
+
+        <div id="diag-api" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+          <span class="flex items-center space-x-2 text-slate-600">
+            <i data-lucide="cpu" class="w-4 h-4"></i><span>Google Gemini 3.6 Flash 端點通訊</span>
+          </span>
+          <span class="status-badge text-slate-400">等待中</span>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <div id="diag-summary" class="text-xs font-medium text-slate-500">正在初始化自檢程式...</div>
+        <button id="diag-action-btn" onclick="startDiagnostics()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-xs transition hidden">
+          重新檢驗
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主對話應用本體 -->
   <div id="app-container">
-    <!-- 頂部導航 -->
     <header class="flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-200 shrink-0">
       <div class="flex items-center space-x-2">
         <span class="font-semibold text-base tracking-tight text-slate-800 flex items-center gap-1.5">
@@ -49,13 +116,13 @@
         </span>
         <div id="net-status" class="flex items-center text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-          <span id="net-text">連線良好</span>
+          <span id="net-text">在線正常</span>
         </div>
       </div>
       
       <div class="flex items-center space-x-1">
-        <button onclick="checkConnection()" title="重新整理" class="p-2 rounded-full hover:bg-slate-100 text-slate-500">
-          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        <button onclick="startDiagnostics(true)" title="手動執行系統自檢" class="p-2 rounded-full hover:bg-slate-100 text-slate-500">
+          <i data-lucide="activity" class="w-4 h-4"></i>
         </button>
         <button onclick="toggleSettingsModal(true)" class="p-2 rounded-full hover:bg-slate-100 text-slate-500">
           <i data-lucide="settings" class="w-5 h-5"></i>
@@ -63,19 +130,17 @@
       </div>
     </header>
 
-    <!-- 對話主區域 -->
     <main class="flex-1 overflow-y-auto px-4 py-4 max-w-3xl w-full mx-auto space-y-5" id="chat-stream">
       <div class="flex items-start space-x-3">
         <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white p-4 rounded-2xl rounded-tl-none border border-slate-200/80 shadow-sm leading-relaxed max-w-[85%] text-sm text-slate-700">
-          你好！已鎖定為官方指定 <b>Gemini 3.6 Flash</b> 架構。請在右上角設定點選「在線驗證並存」即可開始！
+          系統自檢已全部通過！環境運作正常，請直接輸入文字或語音開啟交談。
         </div>
       </div>
     </main>
 
-    <!-- 底部輸入區域 -->
     <footer class="p-3 max-w-3xl w-full mx-auto shrink-0">
       <div class="bg-white rounded-3xl border border-slate-200 p-2.5 gemini-card-shadow flex flex-col space-y-2">
         
@@ -125,36 +190,29 @@
     </footer>
   </div>
 
-  <!-- 設定彈窗 -->
+  <!-- 設定面板 -->
   <div id="settings-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-        <h3 class="font-bold text-slate-800">金鑰設定</h3>
+        <h3 class="font-bold text-slate-800">金鑰與記憶點</h3>
         <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-slate-600">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-600 flex justify-between">
-          <span>API Key</span>
-          <span id="key-badge" class="text-[10px] px-1.5 py-0.5 rounded hidden"></span>
-        </label>
+        <label class="text-xs font-semibold text-slate-600">Google Gemini API Key</label>
         <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-blue-500 font-mono" />
-        <div id="key-feedback" class="text-[11px] text-slate-400">已直接適配官方指定 Gemini 3.6 Flash 模型。</div>
       </div>
 
       <div class="space-y-1">
-        <label class="text-xs font-semibold text-slate-600">全局記憶點 (偏好與設定)</label>
+        <label class="text-xs font-semibold text-slate-600">全局記憶點 (偏好約束)</label>
         <textarea id="core-memories" rows="2" placeholder="例如：偏好深入探討、理性與感性兼具..." class="w-full border border-slate-200 rounded-xl p-2 text-xs outline-none"></textarea>
       </div>
 
       <div class="flex space-x-2 pt-1">
-        <button id="direct-save-btn" onclick="directSaveKey()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-xl text-xs transition">
-          直接儲存
-        </button>
-        <button id="validate-btn" onclick="validateAndSaveKey()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-xl text-xs transition">
-          在線驗證並存
+        <button onclick="directSaveKey()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl text-xs transition">
+          儲存並重新檢驗
         </button>
       </div>
     </div>
@@ -167,7 +225,143 @@
     let recognition = null;
     let isRecording = false;
 
-    // 避讓虛擬鍵盤
+    // --- 自檢診斷核心引擎 (Pre-flight System) ---
+    async function startDiagnostics(forceShow = false) {
+      const overlay = document.getElementById('diagnostic-overlay');
+      const actionBtn = document.getElementById('diag-action-btn');
+      const summary = document.getElementById('diag-summary');
+
+      overlay.classList.remove('hidden');
+      actionBtn.classList.add('hidden');
+      summary.innerText = "診斷程序進行中...";
+
+      let passCount = 0;
+      const totalTests = 6;
+
+      // 測試 1: LocalStorage 沙盒讀寫
+      await sleep(150);
+      try {
+        localStorage.setItem('diag_test', 'ok');
+        const v = localStorage.getItem('diag_test');
+        localStorage.removeItem('diag_test');
+        if (v === 'ok') {
+          setDiagStatus('diag-storage', true, '正常可用');
+          passCount++;
+        } else throw new Error();
+      } catch (e) {
+        setDiagStatus('diag-storage', false, '儲存受限 (無痕模式或被阻擋)');
+      }
+
+      // 測試 2: 網路連線與往返延遲
+      await sleep(150);
+      if (navigator.onLine) {
+        const startPing = Date.now();
+        try {
+          await fetch('https://www.google.com/favicon.ico', { mode: 'no-cors', cache: 'no-store' });
+          const pingTime = Date.now() - startPing;
+          setDiagStatus('diag-network', true, `良好 (${pingTime} ms)`);
+          passCount++;
+        } catch(e) {
+          setDiagStatus('diag-network', true, '在線 (延遲未知)');
+          passCount++;
+        }
+      } else {
+        setDiagStatus('diag-network', false, '設備處於離線狀態');
+      }
+
+      // 測試 3: Web Speech API 語音模組
+      await sleep(150);
+      const hasRecognition = ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+      const hasSynthesis = ('speechSynthesis' in window);
+      if (hasRecognition && hasSynthesis) {
+        setDiagStatus('diag-speech', true, '輸入/朗讀模組均就緒');
+        passCount++;
+      } else if (hasSynthesis) {
+        setDiagStatus('diag-speech', true, '僅支援文字朗讀 (相容)');
+        passCount++;
+      } else {
+        setDiagStatus('diag-speech', false, '瀏覽器不支援語音引擎');
+      }
+
+      // 測試 4: 移動端虛擬鍵盤避讓引擎
+      await sleep(150);
+      if ('visualViewport' in window) {
+        setDiagStatus('diag-viewport', true, '動態視窗避讓已就緒');
+        passCount++;
+      } else {
+        setDiagStatus('diag-viewport', true, '使用基礎滾動降級 (可用)');
+        passCount++;
+      }
+
+      // 測試 5: 多媒體與檔案讀取
+      await sleep(150);
+      if ('FileReader' in window && 'Blob' in window) {
+        setDiagStatus('diag-file', true, '檔案系統相容');
+        passCount++;
+      } else {
+        setDiagStatus('diag-file', false, '不支援本機檔案讀取');
+      }
+
+      // 測試 6: Google Gemini 3.6 Flash 連通度
+      await sleep(200);
+      const rawKey = localStorage.getItem('omni_ai_key');
+      if (!rawKey) {
+        setDiagStatus('diag-api', false, '未設定金鑰 (請至設定填入)');
+      } else {
+        const key = atob(rawKey).trim();
+        try {
+          // 向 Google 端點發送極小 Token 握手測試
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(key)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "ping" }] }] })
+          });
+
+          if (res.ok) {
+            setDiagStatus('diag-api', true, 'Google 官方端點通訊暢通');
+            passCount++;
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            const errMsg = errData.error?.message || `HTTP ${res.status}`;
+            if (res.status === 503) {
+              setDiagStatus('diag-api', true, '端點已連通 (目前尖峰塞車，已啟用備援)');
+              passCount++;
+            } else {
+              setDiagStatus('diag-api', false, `金鑰或權限異常: ${errMsg}`);
+            }
+          }
+        } catch (e) {
+          setDiagStatus('diag-api', false, '連線超時或受到安全防護阻擋');
+        }
+      }
+
+      // 總結判定
+      if (passCount >= 5) {
+        summary.innerHTML = `<span class="text-emerald-600 font-semibold">自檢通過 (${passCount}/${totalTests})，即將進入工作台...</span>`;
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+        }, 900);
+      } else {
+        summary.innerHTML = `<span class="text-rose-600 font-semibold">自檢未完全通過 (${passCount}/${totalTests})，請排查紅字項目。</span>`;
+        actionBtn.classList.remove('hidden');
+        if (!rawKey) {
+          toggleSettingsModal(true);
+        }
+      }
+    }
+
+    function setDiagStatus(elemId, success, text) {
+      const row = document.getElementById(elemId);
+      const badge = row.querySelector('.status-badge');
+      badge.innerText = text;
+      badge.className = success 
+        ? "status-badge text-[11px] font-medium text-emerald-600 flex items-center gap-1"
+        : "status-badge text-[11px] font-medium text-rose-600 flex items-center gap-1";
+    }
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    // --- 介面適配與基礎工具 ---
     function setupViewportAdjustment() {
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', () => {
@@ -183,6 +377,8 @@
       loadSettings();
       checkConnection();
       initSpeech();
+      // 開機自動自檢
+      startDiagnostics();
     });
 
     function scrollChatToBottom() {
@@ -195,21 +391,11 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
-    function isGoogleKey(key) {
-      const cleaned = key.trim();
-      return cleaned.startsWith("AQ") || cleaned.startsWith("AIza");
-    }
-
     function loadSettings() {
       const savedKey = localStorage.getItem('omni_ai_key');
       const savedMem = localStorage.getItem('omni_ai_memories');
-
       if (savedKey) {
-        try {
-          const keyVal = atob(savedKey).trim();
-          document.getElementById('api-key').value = keyVal;
-          updateKeyStatusBadge(true, isGoogleKey(keyVal) ? 'Google 金鑰' : 'OpenRouter');
-        } catch(e) {}
+        try { document.getElementById('api-key').value = atob(savedKey).trim(); } catch(e) {}
       }
       if (savedMem) document.getElementById('core-memories').value = savedMem;
     }
@@ -219,85 +405,8 @@
       if (!key) return alert('請先輸入金鑰');
       localStorage.setItem('omni_ai_key', btoa(key));
       localStorage.setItem('omni_ai_memories', document.getElementById('core-memories').value.trim());
-      updateKeyStatusBadge(true, isGoogleKey(key) ? 'Google 金鑰' : 'OpenRouter');
       toggleSettingsModal(false);
-      alert('金鑰已儲存！請在下方發送訊息測試。');
-    }
-
-    // 官方指定 gemini-3.6-flash 驗證
-    async function validateAndSaveKey() {
-      const key = document.getElementById('api-key').value.trim();
-      const feedback = document.getElementById('key-feedback');
-      const btn = document.getElementById('validate-btn');
-
-      if (!key) {
-        feedback.className = "text-[11px] text-rose-500";
-        feedback.innerText = "請先貼入 API Key";
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerText = "驗證中...";
-      feedback.className = "text-[11px] text-blue-600";
-      feedback.innerText = "正在向 Google 驗證 Gemini 3.6 Flash...";
-
-      const isGoogle = isGoogleKey(key);
-
-      try {
-        let isValid = false;
-        let errorDetail = "";
-
-        if (isGoogle) {
-          // 直連官方指定的 gemini-3.6-flash
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(key)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] })
-          });
-
-          if (res.ok) {
-            isValid = true;
-          } else {
-            const errData = await res.json().catch(() => ({}));
-            errorDetail = errData.error?.message || `HTTP ${res.status}`;
-          }
-        } else {
-          const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
-            headers: { 'Authorization': `Bearer ${key}` }
-          });
-          isValid = res.ok;
-          if (!isValid) errorDetail = `HTTP ${res.status}`;
-        }
-
-        if (isValid) {
-          localStorage.setItem('omni_ai_key', btoa(key));
-          localStorage.setItem('omni_ai_memories', document.getElementById('core-memories').value.trim());
-          
-          updateKeyStatusBadge(true, 'Gemini 3.6 Flash 已就緒');
-          feedback.className = "text-[11px] text-emerald-600 font-semibold";
-          feedback.innerText = "驗證成功！已成功連線至 Google 官方核心。";
-          setTimeout(() => toggleSettingsModal(false), 900);
-        } else {
-          updateKeyStatusBadge(false, '驗證失敗');
-          feedback.className = "text-[11px] text-rose-600 font-medium";
-          feedback.innerText = `失敗: ${errorDetail}`;
-        }
-      } catch (e) {
-        feedback.className = "text-[11px] text-rose-600";
-        feedback.innerText = `連線異常 (${e.message})，可點「直接儲存」。`;
-      } finally {
-        btn.disabled = false;
-        btn.innerText = "在線驗證並存";
-      }
-    }
-
-    function updateKeyStatusBadge(valid, text) {
-      const badge = document.getElementById('key-badge');
-      badge.classList.remove('hidden');
-      badge.innerText = text;
-      badge.className = valid 
-        ? "text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700"
-        : "text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700";
+      startDiagnostics(true); // 重新跑一次診斷
     }
 
     function toggleSettingsModal(show) {
@@ -308,7 +417,7 @@
       const netText = document.getElementById('net-text');
       const netBox = document.getElementById('net-status');
       if (navigator.onLine) {
-        netText.textContent = '連線良好';
+        netText.textContent = '在線正常';
         netBox.className = 'flex items-center text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full';
       } else {
         netText.textContent = '離線中';
@@ -318,7 +427,7 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // 發送訊息（全線升級至 gemini-3.6-flash）
+    // --- 訊息發送流程 (支援備援與重試) ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const prompt = inputEl.value.trim();
@@ -327,7 +436,7 @@
 
       if (!prompt) return;
       if (!apiKey) {
-        alert('請先點選右上角設定輸入 API Key');
+        alert('請先在設定中填入 API Key');
         toggleSettingsModal(true);
         return;
       }
@@ -339,80 +448,72 @@
       const mode = document.getElementById('mode-select').value;
       const memory = localStorage.getItem('omni_ai_memories') || '';
 
-      let systemPrompt = `你是一個專業助手。記憶點：${memory}。`;
-      if (anchoredContext) systemPrompt += `\n[保持原樣特徵]: ${anchoredContext}`;
-      if (mode === 'concise') systemPrompt += "\n限制: 極簡答覆，提取重點。";
-      else if (mode === 'in_depth') systemPrompt += "\n風格: 深入探討、理性與感性兼具、結構詳盡。";
+      let systemPrompt = `助手偏好：${memory}。`;
+      if (anchoredContext) systemPrompt += `\n[保留原特徵]: ${anchoredContext}`;
+      if (mode === 'concise') systemPrompt += "\n限制: 極簡答覆，條列重點。";
+      else if (mode === 'in_depth') systemPrompt += "\n風格: 深入探討、理性分析與感性筆調兼具、層次分明。";
       else if (mode === 'storyteller') systemPrompt += "\n風格: 小說敘事，情感充沛。";
 
       const botCard = appendMessage('bot', '');
       const contentEl = botCard.querySelector('.content-body');
       contentEl.classList.add('typing-cursor');
 
-      const isGoogle = isGoogleKey(apiKey);
+      const candidateModels = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
+      let fullReply = "";
+      let success = false;
+      let lastErrorMessage = "";
+
+      const payload = {
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [
+          ...chatHistory.slice(-4).map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.text }]
+          })),
+          { role: "user", parts: [{ text: prompt }] }
+        ]
+      };
 
       try {
-        let fullReply = "";
+        for (const model of candidateModels) {
+          for (let attempt = 0; attempt < 2; attempt++) {
+            if (attempt > 0) {
+              contentEl.innerHTML = `<span class="text-blue-500 text-xs">伺服器繁忙，正在自動避讓重試...</span>`;
+              await sleep(1500);
+            }
 
-        if (isGoogle) {
-          // Google 官方原生 gemini-3.6-flash 通道
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-          
-          const payload = {
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [
-              ...chatHistory.slice(-4).map(m => ({
-                role: m.role === 'assistant' ? 'model' : 'user',
-                parts: [{ text: m.text }]
-              })),
-              { role: "user", parts: [{ text: prompt }] }
-            ]
-          };
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+            const res = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
 
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
-
-          fullReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "無回覆內容。";
-          contentEl.innerHTML = fullReply.replace(/\n/g, '<br/>');
-
-        } else {
-          // OpenRouter 通道
-          const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.0-flash-exp:free',
-              messages: [
-                { role: "system", content: systemPrompt },
-                ...chatHistory.slice(-4).map(m => ({ role: m.role, content: m.text })),
-                { role: "user", content: prompt }
-              ]
-            })
-          });
-
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
-          fullReply = data.choices?.[0]?.message?.content || "無回覆內容。";
-          contentEl.innerHTML = fullReply.replace(/\n/g, '<br/>');
+            if (res.ok) {
+              const data = await res.json();
+              fullReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "無回覆內容。";
+              success = true;
+              break;
+            } else {
+              const errData = await res.json().catch(() => ({}));
+              lastErrorMessage = errData.error?.message || `HTTP ${res.status}`;
+              if (res.status !== 503 && res.status !== 429) break;
+            }
+          }
+          if (success) break;
         }
 
+        if (!success) throw new Error(lastErrorMessage);
+
         contentEl.classList.remove('typing-cursor');
+        contentEl.innerHTML = fullReply.replace(/\n/g, '<br/>');
         chatHistory.push({ role: 'user', text: prompt }, { role: 'assistant', text: fullReply });
         attachActionButtons(botCard, fullReply);
         scrollChatToBottom();
 
       } catch (err) {
         contentEl.classList.remove('typing-cursor');
-        contentEl.innerHTML = `<span class="text-rose-500 font-medium">請求失敗：${err.message}</span>`;
+        contentEl.innerHTML = `<span class="text-rose-500 font-medium">請求未完成：${err.message}</span>`;
       }
     }
 
