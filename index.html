@@ -41,7 +41,7 @@
 <body class="text-slate-800 antialiased select-none md:select-auto">
 
   <div id="app-container">
-    <!-- 頂部狀態列 -->
+    <!-- 頂部導航 -->
     <header class="flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-200 shrink-0">
       <div class="flex items-center space-x-2">
         <span class="font-semibold text-base tracking-tight text-slate-800 flex items-center gap-1.5">
@@ -70,12 +70,12 @@
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white p-4 rounded-2xl rounded-tl-none border border-slate-200/80 shadow-sm leading-relaxed max-w-[85%] text-sm text-slate-700">
-          你好！點擊右上角設定 <i data-lucide="settings" class="inline w-3.5 h-3.5"></i> 填入 Google 或 OpenRouter 金鑰後即可開始。
+          你好！已支援 Google 全新 <b>AQ 開頭金鑰</b>。請點選右上角設定 <i data-lucide="settings" class="inline w-3.5 h-3.5"></i> 輸入並儲存即可。
         </div>
       </div>
     </main>
 
-    <!-- 底部輸入區 -->
+    <!-- 底部輸入區域 -->
     <footer class="p-3 max-w-3xl w-full mx-auto shrink-0">
       <div class="bg-white rounded-3xl border border-slate-200 p-2.5 gemini-card-shadow flex flex-col space-y-2">
         
@@ -140,8 +140,8 @@
           <span>API Key</span>
           <span id="key-badge" class="text-[10px] px-1.5 py-0.5 rounded hidden"></span>
         </label>
-        <input type="password" id="api-key" placeholder="貼上 AIzaSy... 開頭的金鑰" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-blue-500" />
-        <div id="key-feedback" class="text-[11px] text-slate-400">支援 Google AI Studio 或 OpenRouter。</div>
+        <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-blue-500 font-mono" />
+        <div id="key-feedback" class="text-[11px] text-slate-400">支援 Google 最新 AQ 金鑰與 OpenRouter。</div>
       </div>
 
       <div class="space-y-1">
@@ -167,6 +167,7 @@
     let recognition = null;
     let isRecording = false;
 
+    // 避讓虛擬鍵盤
     function setupViewportAdjustment() {
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', () => {
@@ -194,31 +195,37 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
+    // 判定是否為 Google 系列金鑰（相容 AQ 新版與 AIza 舊版）
+    function isGoogleKey(key) {
+      const cleaned = key.trim();
+      return cleaned.startsWith("AQ") || cleaned.startsWith("AIza");
+    }
+
     function loadSettings() {
       const savedKey = localStorage.getItem('omni_ai_key');
       const savedMem = localStorage.getItem('omni_ai_memories');
 
       if (savedKey) {
         try {
-          document.getElementById('api-key').value = atob(savedKey);
-          updateKeyStatusBadge(true, '已儲存金鑰');
+          const keyVal = atob(savedKey).trim();
+          document.getElementById('api-key').value = keyVal;
+          updateKeyStatusBadge(true, isGoogleKey(keyVal) ? 'Google 金鑰' : 'OpenRouter');
         } catch(e) {}
       }
       if (savedMem) document.getElementById('core-memories').value = savedMem;
     }
 
-    // 直接儲存金鑰（跳過驗證）
     function directSaveKey() {
       const key = document.getElementById('api-key').value.trim();
       if (!key) return alert('請先輸入金鑰');
       localStorage.setItem('omni_ai_key', btoa(key));
       localStorage.setItem('omni_ai_memories', document.getElementById('core-memories').value.trim());
-      updateKeyStatusBadge(true, '已直接儲存');
+      updateKeyStatusBadge(true, isGoogleKey(key) ? 'Google 金鑰' : 'OpenRouter');
       toggleSettingsModal(false);
-      alert('金鑰已儲存！請直接在下方發送訊息測試。');
+      alert('金鑰已儲存！直接在下方發送訊息即可對話。');
     }
 
-    // 嚴格在線驗證
+    // 驗證金鑰
     async function validateAndSaveKey() {
       const key = document.getElementById('api-key').value.trim();
       const feedback = document.getElementById('key-feedback');
@@ -233,23 +240,27 @@
       btn.disabled = true;
       btn.innerText = "驗證中...";
       feedback.className = "text-[11px] text-blue-600";
-      feedback.innerText = "正在連線測試金鑰...";
+      feedback.innerText = "正在連線測試 Google 授權...";
 
-      const isGoogle = key.startsWith("AIzaSy");
+      const isGoogle = isGoogleKey(key);
 
       try {
         let isValid = false;
         let errorDetail = "";
 
         if (isGoogle) {
-          // 向 Google 發送一次極小的測試請求（測試 1.5-flash）
+          // 向 Google 發送輕量測試請求
           const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': key
+            },
             body: JSON.stringify({
               contents: [{ role: "user", parts: [{ text: "hi" }] }]
             })
           });
+
           if (res.ok) {
             isValid = true;
           } else {
@@ -269,18 +280,18 @@
           localStorage.setItem('omni_ai_key', btoa(key));
           localStorage.setItem('omni_ai_memories', document.getElementById('core-memories').value.trim());
           
-          updateKeyStatusBadge(true, isGoogle ? 'Google Key 有效' : 'OpenRouter 有效');
+          updateKeyStatusBadge(true, 'Google Key 驗證成功');
           feedback.className = "text-[11px] text-emerald-600";
-          feedback.innerText = "驗證成功！金鑰已可用。";
+          feedback.innerText = "驗證成功！AQ 金鑰已可用。";
           setTimeout(() => toggleSettingsModal(false), 800);
         } else {
           updateKeyStatusBadge(false, '驗證失敗');
           feedback.className = "text-[11px] text-rose-600";
-          feedback.innerText = `失敗: ${errorDetail || '金鑰不正確'}。若確認無誤可點「直接儲存」。`;
+          feedback.innerText = `失敗原因: ${errorDetail}。也可直接按「直接儲存」。`;
         }
       } catch (e) {
         feedback.className = "text-[11px] text-rose-600";
-        feedback.innerText = "連線受阻，建議直接點選「直接儲存」後發送訊息。";
+        feedback.innerText = "連線受阻，可直接點選「直接儲存」後發送訊息。";
       } finally {
         btn.disabled = false;
         btn.innerText = "在線驗證並存";
@@ -314,7 +325,7 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // 發送訊息（優先調用支援度最廣的 gemini-1.5-flash / gemini-2.0-flash）
+    // 訊息發送
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const prompt = inputEl.value.trim();
@@ -345,13 +356,13 @@
       const contentEl = botCard.querySelector('.content-body');
       contentEl.classList.add('typing-cursor');
 
-      const isGoogle = apiKey.startsWith("AIzaSy");
+      const isGoogle = isGoogleKey(apiKey);
 
       try {
         let fullReply = "";
 
         if (isGoogle) {
-          // Google 官方穩定通道（使用 gemini-1.5-flash）
+          // Google 官方原生端點 (支援 AQ. 金鑰格式)
           const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
           
           const payload = {
@@ -367,14 +378,15 @@
 
           const res = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': apiKey
+            },
             body: JSON.stringify(payload)
           });
 
           const data = await res.json();
-          if (!res.ok) {
-            throw new Error(data.error?.message || `HTTP ${res.status}`);
-          }
+          if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
 
           fullReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "無回覆內容。";
           contentEl.innerHTML = fullReply.replace(/\n/g, '<br/>');
