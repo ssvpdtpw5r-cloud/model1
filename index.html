@@ -4,14 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
   <title>Gemini Canvas</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    :root {
-      --keyboard-offset: 0px;
-    }
+    :root { --keyboard-offset: 0px; }
     html, body {
       height: 100%;
       height: 100dvh;
@@ -28,7 +24,6 @@
     .gemini-card-shadow {
       box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.06);
     }
-    /* 打字游標動畫 */
     .typing-cursor::after {
       content: '▋';
       display: inline-block;
@@ -52,7 +47,6 @@
         <span class="font-semibold text-base tracking-tight text-slate-800 flex items-center gap-1.5">
           <i data-lucide="sparkle" class="w-5 h-5 text-blue-600 fill-blue-600"></i> Gemini Canvas
         </span>
-        <!-- 網路品質提示 -->
         <div id="net-status" class="flex items-center text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
           <span id="net-text">連線良好</span>
@@ -69,23 +63,23 @@
       </div>
     </header>
 
-    <!-- 對話滾動主區域 -->
+    <!-- 對話主區域 -->
     <main class="flex-1 overflow-y-auto px-4 py-4 max-w-3xl w-full mx-auto space-y-5" id="chat-stream">
       <div class="flex items-start space-x-3">
         <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white p-4 rounded-2xl rounded-tl-none border border-slate-200/80 shadow-sm leading-relaxed max-w-[85%] text-sm text-slate-700">
-          你好！請先點擊右上角 <i data-lucide="settings" class="inline w-3.5 h-3.5"></i> 設定並驗證 API Key，即可啟用省流流式輸出與創作記憶功能。
+          你好！請先點擊右上角設定 <i data-lucide="settings" class="inline w-3.5 h-3.5"></i> 貼上你的 Google AI Studio 或 OpenRouter 金鑰並儲存。
         </div>
       </div>
     </main>
 
-    <!-- 底部浮動輸入區 (嚴格響應鍵盤位置) -->
+    <!-- 底部浮動輸入區 (響應虛擬鍵盤避讓) -->
     <footer class="p-3 max-w-3xl w-full mx-auto shrink-0">
       <div class="bg-white rounded-3xl border border-slate-200 p-2.5 gemini-card-shadow flex flex-col space-y-2">
         
-        <!-- 前作衍生鎖定指示 -->
+        <!-- 前作鎖定指示 -->
         <div id="context-anchor-bar" class="hidden items-center justify-between text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-xl">
           <div class="flex items-center space-x-1 truncate">
             <i data-lucide="pin" class="w-3 h-3 shrink-0"></i>
@@ -96,7 +90,7 @@
           </button>
         </div>
 
-        <!-- 輸入欄與功能鍵 -->
+        <!-- 輸入欄位 -->
         <div class="flex items-end space-x-1.5">
           <textarea 
             id="user-input" 
@@ -114,17 +108,16 @@
             <i data-lucide="mic" class="w-4 h-4"></i>
           </button>
 
-          <!-- 傳送鍵 -->
           <button id="send-btn" onclick="sendMessage()" class="p-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shrink-0 shadow">
             <i data-lucide="arrow-up" class="w-4 h-4"></i>
           </button>
         </div>
 
-        <!-- 模式與字數控制 -->
+        <!-- 模式切換 -->
         <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
           <select id="mode-select" class="bg-slate-50 rounded-lg px-2 py-1 outline-none text-slate-600 font-medium">
             <option value="concise">⚡ 快速精簡 (最省流量)</option>
-            <option value="in_depth" selected>🔬 深度研究 (結構詳解)</option>
+            <option value="in_depth" selected>🔬 深入研究 (結構詳解)</option>
             <option value="storyteller">📖 小說世界觀 (豐富細節)</option>
           </select>
           <button onclick="exportChat()" class="text-slate-400 hover:text-slate-700 flex items-center space-x-1">
@@ -135,43 +128,30 @@
     </footer>
   </div>
 
-  <!-- 設定與 API Key 驗證彈窗 -->
+  <!-- 設定與金鑰面板 -->
   <div id="settings-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-        <h3 class="font-bold text-slate-800">系統與金鑰配置</h3>
+        <h3 class="font-bold text-slate-800">金鑰配置 (支援 Google / OpenRouter)</h3>
         <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-slate-600">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <!-- API Key 驗證區 -->
       <div class="space-y-1.5">
         <label class="text-xs font-semibold text-slate-600 flex justify-between">
-          <span>OpenRouter / 相容 API Key</span>
-          <span id="key-badge" class="text-[10px] px-1.5 py-0.2 rounded hidden"></span>
+          <span>API Key</span>
+          <span id="key-badge" class="text-[10px] px-1.5 py-0.5 rounded hidden"></span>
         </label>
-        <input type="password" id="api-key" placeholder="sk-or-v1-..." class="w-full border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-blue-500" />
-        <div id="key-feedback" class="text-[11px] text-slate-400">輸入後將進行在線可用性檢查。</div>
+        <input type="password" id="api-key" placeholder="貼上 AIzaSy... 或 sk-or-..." class="w-full border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-blue-500" />
+        <div id="key-feedback" class="text-[11px] text-slate-400">支援 Google AI Studio (AIzaSy...) 或 OpenRouter。</div>
       </div>
 
-      <!-- 模型選擇庫 -->
       <div class="space-y-1">
-        <label class="text-xs font-semibold text-slate-600">免費首選模型庫</label>
-        <select id="model-select" class="w-full border border-slate-200 rounded-xl p-2 text-xs outline-none focus:border-blue-500">
-          <option value="google/gemini-2.0-flash-exp:free">Google: Gemini 2.0 Flash (免費/高速)</option>
-          <option value="meta-llama/llama-3.3-70b-instruct:free">Meta: Llama 3.3 70B (免費/高智慧)</option>
-          <option value="deepseek/deepseek-r1:free">DeepSeek: R1 (免費/邏輯推論)</option>
-        </select>
+        <label class="text-xs font-semibold text-slate-600">全局記憶點 (偏好與設定)</label>
+        <textarea id="core-memories" rows="2" placeholder="例如：偏好深入探討、理性與感性兼具..." class="w-full border border-slate-200 rounded-xl p-2 text-xs outline-none"></textarea>
       </div>
 
-      <!-- 重要記憶點 -->
-      <div class="space-y-1">
-        <label class="text-xs font-semibold text-slate-600">全局記憶點 (約束與人設)</label>
-        <textarea id="core-memories" rows="2" placeholder="設定你的專屬習慣或背景資訊..." class="w-full border border-slate-200 rounded-xl p-2 text-xs outline-none"></textarea>
-      </div>
-
-      <!-- 按鈕 -->
       <button id="validate-btn" onclick="validateAndSaveKey()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-xl text-sm transition flex items-center justify-center space-x-1.5">
         <span>驗證有效性並儲存</span>
       </button>
@@ -185,19 +165,17 @@
     let recognition = null;
     let isRecording = false;
 
-    // --- 1. 移動端虛擬鍵盤避讓 (VisualViewport) ---
+    // 虛擬鍵盤即時防遮擋
     function setupViewportAdjustment() {
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', () => {
           const offset = window.innerHeight - window.visualViewport.height;
-          // 當鍵盤彈起時，動態墊高底部容器
           document.documentElement.style.setProperty('--keyboard-offset', `${Math.max(0, offset)}px`);
           scrollChatToBottom();
         });
       }
     }
 
-    // --- 2. 啟動與初始化 ---
     window.addEventListener('DOMContentLoaded', () => {
       setupViewportAdjustment();
       loadSettings();
@@ -215,20 +193,18 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
-    // --- 3. API Key 即時有效性驗證 ---
     function loadSettings() {
       const savedKey = localStorage.getItem('omni_ai_key');
-      const savedModel = localStorage.getItem('omni_ai_model');
       const savedMem = localStorage.getItem('omni_ai_memories');
 
       if (savedKey) {
         document.getElementById('api-key').value = atob(savedKey);
         updateKeyStatusBadge(true, '已儲存');
       }
-      if (savedModel) document.getElementById('model-select').value = savedModel;
       if (savedMem) document.getElementById('core-memories').value = savedMem;
     }
 
+    // 核心判斷：Google AI Studio 或 OpenRouter 驗證
     async function validateAndSaveKey() {
       const keyInput = document.getElementById('api-key');
       const key = keyInput.value.trim();
@@ -237,34 +213,44 @@
 
       if (!key) {
         feedback.className = "text-[11px] text-rose-500";
-        feedback.innerText = "請輸入 API Key";
+        feedback.innerText = "請先貼入 API Key";
         return;
       }
 
       btn.disabled = true;
       btn.innerText = "驗證有效性中...";
       feedback.className = "text-[11px] text-blue-600";
-      feedback.innerText = "正在向授權伺服器確認有效性...";
+      feedback.innerText = "正在確認金鑰授權狀態...";
+
+      const isGoogle = key.startsWith("AIzaSy");
 
       try {
-        // 向 OpenRouter 發送輕量驗證查詢授權額度
-        const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
-          headers: { 'Authorization': `Bearer ${key}` }
-        });
+        let isValid = false;
 
-        if (res.ok) {
+        if (isGoogle) {
+          // 向 Google 官方輕量驗證（取得可用模型清單）
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+          isValid = res.ok;
+        } else {
+          // 向 OpenRouter 驗證
+          const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+            headers: { 'Authorization': `Bearer ${key}` }
+          });
+          isValid = res.ok;
+        }
+
+        if (isValid) {
           localStorage.setItem('omni_ai_key', btoa(key));
-          localStorage.setItem('omni_ai_model', document.getElementById('model-select').value);
           localStorage.setItem('omni_ai_memories', document.getElementById('core-memories').value.trim());
           
-          updateKeyStatusBadge(true, '金鑰有效');
+          updateKeyStatusBadge(true, isGoogle ? 'Google Key 有效' : 'OpenRouter 有效');
           feedback.className = "text-[11px] text-emerald-600";
-          feedback.innerText = "驗證成功！金鑰已加密儲存於本地。";
-          setTimeout(() => toggleSettingsModal(false), 900);
+          feedback.innerText = `驗證成功！(${isGoogle ? 'Google 官方' : 'OpenRouter'}) 金鑰已儲存。`;
+          setTimeout(() => toggleSettingsModal(false), 800);
         } else {
-          updateKeyStatusBadge(false, '無效金鑰');
+          updateKeyStatusBadge(false, '金鑰無效');
           feedback.className = "text-[11px] text-rose-600";
-          feedback.innerText = "驗證失敗：API Key 無效或授權已過期。";
+          feedback.innerText = "驗證失敗：此金鑰未被授權或輸入有誤。";
         }
       } catch (e) {
         feedback.className = "text-[11px] text-rose-600";
@@ -302,7 +288,7 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // --- 4. 主流流式 (Streaming) 與流量節省發送機制 ---
+    // 發送訊息與自動適配模型通道
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const prompt = inputEl.value.trim();
@@ -321,84 +307,87 @@
       autoResize(inputEl);
 
       const mode = document.getElementById('mode-select').value;
-      const model = localStorage.getItem('omni_ai_model') || 'google/gemini-2.0-flash-exp:free';
       const memory = localStorage.getItem('omni_ai_memories') || '';
 
-      // 精簡型提示詞（節省傳輸 Payload）
-      let systemPrompt = `助手偏好: ${memory}。`;
+      let systemPrompt = `你是一個專業助手。記憶點：${memory}。`;
       if (anchoredContext) systemPrompt += `\n[保持原樣特徵]: ${anchoredContext}`;
       if (mode === 'concise') systemPrompt += "\n限制: 極簡答覆，提取重點。";
-      else if (mode === 'in_depth') systemPrompt += "\n風格: 深度剖析，層次分明。";
+      else if (mode === 'in_depth') systemPrompt += "\n風格: 深入探討、理性與感性兼具、結構詳盡。";
       else if (mode === 'storyteller') systemPrompt += "\n風格: 小說敘事，情感充沛。";
-
-      // 流量優化：只保留最近 4 輪對話 (Sliding Window)，避免歷史過長消耗額度
-      const optimizedHistory = chatHistory.slice(-4).map(m => ({ role: m.role, content: m.text }));
 
       const botCard = appendMessage('bot', '');
       const contentEl = botCard.querySelector('.content-body');
       contentEl.classList.add('typing-cursor');
 
+      const isGoogle = apiKey.startsWith("AIzaSy");
+
       try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: model,
-            stream: true, // 開啟主流串流傳輸
-            messages: [
-              { role: "system", content: systemPrompt },
-              ...optimizedHistory,
-              { role: "user", content: prompt }
-            ]
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`狀態代碼: ${response.status}`);
-        }
-
-        // 讀取串流資料
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
         let fullReply = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        if (isGoogle) {
+          // Google 官方 Gemini 2.5 Flash / 1.5 Flash 呼叫通道
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+          
+          const payload = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [
+              ...chatHistory.slice(-4).map(m => ({
+                role: m.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: m.text }]
+              })),
+              { role: "user", parts: [{ text: prompt }] }
+            ]
+          };
 
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n").filter(line => line.trim().startsWith("data: "));
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
 
-          for (const line of lines) {
-            const jsonStr = line.replace(/^data: /, "").trim();
-            if (jsonStr === "[DONE]") break;
-
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const token = parsed.choices?.[0]?.delta?.content || "";
-              fullReply += token;
-              contentEl.innerHTML = fullReply.replace(/\n/g, '<br/>');
-              scrollChatToBottom();
-            } catch (err) {
-              // 忽略解析殘留片段
-            }
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error?.message || `HTTP ${res.status}`);
           }
+
+          const data = await res.json();
+          fullReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "無回覆內容。";
+          contentEl.innerHTML = fullReply.replace(/\n/g, '<br/>');
+
+        } else {
+          // OpenRouter 通道
+          const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.0-flash-exp:free',
+              messages: [
+                { role: "system", content: systemPrompt },
+                ...chatHistory.slice(-4).map(m => ({ role: m.role, content: m.text })),
+                { role: "user", content: prompt }
+              ]
+            })
+          });
+
+          const data = await res.json();
+          fullReply = data.choices?.[0]?.message?.content || "無回覆內容。";
+          contentEl.innerHTML = fullReply.replace(/\n/g, '<br/>');
         }
 
         contentEl.classList.remove('typing-cursor');
         chatHistory.push({ role: 'user', text: prompt }, { role: 'assistant', text: fullReply });
         attachActionButtons(botCard, fullReply);
+        scrollChatToBottom();
 
       } catch (err) {
         contentEl.classList.remove('typing-cursor');
-        contentEl.innerHTML = `<span class="text-rose-500 font-medium">無法取得有效回覆 (${err.message})。請確認金鑰權限或切換模型。</span>`;
+        contentEl.innerHTML = `<span class="text-rose-500 font-medium">取得回覆失敗 (${err.message})。請檢查金鑰或網路。</span>`;
       }
     }
 
-    // --- 5. 介面渲染與編輯功能 ---
     function appendMessage(role, text) {
       const stream = document.getElementById('chat-stream');
       const wrapper = document.createElement('div');
@@ -466,7 +455,6 @@
       document.getElementById('context-anchor-bar').classList.add('hidden');
     }
 
-    // --- 6. 語音辨識與檔案功能 ---
     function initSpeech() {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRec) {
