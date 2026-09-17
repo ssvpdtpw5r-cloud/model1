@@ -63,14 +63,14 @@
       </div>
     </header>
 
-    <!-- 對話主區域 -->
+    <!-- 對話區域 -->
     <main class="flex-1 overflow-y-auto px-4 py-4 max-w-3xl w-full mx-auto space-y-5" id="chat-stream">
       <div class="flex items-start space-x-3">
         <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white p-4 rounded-2xl rounded-tl-none border border-slate-200/80 shadow-sm leading-relaxed max-w-[85%] text-sm text-slate-700">
-          你好！已更新為最新 <b>Gemini 2.5 Flash / 2.0 Flash</b> 模型架構。請點選右上角設定直接驗證金鑰即可開始！
+          你好！請先點擊右上角設定 <i data-lucide="settings" class="inline w-3.5 h-3.5"></i> 確認 API 來源與金鑰，儲存後即可開始交談。
         </div>
       </div>
     </main>
@@ -135,13 +135,22 @@
         </button>
       </div>
 
+      <!-- 明確選擇 Provider -->
+      <div class="space-y-1">
+        <label class="text-xs font-semibold text-slate-600">API 來源平台</label>
+        <select id="provider-select" class="w-full border border-slate-200 rounded-xl p-2 text-xs outline-none focus:border-blue-500 font-medium">
+          <option value="google" selected>Google AI Studio (Gemini 官方)</option>
+          <option value="openrouter">OpenRouter (多模型通用)</option>
+        </select>
+      </div>
+
       <div class="space-y-1.5">
         <label class="text-xs font-semibold text-slate-600 flex justify-between">
           <span>API Key</span>
           <span id="key-badge" class="text-[10px] px-1.5 py-0.5 rounded hidden"></span>
         </label>
-        <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-blue-500 font-mono" />
-        <div id="key-feedback" class="text-[11px] text-slate-400">已自動鎖定 Google Gemini 2.5/2.0 Flash 管道。</div>
+        <input type="password" id="api-key" placeholder="貼上金鑰" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-blue-500 font-mono" />
+        <div id="key-feedback" class="text-[11px] text-slate-400">已預設啟用 Google Gemini 官方線路。</div>
       </div>
 
       <div class="space-y-1">
@@ -150,11 +159,8 @@
       </div>
 
       <div class="flex space-x-2 pt-1">
-        <button id="direct-save-btn" onclick="directSaveKey()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-xl text-xs transition">
-          直接儲存
-        </button>
-        <button id="validate-btn" onclick="validateAndSaveKey()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-xl text-xs transition">
-          在線驗證並存
+        <button id="direct-save-btn" onclick="directSaveKey()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl text-xs transition">
+          直接儲存設定
         </button>
       </div>
     </div>
@@ -167,7 +173,6 @@
     let recognition = null;
     let isRecording = false;
 
-    // 避讓虛擬鍵盤
     function setupViewportAdjustment() {
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', () => {
@@ -195,20 +200,17 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
-    function isGoogleKey(key) {
-      const cleaned = key.trim();
-      return cleaned.startsWith("AQ") || cleaned.startsWith("AIza");
-    }
-
     function loadSettings() {
       const savedKey = localStorage.getItem('omni_ai_key');
       const savedMem = localStorage.getItem('omni_ai_memories');
+      const savedProvider = localStorage.getItem('omni_ai_provider') || 'google';
 
+      document.getElementById('provider-select').value = savedProvider;
       if (savedKey) {
         try {
           const keyVal = atob(savedKey).trim();
           document.getElementById('api-key').value = keyVal;
-          updateKeyStatusBadge(true, isGoogleKey(keyVal) ? 'Google 金鑰' : 'OpenRouter');
+          updateKeyStatusBadge(true, savedProvider === 'google' ? 'Google 原生' : 'OpenRouter');
         } catch(e) {}
       }
       if (savedMem) document.getElementById('core-memories').value = savedMem;
@@ -216,88 +218,16 @@
 
     function directSaveKey() {
       const key = document.getElementById('api-key').value.trim();
+      const provider = document.getElementById('provider-select').value;
       if (!key) return alert('請先輸入金鑰');
+
       localStorage.setItem('omni_ai_key', btoa(key));
+      localStorage.setItem('omni_ai_provider', provider);
       localStorage.setItem('omni_ai_memories', document.getElementById('core-memories').value.trim());
-      updateKeyStatusBadge(true, isGoogleKey(key) ? 'Google 金鑰' : 'OpenRouter');
+      
+      updateKeyStatusBadge(true, provider === 'google' ? 'Google 模式已啟用' : 'OpenRouter 模式已啟用');
       toggleSettingsModal(false);
-      alert('金鑰已儲存！請在下方發送訊息測試。');
-    }
-
-    // 核心在線驗證：改用最新 2.5-flash / 2.0-flash
-    async function validateAndSaveKey() {
-      const key = document.getElementById('api-key').value.trim();
-      const feedback = document.getElementById('key-feedback');
-      const btn = document.getElementById('validate-btn');
-
-      if (!key) {
-        feedback.className = "text-[11px] text-rose-500";
-        feedback.innerText = "請先貼入 API Key";
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerText = "驗證中...";
-      feedback.className = "text-[11px] text-blue-600";
-      feedback.innerText = "正在連線測試 Google 授權...";
-
-      const isGoogle = isGoogleKey(key);
-
-      try {
-        let isValid = false;
-        let errorDetail = "";
-
-        if (isGoogle) {
-          // 嘗試最新主流模型 gemini-2.5-flash，若不支援嘗試 2.0-flash
-          let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] })
-          });
-
-          if (!res.ok) {
-            res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] })
-            });
-          }
-
-          if (res.ok) {
-            isValid = true;
-          } else {
-            const errData = await res.json().catch(() => ({}));
-            errorDetail = errData.error?.message || `HTTP ${res.status}`;
-          }
-        } else {
-          // OpenRouter 驗證
-          const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
-            headers: { 'Authorization': `Bearer ${key}` }
-          });
-          isValid = res.ok;
-          if (!isValid) errorDetail = `HTTP ${res.status}`;
-        }
-
-        if (isValid) {
-          localStorage.setItem('omni_ai_key', btoa(key));
-          localStorage.setItem('omni_ai_memories', document.getElementById('core-memories').value.trim());
-          
-          updateKeyStatusBadge(true, 'Google Key 驗證成功');
-          feedback.className = "text-[11px] text-emerald-600";
-          feedback.innerText = "驗證成功！AQ 金鑰完全正常可用。";
-          setTimeout(() => toggleSettingsModal(false), 900);
-        } else {
-          updateKeyStatusBadge(false, '驗證失敗');
-          feedback.className = "text-[11px] text-rose-600 font-medium";
-          feedback.innerText = `失敗: ${errorDetail}`;
-        }
-      } catch (e) {
-        feedback.className = "text-[11px] text-rose-600";
-        feedback.innerText = `連線異常 (${e.message})，可點「直接儲存」。`;
-      } finally {
-        btn.disabled = false;
-        btn.innerText = "在線驗證並存";
-      }
+      alert('設定已儲存！請直接在下方發送訊息測試。');
     }
 
     function updateKeyStatusBadge(valid, text) {
@@ -327,12 +257,13 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // 傳送訊息
+    // 發送訊息核心邏輯
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const prompt = inputEl.value.trim();
       const rawKey = localStorage.getItem('omni_ai_key');
       const apiKey = rawKey ? atob(rawKey).trim() : '';
+      const provider = localStorage.getItem('omni_ai_provider') || 'google';
 
       if (!prompt) return;
       if (!apiKey) {
@@ -358,14 +289,12 @@
       const contentEl = botCard.querySelector('.content-body');
       contentEl.classList.add('typing-cursor');
 
-      const isGoogle = isGoogleKey(apiKey);
-
       try {
         let fullReply = "";
 
-        if (isGoogle) {
-          // 支援 Gemini 2.5 Flash / 2.0 Flash
-          let targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+        if (provider === 'google') {
+          // Google AI Studio 原生通道 (嘗試 2.5-flash，遇 404 自動轉 2.0-flash)
+          let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
           
           const payload = {
             systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -378,16 +307,15 @@
             ]
           };
 
-          let res = await fetch(targetUrl, {
+          let res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
 
-          // 若 2.5 尚未支援則無縫切換 2.0
-          if (!res.ok && res.status === 404) {
-            targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-            res = await fetch(targetUrl, {
+          if (!res.ok && (res.status === 404 || res.status === 400)) {
+            endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+            res = await fetch(endpoint, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
