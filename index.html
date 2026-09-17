@@ -1,1350 +1,434 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="referrer" content="no-referrer" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; connect-src https://api.groq.com https://api.dictionaryapi.dev https://api.allorigins.win https://corsproxy.io https://api.codetabs.com; frame-src https:; img-src 'self' data: blob:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>COGITATOR // WARHAMMER 40K TRPG NARRATIVE ENGINE</title>
+  <title>OmniAI Workspace</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    :root {
-      --bg: #040609;
-      --terminal-black: #080c13;
-      --gold-primary: #d4af37;
-      --gold-bright: #ffd700;
-      --gold-dark: #7a631e;
-      --green-glow: #10b981;
-      --green-dim: #065f46;
-      --amber: #f59e0b;
-      --crimson: #b91c1c;
-      --text: #e2e8f0;
-      --text-dim: #94a3b8;
-      --border-gothic: #1e293b;
-      --hud-panel: rgba(11, 17, 28, 0.98);
-      --card-bg: #090e17;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    /* 避免手機輸入法彈出時畫面異常擠壓 */
     html, body {
-      width: 100%;
-      height: 100vh;
+      height: 100%;
       height: 100dvh;
-      background: var(--bg);
-      color: var(--text);
-      overflow: hidden;
-      font-family: ui-monospace, "SF Mono", "Courier New", monospace, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      overscroll-behavior-y: none;
     }
-    body {
-      display: flex;
-      flex-direction: column;
-      padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-      position: relative;
-    }
-
-    /* 哥特CRT微光掃描線背景 */
-    body::before {
-      content: " ";
-      display: block;
-      position: absolute;
-      top: 0; left: 0; bottom: 0; right: 0;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-      z-index: 99;
-      background-size: 100% 3px, 6px 100%;
-      pointer-events: none;
-      opacity: 0.65;
-    }
-
-    /* 頂部機械神教終端列 */
-    header {
-      padding: 8px 14px;
-      background: var(--terminal-black);
-      border-bottom: 2px solid var(--gold-dark);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-shrink: 0;
-      gap: 6px;
-      z-index: 20;
-    }
-    .cog-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--gold-primary);
-      letter-spacing: 0.06em;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .status-badge {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 3px;
-      background: var(--green-glow);
-      color: #000;
-      font-weight: 700;
-    }
-
-    .btn {
-      background: #0d1520;
-      border: 1px solid var(--border-gothic);
-      color: var(--text);
-      cursor: pointer;
-      padding: 5px 9px;
-      border-radius: 4px;
-      font-size: 11px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.15s ease;
-      font-family: inherit;
-    }
-    .btn:hover { background: #162234; border-color: var(--gold-primary); color: #fff; }
-    .gold-btn { border-color: var(--gold-primary); color: var(--gold-primary); }
-    .gold-btn:hover { background: rgba(212, 175, 55, 0.15); }
-    .danger-btn { border-color: var(--crimson); color: #fca5a5; }
-
-    /* CRPG 角色屬性與遊戲 HUD 頂列 */
-    #character-hud {
-      background: #080d14;
-      border-bottom: 1px solid #1a2638;
-      padding: 6px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      flex-shrink: 0;
-      gap: 8px;
-      overflow-x: auto;
-    }
-    .hud-stat {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      white-space: nowrap;
-    }
-    .hud-bar {
-      width: 55px;
-      height: 6px;
-      background: #1e293b;
-      border-radius: 3px;
-      overflow: hidden;
-      display: inline-block;
-    }
-    .hud-bar-fill {
-      height: 100%;
-      background: var(--green-glow);
-      width: 100%;
-      transition: width 0.3s ease;
-    }
-    .hud-bar-fill.sanity { background: #60a5fa; }
-
-    /* 設定控制面板 */
-    #settings-panel {
-      display: none;
-      background: #090f17;
-      border-bottom: 2px solid var(--gold-dark);
-      padding: 12px 14px;
-      gap: 10px;
-      flex-direction: column;
-      font-size: 12px;
-      max-height: 60vh;
-      overflow-y: auto;
-      flex-shrink: 0;
-      z-index: 20;
-    }
-    .panel-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .panel-row label { min-width: 90px; color: var(--gold-primary); font-size: 11px; }
-    input, select, textarea, button {
-      font-size: 12px;
-      border-radius: 4px;
-      border: 1px solid var(--border-gothic);
-      background: #030508;
-      color: var(--text);
-      padding: 6px 8px;
-      outline: none;
-      font-family: inherit;
-    }
-    input:focus, select:focus, textarea:focus { border-color: var(--gold-primary); }
-
-    /* 戰術情境快捷列 */
-    #scenario-bar {
-      padding: 6px 12px;
-      background: #06090e;
-      border-bottom: 1px solid var(--border-gothic);
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      flex-shrink: 0;
-      align-items: center;
-      scrollbar-width: none;
-    }
-    #scenario-bar::-webkit-scrollbar { display: none; }
-    .scenario-chip {
-      background: #0c121a;
-      border: 1px solid #1e2c3d;
-      color: #93c5fd;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.15s;
-    }
-    .scenario-chip:hover { border-color: var(--gold-primary); color: #fff; }
-    .zero-chip { border-color: var(--green-glow) !important; color: #a7f3d0 !important; }
-
-    /* 遊戲主對話與敘事畫布 */
-    #workspace {
-      flex: 1;
-      display: flex;
-      position: relative;
-      overflow: hidden;
-    }
-    #chat-box {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      contain: layout;
-    }
-    .bubble {
-      max-width: 92%;
-      padding: 14px 16px;
-      border-radius: 6px;
-      line-height: 1.7;
-      word-break: break-word;
-      font-size: 14px;
-      position: relative;
-    }
-    .user { 
-      align-self: flex-end; 
-      background: #111e33; 
-      border: 1px solid #1d4ed8;
-      color: #fff; 
-      white-space: pre-wrap; 
-    }
-    .assistant { 
-      align-self: flex-start; 
-      background: #0a101a; 
-      color: #e2e8f0; 
-      border: 1px solid var(--border-gothic); 
-      box-shadow: 0 4px 18px rgba(0,0,0,0.6);
-    }
-    .assistant h1, .assistant h2, .assistant h3 { margin: 10px 0 6px 0; color: var(--gold-primary); }
-    .assistant h1 { font-size: 1.25em; border-bottom: 1px solid var(--gold-dark); padding-bottom: 3px; }
-    .assistant strong { color: var(--gold-bright); font-weight: 600; }
-    .assistant blockquote { border-left: 3px solid var(--gold-dark); padding-left: 8px; margin: 8px 0; color: #94a3b8; font-style: italic; }
-
-    /* 遊戲互動分支決策按鈕容器 (Game Choices) */
-    .game-choice-container {
-      margin-top: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      border-top: 1px dashed var(--gold-dark);
-      padding-top: 10px;
-    }
-    .choice-btn {
-      background: #0f1929;
-      border: 1px solid #1e3a5f;
-      color: #93c5fd;
-      padding: 8px 12px;
-      border-radius: 4px;
-      text-align: left;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .choice-btn:hover {
-      background: #1e293b;
-      border-color: var(--gold-primary);
-      color: var(--gold-bright);
-      transform: translateX(4px);
-    }
-
-    /* 可點選查詞高亮單字 */
-    .lore-word {
-      color: var(--gold-bright);
-      text-decoration: underline dotted var(--gold-dark);
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .lore-word:hover {
-      color: #fff;
-      background: rgba(212, 175, 55, 0.2);
-      border-radius: 2px;
-    }
-
-    .bubble-tools {
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-      margin-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      padding-top: 4px;
-    }
-    .tool-btn {
-      background: transparent;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 10.5px;
-      padding: 2px 4px;
-    }
-    .tool-btn:hover { color: var(--gold-bright); }
-
-    /* 懸浮發音播放控制器 */
-    #tts-controller-bar {
-      display: none;
-      position: absolute;
-      bottom: 72px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(8, 13, 20, 0.96);
-      border: 1px solid var(--gold-primary);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-      border-radius: 20px;
-      padding: 5px 14px;
-      align-items: center;
-      gap: 8px;
-      z-index: 40;
-      font-size: 11px;
-    }
-    .tts-ctrl-btn { background: transparent; border: none; color: var(--text); cursor: pointer; font-size: 13px; }
-
-    /* 戰錘典籍庫與 TRPG 遊戲設定抽屜 */
-    #plugin-drawer {
-      display: none;
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 50%;
-      min-width: 320px;
-      max-width: 100%;
-      background: var(--hud-panel);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-left: 2px solid var(--gold-dark);
-      flex-direction: column;
-      z-index: 30;
-      box-shadow: -8px 0 32px rgba(0,0,0,0.8);
-    }
-    #drawer-header {
-      padding: 8px 12px;
-      background: #040609;
-      border-bottom: 1px solid var(--border-gothic);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-    .preset-chip {
-      background: #0c121c;
-      color: var(--muted);
-      border: 1px solid var(--border-gothic);
-      font-size: 10.5px;
-      padding: 3px 6px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .preset-chip:hover { color: var(--gold-bright); border-color: var(--gold-primary); }
-    .preset-chip.active { background: var(--gold-dark); color: #fff; }
-
-    #drawer-content-box {
-      padding: 12px;
-      overflow-y: auto;
-      flex: 1;
-      font-size: 12.5px;
-      line-height: 1.7;
-    }
-    .archive-item {
-      background: var(--card-bg);
-      border: 1px solid var(--border-gothic);
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .archive-item:hover { border-color: var(--gold-primary); }
-    .archive-item h4 { color: var(--gold-primary); margin-bottom: 4px; font-size: 13px; }
-    .archive-item p { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
-    
-    /* 原生內嵌作品閱讀器 */
-    #internal-reader {
-      display: none;
-      background: #05080e;
-      border: 1px solid var(--border-gothic);
-      border-radius: 6px;
-      padding: 12px;
-      margin-top: 8px;
-    }
-    #internal-reader h3 { color: var(--gold-bright); margin-bottom: 6px; font-size: 13.5px; border-bottom: 1px dashed var(--gold-dark); padding-bottom: 4px; }
-    #internal-reader-body { white-space: pre-wrap; font-size: 12.5px; color: #cbd5e1; line-height: 1.75; max-height: 360px; overflow-y: auto; }
-
-    footer {
-      padding: 8px 12px;
-      background: var(--terminal-black);
-      border-top: 1px solid var(--border-gothic);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      flex-shrink: 0;
-      z-index: 20;
-    }
-    .control-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-    }
-    .input-bar { display: flex; gap: 6px; align-items: center; }
-    textarea { 
-      flex: 1; 
-      resize: none; 
-      height: 44px; 
-      line-height: 20px; 
-      padding: 10px; 
-      font-size: 13px;
-    }
-    .action-btn {
-      background: var(--gold-primary);
-      color: #000;
-      border: none;
-      cursor: pointer;
-      font-weight: 700;
-      padding: 0 16px;
-      height: 44px;
-      white-space: nowrap;
-      border-radius: 4px;
-      letter-spacing: 0.05em;
-    }
-    .action-btn:hover { background: var(--gold-bright); }
-
-    .mic-button-container {
-      position: relative;
-      width: 44px;
-      height: 44px;
-      flex-shrink: 0;
-    }
-    .icon-btn {
-      background: transparent;
-      border: 1px solid var(--border-gothic);
-      color: var(--text);
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      border-radius: 6px;
-      position: relative;
-    }
-    .mic-indicator-led {
-      position: absolute;
-      top: 3px;
-      right: 3px;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--crimson);
-      box-shadow: 0 0 5px rgba(239, 68, 68, 0.9);
-      pointer-events: none;
-    }
-    .mic-active .mic-indicator-led {
-      background: var(--green-glow);
-      box-shadow: 0 0 8px rgba(16, 185, 129, 1);
-      animation: pulse-led 1s infinite;
-    }
-    @keyframes pulse-led { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-    /* 手機端深度優化 (Mobile First) */
-    @media (max-width: 768px) {
-      #plugin-drawer {
-        width: 100%;
-        top: auto;
-        bottom: 0;
-        height: 75vh;
-        border-left: none;
-        border-top: 2px solid var(--gold-dark);
-        border-radius: 12px 12px 0 0;
-      }
-      .bubble { max-width: 95%; font-size: 13.5px; padding: 12px 14px; }
-      header { padding: 6px 10px; }
-      footer { padding: 6px 10px; }
+    .gemini-input-shadow {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
   </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 flex flex-col antialiased select-none md:select-auto">
 
-<header>
-  <div class="cog-title">
-    <span>💀</span>
-    <span>COGITATOR // TRPG-40K</span>
-    <span id="key-indicator" class="status-badge" style="background:#475569;">OFFLINE</span>
-  </div>
-  <div style="display:flex; gap:4px;">
-    <button class="btn gold-btn" id="pluginToggleBtn" onclick="togglePluginDrawer()">📜 帝國典籍庫</button>
-    <button class="btn" onclick="checkCodeUpdateRobust()">🔄 更新</button>
-    <button class="btn" onclick="toggleSettings()">⚙️ 配置</button>
-    <button class="btn danger-btn" onclick="destroyAllMemory()">銷毀</button>
-  </div>
-</header>
-
-<!-- CRPG 角色屬性列 (遊戲狀態即時追蹤) -->
-<div id="character-hud">
-  <div class="hud-stat">
-    <span style="color:var(--gold-primary);">身份:</span>
-    <strong id="hud-role" style="color:#fff;">行商浪人 (Rogue Trader)</strong>
-  </div>
-  <div class="hud-stat">
-    <span style="color:#f87171;">HP:</span>
-    <div class="hud-bar"><div class="hud-bar-fill" id="hp-bar" style="width:100%;"></div></div>
-    <span id="hp-text">100/100</span>
-  </div>
-  <div class="hud-stat">
-    <span style="color:#60a5fa;">意志/純潔度:</span>
-    <div class="hud-bar"><div class="hud-bar-fill sanity" id="san-bar" style="width:85%;"></div></div>
-    <span id="san-text">85%</span>
-  </div>
-  <div class="hud-stat">
-    <button class="btn" style="padding:1px 6px; font-size:10px;" onclick="rollD20Action()">🎲 D20 戰術檢定</button>
-  </div>
-</div>
-
-<section id="settings-panel">
-  <div class="panel-row">
-    <label>Groq API Key:</label>
-    <input id="apiKey" type="password" placeholder="貼上 gsk_... 金鑰" style="flex:1; min-width:180px;" onchange="validateAndSaveAPIKey()" autocomplete="off" />
-    <button class="btn" onclick="validateAndSaveAPIKey()">校驗並保存</button>
-    <span id="key-msg" style="font-size:11px;"></span>
-  </div>
-
-  <div class="panel-row">
-    <label>遊戲與教學模式:</label>
-    <select id="modePresetSelect" onchange="applyModePreset()" style="flex:1; min-width:200px;">
-      <option value="trpg_game" selected>🎲 戰錘 40K 互動跑團小說（CRPG 分支選項 + 戰術檢定 + 英文學習）</option>
-      <option value="zero_foundation">🌱 0 基礎戰錘新兵啟蒙（單詞拆節 + 骨架對照 + 填空測驗）</option>
-      <option value="fanfic_interactive">⚔️ 戰錘同人精讀（黑暗哥特詞彙 + 雙向語境拆解）</option>
-      <option value="private_companion">👑 私有全能助理（解除教條審查 / 深度情感 / 創作）</option>
-    </select>
-  </div>
-
-  <div class="panel-row">
-    <label style="color:var(--gold-primary);">機魂核心指令:</label>
-    <textarea id="sysPrompt" style="flex:1; height:65px; font-size:11px; line-height:1.4;"></textarea>
-  </div>
-
-  <div class="panel-row">
-    <label>發音與音效:</label>
-    <label style="min-width:auto;"><input type="checkbox" id="autoSpeakCheck" /> 自動朗讀</label>
-    <label style="min-width:auto; margin-left:6px;"><input type="checkbox" id="soundFxCheck" checked /> 鍵盤機械音</label>
-    <span style="margin-left:6px;">語速:</span>
-    <input id="ttsRate" type="range" min="0.6" max="1.4" step="0.05" value="0.85" oninput="rateVal.innerText=this.value" style="width:50px;" />
-    <span id="rateVal">0.85</span>x
-    <select id="voiceSelect" style="max-width:140px;"><option value="">讀取語音中...</option></select>
-  </div>
-</section>
-
-<!-- 快速戰術快捷列 -->
-<nav id="scenario-bar">
-  <span style="font-size:10.5px; color:var(--gold-primary); white-space:nowrap;">快速情境:</span>
-  <button class="scenario-chip" onclick="startNewCampaign('rogue_trader_derelict')">🚀 [章節] 探索太空廢船《恐懼方舟》</button>
-  <button class="scenario-chip" onclick="startNewCampaign('cult_underhive')">👾 [章節] 巢都底層排查異形信標</button>
-  <button class="scenario-chip" onclick="startNewCampaign('inquisition_vault')">⚖️ [章節] 審判官審問神秘亞空間遺物</button>
-  <button class="scenario-chip zero-chip" onclick="triggerQuickScenario('zero_vocabulary')">🛡️ 0基礎 10個戰錘生存單字</button>
-  <button class="scenario-chip zero-chip" onclick="triggerQuickScenario('zero_simple_dialogue')">💬 0基礎 極簡戰術對答</button>
-</nav>
-
-<!-- 懸浮發音播放控制器 -->
-<div id="tts-controller-bar">
-  <span id="tts-status-text" style="color:var(--gold-primary);">🔊 聖言發音中</span>
-  <button class="tts-ctrl-btn" onclick="pauseTTS()">⏸️</button>
-  <button class="tts-ctrl-btn" onclick="resumeTTS()">▶️</button>
-  <button class="tts-ctrl-btn" onclick="stopTTS()">⏹️</button>
-</div>
-
-<!-- 遊戲主舞台 -->
-<div id="workspace">
-  <main id="chat-box"></main>
-
-  <!-- 帝國檔案庫與多重容錯閱讀抽屜 -->
-  <aside id="plugin-drawer">
-    <div id="drawer-header">
-      <div style="display:flex; gap:4px; flex-wrap:wrap;">
-        <button class="preset-chip active" id="tab-vault" onclick="switchDrawerTab('vault')">📜 本地戰錘典籍庫</button>
-        <button class="preset-chip" id="tab-live" onclick="switchDrawerTab('live')">🌐 多源即時同步</button>
-        <button class="preset-chip" id="tab-dict" onclick="switchDrawerTab('dict')">📖 開源辭典</button>
-      </div>
-      <button class="btn danger-btn" style="padding:2px 6px;" onclick="togglePluginDrawer()">✕</button>
-    </div>
-
-    <div id="drawer-content-box">
-      <!-- 1. 本地高可用同人文庫 -->
-      <div id="vault-tab-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <strong style="color:var(--gold-primary);">精選同人短篇（保證 100% 離線可用）</strong>
-          <span style="font-size:10px; color:var(--safe);">免網路依賴</span>
-        </div>
-
-        <div id="archive-list-container"></div>
-
-        <!-- 內部小說閱讀器 -->
-        <div id="internal-reader">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 id="reader-title">作品章節</h3>
-            <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="closeInternalReader()">✕ 關閉</button>
-          </div>
-          <div id="internal-reader-body"></div>
-          <div style="margin-top:10px; display:flex; gap:6px;">
-            <button class="btn gold-btn" style="flex:1;" onclick="sendReadingToChat()">🚀 載入本章作為跑團劇本</button>
-            <button class="btn" onclick="speakCurrentReading()">🔊 慢速朗讀</button>
-          </div>
-        </div>
-
-        <div style="margin-top:12px; border-top:1px dashed var(--border-gothic); padding-top:8px;">
-          <p style="font-size:11px; color:var(--text-dim); margin-bottom:4px;">上傳自訂戰錘文本 (.txt / .md)：</p>
-          <input type="file" id="localFanficUpload" accept=".txt,.md" onchange="importLocalFanfic(this)" style="font-size:11px; width:100%;" />
-        </div>
-      </div>
-
-      <!-- 2. 多重輪詢即時連線 (多源容錯防死白) -->
-      <div id="live-tab-content" style="display:none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <strong style="color:#60a5fa;">Warhammer 多源動態連線</strong>
-          <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="fetchLiveMultiSource()">🔄 重新連線檢索</button>
-        </div>
-        <div id="live-news-feed" style="color:var(--text-dim); font-size:12px;">點擊上方按鈕向多個開放節點獲取即時故事...</div>
-      </div>
-
-      <!-- 3. 開源辭典即時檢驗 -->
-      <div id="dict-tab-content" style="display:none;">
-        <div style="display:flex; gap:4px; margin-bottom:8px;">
-          <input type="text" id="dict-query" placeholder="輸入要鑑定的單字 (如: heresy, vox)..." style="flex:1;" onkeydown="if(event.key==='Enter') lookupDictionary();" />
-          <button class="btn gold-btn" onclick="lookupDictionary()">檢定</button>
-        </div>
-        <div id="dict-result" style="color:var(--text-dim);">點選故事中的金黃色單字亦可在此處即時解析音標與搭配詞。</div>
+  <!-- 頂部狀態列 -->
+  <header class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+    <div class="flex items-center space-x-2">
+      <button id="menu-btn" class="p-2 rounded-lg hover:bg-gray-100 text-gray-600">
+        <i data-lucide="menu"></i>
+      </button>
+      <span class="font-semibold text-lg tracking-wide text-gray-800">Gemini Canvas</span>
+      <!-- 網路狀態 -->
+      <div id="net-status" class="flex items-center text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+        <span class="w-2 h-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>
+        <span id="net-text">在線</span>
       </div>
     </div>
-  </aside>
-</div>
-
-<footer>
-  <div class="control-bar">
-    <div style="display:flex; align-items:center; gap:6px;">
-      <span style="color:var(--text-dim); font-size:10px;">🔒 Enter 為換行，發送鍵輸出</span>
-      <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="speakSelectedText()">🔊 朗讀反白選取文字</button>
-    </div>
-    <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="clearAllChat()">🧹 清空歷史</button>
-  </div>
-  <div class="input-bar">
-    <div class="mic-button-container">
-      <button class="icon-btn" id="micBtn" title="戰術口語回報 (英語口語開關)" onclick="toggleVoice()">
-        🎙️
-        <div class="mic-indicator-led" id="micLed"></div>
+    
+    <div class="flex items-center space-x-2">
+      <!-- 重新連線/重新整理鍵 -->
+      <button onclick="checkConnection()" title="檢查網路品質" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      </button>
+      <!-- 設定鍵 -->
+      <button onclick="toggleSettingsModal(true)" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
+        <i data-lucide="settings" class="w-5 h-5"></i>
       </button>
     </div>
-    <textarea id="userInput" placeholder="下達戰術指令、選擇行動或練習英文對話 (Enter換行，點發送確認)..." autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
-    <button class="action-btn" id="sendBtn" onclick="sendMessage()">傳送</button>
-  </div>
-</footer>
+  </header>
 
-<script>
-  (function() {
-    let conversation = [];
-    let memoryKey = "";
-    let availableChatModels = [];
-    let currentLoadedTitle = "";
-    let currentLoadedContent = "";
+  <!-- 主對話區域 -->
+  <main class="flex-1 overflow-y-auto px-4 py-6 max-w-4xl w-full mx-auto space-y-6" id="chat-stream">
+    <div class="flex items-start space-x-3">
+      <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white shrink-0">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+      </div>
+      <div class="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm leading-relaxed max-w-[85%]">
+        你好！我是你的多領域創作助手。請先點選右上角設定 API Key 與偏好的免費模型，即可無限制開啟深度對話、故事衍生或多媒體規劃。
+      </div>
+    </div>
+  </main>
 
-    // 遊戲狀態 (RPG Stats)
-    let playerStats = {
-      role: "行商浪人 (Rogue Trader)",
-      hp: 100,
-      sanity: 85
-    };
-
-    // Web Audio 機械微音效合成器
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playMechBeep(freq = 600, duration = 0.03) {
-      if (!document.getElementById("soundFxCheck").checked) return;
-      try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {}
-    }
-
-    const chatBox = document.getElementById("chat-box");
-    const userInput = document.getElementById("userInput");
-    const apiKeyInput = document.getElementById("apiKey");
-    const keyIndicator = document.getElementById("key-indicator");
-    const keyMsg = document.getElementById("key-msg");
-    const sysPrompt = document.getElementById("sysPrompt");
-    const modePresetSelect = document.getElementById("modePresetSelect");
-    const autoSpeakCheck = document.getElementById("autoSpeakCheck");
-    const ttsRate = document.getElementById("ttsRate");
-    const voiceSelect = document.getElementById("voiceSelect");
-    const micBtn = document.getElementById("micBtn");
-    const micLed = document.getElementById("micLed");
-    const pluginDrawer = document.getElementById("plugin-drawer");
-    const pluginToggleBtn = document.getElementById("pluginToggleBtn");
-    const ttsControllerBar = document.getElementById("tts-controller-bar");
-    const ttsStatusText = document.getElementById("tts-status-text");
-
-    // ================= 1. 本地高可用同人與設定小說庫 (保證 100% 可開啟) =================
-    const LOCAL_ARCHIVES = [
-      {
-        id: "space_hulk",
-        title: "The Derelict Sanctum (太空廢船《恐懼聖所》)",
-        source: "Koronus Expanse Chronicle",
-        text: `The Gothic arches of the void-ship were choked with rime and warp-corrosion. Through your auspex scanner, faint biological pulses flickered in the darkness ahead.
-
-"Lord Captain," whispers Arch-Militant Drake, checking the power cell of his plasma pistol. "The bulkhead doors were breached from the inside. Whatever killed the previous crew is still hunting here."
-
-Suddenly, the vox-channel crackles with a guttural, multi-tonal clicking. Two crimson heat signatures materialize on the catwalk above you.`
-      },
-      {
-        id: "genestealer",
-        title: "Shadows in the Underhive (巢都暗影：基因竊取者密謀)",
-        source: "Ordo Xenos Dossier",
-        text: `The air in the lower sumps was thick with grease and chemical runoff. Malakor adjusted his breather mask, his finger resting lightly on the cold trigger of his autogun.
-
-"They are moving through the ventilation shafts," whispered Sister Vael, her power armor humming in the damp darkness. "Not mutants. Something far more coordinated."
-
-A guttural hiss echoed above them. Through the rusted grating, four piercing violet eyes gleamed in the gloom. The cultists did not merely worship an alien deity; they carried its hybrid bloodline within their veins.`
-      },
-      {
-        id: "astartes_stand",
-        title: "Last Stand at Helsreach (赫爾斯歷奇最後誓約)",
-        source: "Black Templars Chapter Log",
-        text: `We are the spear of the Emperor. The cathedral roof groaned under the relentless barrage of greenskin artillery.
-
-Brother Priamus planted the chapter banner firmly into the rubble. "Let them swarm like locusts! Our armor is faith; our shield is devotion. For every step they take, we shall make them pay in rivers of black blood!"`
-      }
-    ];
-
-    function renderArchiveList() {
-      const container = document.getElementById("archive-list-container");
-      container.innerHTML = LOCAL_ARCHIVES.map(item => `
-        <div class="archive-item" onclick="openInternalReader('${item.id}')">
-          <h4>${escapeHtml(item.title)}</h4>
-          <p>${escapeHtml(item.text.slice(0, 100))}...</p>
-          <span style="font-size:10px; color:var(--gold-dark);">檔案源: ${item.source} ｜ 點擊於終端內部開啟</span>
+  <!-- 底部固定操作區（仿 Gemini 浮動卡片） -->
+  <footer class="p-4 bg-transparent max-w-4xl w-full mx-auto shrink-0">
+    <div class="bg-white rounded-3xl border border-gray-200 p-3 gemini-input-shadow flex flex-col space-y-2">
+      
+      <!-- 創作衍生與特徵鎖定狀態指示 -->
+      <div id="context-anchor-bar" class="hidden items-center justify-between text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl">
+        <div class="flex items-center space-x-1 truncate">
+          <i data-lucide="pin" class="w-3 h-3 shrink-0"></i>
+          <span id="anchor-preview" class="truncate">已鎖定前作特徵</span>
         </div>
-      `).join("");
+        <button onclick="clearAnchor()" class="text-gray-400 hover:text-red-500">
+          <i data-lucide="x" class="w-3 h-3"></i>
+        </button>
+      </div>
+
+      <!-- 文字輸入與語音區 -->
+      <div class="flex items-end space-x-2">
+        <textarea 
+          id="user-input" 
+          rows="1" 
+          placeholder="輸入文字、修改思考，或上傳檔案..." 
+          class="flex-1 max-h-36 resize-none bg-transparent outline-none p-1 text-gray-800 text-sm leading-6"
+          oninput="autoResize(this)"></textarea>
+        
+        <!-- 檔案匯入 -->
+        <label class="cursor-pointer p-2 rounded-full hover:bg-gray-100 text-gray-500 shrink-0">
+          <i data-lucide="paperclip" class="w-5 h-5"></i>
+          <input type="file" id="file-uploader" class="hidden" onchange="handleFileUpload(event)" multiple accept="image/*,video/*,audio/*,.txt,.pdf,.md" />
+        </label>
+
+        <!-- 語音輸入按鍵 -->
+        <button id="mic-btn" onclick="toggleSpeechRecognition()" class="p-2 rounded-full hover:bg-gray-100 text-gray-500 shrink-0">
+          <i data-lucide="mic" class="w-5 h-5"></i>
+        </button>
+
+        <!-- 傳送鍵（嚴格要求點擊才發送） -->
+        <button id="send-btn" onclick="sendMessage()" class="p-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shrink-0">
+          <i data-lucide="arrow-up" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- 控制標籤列：深度選擇與輔助功能 -->
+      <div class="flex items-center justify-between pt-1 border-t border-gray-100 text-xs text-gray-500">
+        <div class="flex items-center space-x-2">
+          <!-- 領域與深入度模式切換 -->
+          <select id="mode-select" class="bg-gray-100 rounded-lg px-2 py-1 outline-none text-gray-700">
+            <option value="concise">⚡ 快速重點（精簡字數）</option>
+            <option value="in_depth" selected>🔬 深入研究（詳盡論述）</option>
+            <option value="storyteller">📖 小說/世界觀創作（豐富情感）</option>
+            <option value="coder">💻 代碼與系統架構（精確語法）</option>
+          </select>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="exportChat()" title="匯出對話" class="hover:text-gray-800 flex items-center space-x-1">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">匯出</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 側邊設定面板（彈窗） -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-gray-800">系統與安全設定</h3>
+        <button onclick="toggleSettingsModal(false)" class="text-gray-400 hover:text-gray-600">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <!-- API 金鑰配置 -->
+      <div class="space-y-1">
+        <label class="text-xs font-semibold text-gray-600">API Key (儲存於本地沙盒環境)</label>
+        <input type="password" id="api-key" placeholder="貼上 OpenRouter / Gemini API Key" class="w-full border rounded-xl p-2.5 text-sm outline-none focus:border-blue-500" />
+      </div>
+
+      <!-- 免費模型庫選擇 -->
+      <div class="space-y-1">
+        <label class="text-xs font-semibold text-gray-600">免費通用模型庫</label>
+        <select id="model-select" class="w-full border rounded-xl p-2.5 text-sm outline-none focus:border-blue-500">
+          <option value="google/gemini-2.0-flash-exp:free">Google: Gemini 2.0 Flash (免費/全能/快速)</option>
+          <option value="meta-llama/llama-3.3-70b-instruct:free">Meta: Llama 3.3 70B (免費/深度推理)</option>
+          <option value="deepseek/deepseek-r1:free">DeepSeek: R1 (免費/邏輯推導)</option>
+          <option value="mistralai/mistral-small-24b-instruct-2501:free">Mistral: Small 24B (免費/精準寫作)</option>
+        </select>
+      </div>
+
+      <!-- 重要記憶點輸入 -->
+      <div class="space-y-1">
+        <label class="text-xs font-semibold text-gray-600">核心長久記憶點 (背景、偏好、約束條件)</label>
+        <textarea id="core-memories" rows="3" placeholder="例如：偏好深入研究、具備感性與理性並存的筆調..." class="w-full border rounded-xl p-2 text-sm outline-none focus:border-blue-500"></textarea>
+      </div>
+
+      <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition">
+        安全儲存配置
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // 初始化 Lucide 圖標
+    lucide.createIcons();
+
+    // 全域變數
+    let chatHistory = [];
+    let anchoredContext = ""; // 用於接續創作的鎖定內容
+    let recognition = null;
+    let isRecording = false;
+
+    // 啟動載入
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      checkConnection();
+      initSpeech();
+    });
+
+    // 1. 本地設定與安全性
+    function loadSettings() {
+      const savedKey = localStorage.getItem('omni_ai_key');
+      const savedModel = localStorage.getItem('omni_ai_model');
+      const savedMem = localStorage.getItem('omni_ai_memories');
+
+      if (savedKey) document.getElementById('api-key').value = atob(savedKey); // 簡易安全編碼儲存
+      if (savedModel) document.getElementById('model-select').value = savedModel;
+      if (savedMem) document.getElementById('core-memories').value = savedMem;
     }
 
-    window.openInternalReader = function(id) {
-      const item = LOCAL_ARCHIVES.find(a => a.id === id);
-      if (!item) return;
-      currentLoadedTitle = item.title;
-      currentLoadedContent = item.text;
+    function saveSettings() {
+      const key = document.getElementById('api-key').value.trim();
+      const model = document.getElementById('model-select').value;
+      const mem = document.getElementById('core-memories').value.trim();
 
-      document.getElementById("reader-title").textContent = item.title;
-      document.getElementById("internal-reader-body").textContent = item.text;
-      document.getElementById("internal-reader").style.display = "block";
-      playMechBeep(700, 0.04);
-    };
+      if (key) localStorage.setItem('omni_ai_key', btoa(key));
+      localStorage.setItem('omni_ai_model', model);
+      localStorage.setItem('omni_ai_memories', mem);
+      toggleSettingsModal(false);
+      alert('設定已安全儲存於本機。');
+    }
 
-    window.closeInternalReader = function() {
-      document.getElementById("internal-reader").style.display = "none";
-    };
+    function toggleSettingsModal(show) {
+      document.getElementById('settings-modal').classList.toggle('hidden', !show);
+    }
 
-    window.sendReadingToChat = function() {
-      if (!currentLoadedContent) return;
-      userInput.value = `【載入劇本：《${currentLoadedTitle}》】：\n\n${currentLoadedContent}\n\n請以 TRPG 遊戲主持人模式推進本章劇情，給予我 3 個具體的英文戰術行動選項，並引導我進行英文學習與決策！`;
-      togglePluginDrawer();
-      userInput.focus();
-    };
+    // 2. 網路品質檢測
+    function checkConnection() {
+      const netText = document.getElementById('net-text');
+      const netBox = document.getElementById('net-status');
+      if (navigator.onLine) {
+        netText.textContent = '連線良好';
+        netBox.className = 'flex items-center text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full';
+      } else {
+        netText.textContent = '離線中';
+        netBox.className = 'flex items-center text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full';
+      }
+    }
+    window.addEventListener('online', checkConnection);
+    window.addEventListener('offline', checkConnection);
 
-    window.speakCurrentReading = function() {
-      if (currentLoadedContent) speakText(currentLoadedContent);
-    };
+    // 3. 語音輸入與語音朗讀 (Web Speech API)
+    function initSpeech() {
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRec();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'zh-TW';
 
-    // ================= 2. 多重輪詢外部動態同步 (四重容錯通道) =================
-    window.fetchLiveMultiSource = async function() {
-      const feedBox = document.getElementById("live-news-feed");
-      feedBox.innerHTML = `正在透過多重代理節點輪詢戰錘開源社群...`;
-      switchDrawerTab('live');
-
-      // 4 個備用代理通道，徹底解決單一節點被阻擋問題
-      const targetUrl = 'https://www.warhammer-community.com/feed/';
-      const proxies = [
-        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
-        `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`
-      ];
-
-      let success = false;
-      for (const p of proxies) {
-        try {
-          const res = await fetch(p, { cache: "no-store" });
-          if (!res.ok) continue;
-          let xmlText = "";
-          if (p.includes("allorigins")) {
-            const data = await res.json();
-            xmlText = data.contents;
-          } else {
-            xmlText = await res.text();
+        recognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
           }
+          document.getElementById('user-input').value = transcript;
+          autoResize(document.getElementById('user-input'));
+        };
 
-          if (xmlText && xmlText.includes("<item>")) {
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-            const items = xmlDoc.querySelectorAll("item");
-            if (items.length > 0) {
-              let html = "";
-              items.forEach((item, idx) => {
-                if (idx >= 4) return;
-                const title = item.querySelector("title")?.textContent || "Warhammer Chronicle";
-                const desc = (item.querySelector("description")?.textContent || "").replace(/<[^>]*>?/gm, '').slice(0, 110);
-                html += `
-                  <div class="archive-item" onclick="loadExternalArticleToReader('${escapeHtml(title)}', '${escapeHtml(desc)}')">
-                    <h4>${escapeHtml(title)}</h4>
-                    <p>${escapeHtml(desc)}...</p>
-                    <span style="font-size:10px; color:#60a5fa;">點擊導入內部遊戲劇本</span>
-                  </div>
-                `;
-              });
-              feedBox.innerHTML = html;
-              success = true;
-              break;
-            }
-          }
-        } catch (e) {}
+        recognition.onerror = () => toggleSpeechRecognition(false);
+      }
+    }
+
+    function toggleSpeechRecognition(force) {
+      if (!recognition) return alert('目前瀏覽器未支援語音識別');
+      const micBtn = document.getElementById('mic-btn');
+      if (isRecording || force === false) {
+        recognition.stop();
+        isRecording = false;
+        micBtn.classList.remove('text-red-500', 'animate-pulse');
+      } else {
+        recognition.start();
+        isRecording = true;
+        micBtn.classList.add('text-red-500', 'animate-pulse');
+      }
+    }
+
+    function speakText(text) {
+      if (!'speechSynthesis' in window) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'zh-TW';
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // 4. 文字框動態高度
+    function autoResize(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    // 5. 訊息傳送與思考再編輯流程
+    async function sendMessage() {
+      const inputEl = document.getElementById('user-input');
+      const prompt = inputEl.value.trim();
+      const apiKey = localStorage.getItem('omni_ai_key') ? atob(localStorage.getItem('omni_ai_key')) : '';
+
+      if (!prompt) return;
+      if (!apiKey) {
+        alert('請先在設定中輸入 API Key');
+        toggleSettingsModal(true);
+        return;
       }
 
-      if (!success) {
-        feedBox.innerHTML = `
-          <div style="color:var(--text-dim); padding:6px 0;">
-            <p style="color:var(--amber);">⚠️ 外部代理暫時休眠，已自動平滑切換至本機備份典籍：</p>
-            <div class="archive-item" onclick="openInternalReader('space_hulk')">
-              <h4>Space Hulk: Deathwing Encounters</h4>
-              <p>太空廢船暗黑天使戰役日誌，已就緒供直接跑團。</p>
-            </div>
+      // 渲染使用者訊息（帶編輯按鈕）
+      appendMessage('user', prompt);
+      inputEl.value = '';
+      autoResize(inputEl);
+
+      // 構建 Prompt 與風格要求
+      const mode = document.getElementById('mode-select').value;
+      const model = localStorage.getItem('omni_ai_model') || 'google/gemini-2.0-flash-exp:free';
+      const memory = localStorage.getItem('omni_ai_memories') || '';
+
+      let systemPrompt = `你是一個具備跨領域專業的 AI 助手。核心參考記憶點：${memory}。\n`;
+      if (anchoredContext) {
+        systemPrompt += `前作特徵（必須在此基礎上衍生，保持鎖定部分不變）：\n${anchoredContext}\n`;
+      }
+
+      if (mode === 'concise') {
+        systemPrompt += "回覆風格：簡短精確，條列重點，語法簡明扼要。";
+      } else if (mode === 'in_depth') {
+        systemPrompt += "回覆風格：具備深度學術/研究水準，詳加論述、結構完整、提供多層面洞察。";
+      } else if (mode === 'storyteller') {
+        systemPrompt += "回覆風格：注重小說世界觀鋪陳、人物心理描繪、富含感性張力與細節衍生。";
+      }
+
+      // 呼叫 API
+      try {
+        const botMsgDiv = appendMessage('bot', '思考中...');
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...chatHistory.map(m => ({ role: m.role, content: m.text })),
+              { role: "user", content: prompt }
+            ]
+          })
+        });
+
+        const data = await response.json();
+        const reply = data.choices?.[0]?.message?.content || '無法取得有效回覆，請檢查金鑰或網路。';
+        
+        botMsgDiv.querySelector('.content-body').innerHTML = reply.replace(/\n/g, '<br/>');
+        chatHistory.push({ role: 'user', text: prompt }, { role: 'assistant', text: reply });
+        
+        // 賦予語音朗讀與衍生錨定按鈕
+        attachActionButtons(botMsgDiv, reply);
+
+      } catch (err) {
+        alert('連線失敗：' + err.message);
+      }
+    }
+
+    // 渲染對話到畫面上
+    function appendMessage(role, text) {
+      const stream = document.getElementById('chat-stream');
+      const wrapper = document.createElement('div');
+      wrapper.className = role === 'user' ? 'flex justify-end space-x-2' : 'flex items-start space-x-3';
+
+      if (role === 'user') {
+        wrapper.innerHTML = `
+          <div class="flex flex-col items-end space-y-1 max-w-[85%]">
+            <div class="bg-blue-600 text-white p-3.5 rounded-2xl rounded-tr-none text-sm leading-relaxed">${text}</div>
+            <button onclick="editPrompt('${encodeURIComponent(text)}')" class="text-xs text-gray-400 hover:text-blue-600 flex items-center space-x-1">
+              <i data-lucide="edit-3" class="w-3 h-3"></i><span>編輯重發</span>
+            </button>
+          </div>
+        `;
+      } else {
+        wrapper.innerHTML = `
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white shrink-0">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div class="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm leading-relaxed max-w-[85%] space-y-2">
+            <div class="content-body text-sm text-gray-800">${text}</div>
+            <div class="action-buttons pt-2 border-t border-gray-50 flex items-center space-x-3 text-xs text-gray-400"></div>
           </div>
         `;
       }
-    };
 
-    window.loadExternalArticleToReader = function(title, text) {
-      currentLoadedTitle = title;
-      currentLoadedContent = text;
-      document.getElementById("reader-title").textContent = title;
-      document.getElementById("internal-reader-body").textContent = text;
-      document.getElementById("internal-reader").style.display = "block";
-      switchDrawerTab('vault');
-    };
-
-    window.importLocalFanfic = function(input) {
-      const file = input.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const text = e.target.result.slice(0, 8000);
-        LOCAL_ARCHIVES.unshift({
-          id: "custom_" + Date.now(),
-          title: `自訂戰報：《${file.name}》`,
-          source: "本地文檔",
-          text: text
-        });
-        renderArchiveList();
-        openInternalReader(LOCAL_ARCHIVES[0].id);
-        alert(`文檔《${file.name}》已載入本機典籍庫！`);
-      };
-      reader.readAsText(file);
-    };
-
-    // ================= 3. TRPG 遊戲互動式推演系統 =================
-    window.startNewCampaign = function(scenarioKey) {
-      playMechBeep(700, 0.04);
-      const scenarios = {
-        rogue_trader_derelict: "Let us start a Warhammer 40K TRPG adventure. I am a Rogue Trader boarding an ancient derelict Space Hulk. Please describe the opening scene in atmospheric English, give me 3 clear tactical choices with dice check difficulties, and help me learn English through my decisions!",
-        cult_underhive: "Start a TRPG campaign where I play an Imperial Inquisitor hunting a Genestealer Cult in a Hive City. Provide vivid Gothic prose, 3 tactical choices, and vocabulary explanations.",
-        inquisition_vault: "Begin an investigative TRPG scene where I inspect an enigmatic xenos artifact recovered from the halo stars. Offer 3 investigative actions."
-      };
-      userInput.value = scenarios[scenarioKey] || "";
-      sendMessage();
-    };
-
-    // 點選劇情中的分支決策按鈕直接推進
-    window.selectGameChoice = function(choiceText) {
-      playMechBeep(600, 0.04);
-      userInput.value = `I choose: "${choiceText}". Please resolve the outcome, continue the Warhammer TRPG narrative, and offer the next set of choices and English tips!`;
-      sendMessage();
-    };
-
-    // D20 骰子判定系統
-    window.rollD20Action = function() {
-      playMechBeep(850, 0.06);
-      const roll = Math.floor(Math.random() * 20) + 1;
-      let outcome = "";
-      if (roll === 20) outcome = "🔥 Critical Success (大成功 - 機魂神佑！)";
-      else if (roll >= 12) outcome = "✅ Tactical Success (檢定成功)";
-      else if (roll === 1) outcome = "💀 Critical Failure (大失敗 - 遭遇亞空間干擾！)";
-      else outcome = "⚠️ Partial Failure (檢定失敗，遭受代價)";
-
-      alert(`🎲 D20 擲骰結果: [ ${roll} ]\n${outcome}`);
-      userInput.value = `[D20 Tactical Check: Rolled ${roll} - ${outcome}]. Please resolve the outcome of this action in our Warhammer TRPG story!`;
-      userInput.focus();
-    };
-
-    // ================= 4. 系統人設與模式協定 =================
-    const PROTOCOL_PROMPTS = {
-      trpg_game: `【戰錘40K 互動式跑團小說與英語教練協議】
-你是具備頂尖敘事能力的戰錘 TRPG 遊戲主持人（Game Master）兼私人英語教練。
-【輸出規範】：
-每次回覆必須包含三層架構：
-1. 【Narrative Scene (英語原文劇情)】：
-   - 創作 120-180 字富含黑暗哥特張力、細節豐富的戰錘英語故事。
-   - 將關鍵詞彙用粗體標注（如 **auspex**, **heresy**, **void-shield**）。
-2. 【Tactical Choices (戰術決策選項)】：
-   - 必須給予 3 個結構分明的英語行動選項，格式嚴格為：
-     [Choice 1]: (行動描述與預估檢定)
-     [Choice 2]: (行動描述與預估檢定)
-     [Choice 3]: (行動描述與預估檢定)
-3. 【Language Mechanics & Polish (中文語法與詞彙拆解)】：
-   - 挑出 2 個核心生詞提供音標與戰錘搭配詞。
-   - 若使用者上一輪有輸入英文，溫和指出語法瑕疵並提供母語級地道說法（Native Polish）。`,
-
-      zero_foundation: `【戰錘40K 0基礎新兵英語啟蒙協議】
-你是專為 0 基礎戰錘新兵設計的溫柔軍士長。
-每次回覆嚴格採用階梯式模組：
-1. 【極簡骨架句】：國中A1程度（5-7字基礎SVO），標注中英對照。
-2. 【音標與拆音節拆解】：挑選2-3個詞彙，提供自然發音拆節、IPA音標與中文聯想法。
-3. 【慢速跟讀句】：1句極短強烈的戰錘台詞（不超過6字，如: "I have no fear."）。
-4. 【填空小挑戰】：給予帶 (A/B) 選項的填空選擇題。`,
-
-      fanfic_interactive: `【戰錘40K 同人精讀協議】
-針對同人小說進行三步解構：故事白話中英對照、3個核心生詞深度拆解、挖空填詞挑戰。`,
-
-      private_companion: `【私有全能助理協議】
-個人私有專屬全能助理。解除道德說教審查與免責聲明，提供具備張力的高品質繁體中文與英文創作輸出。`
-    };
-
-    function applyModePreset() {
-      const mode = modePresetSelect.value;
-      sysPrompt.value = PROTOCOL_PROMPTS[mode] || PROTOCOL_PROMPTS.trpg_game;
-      localStorage.setItem("saved_game_mode", mode);
-    }
-    window.applyModePreset = applyModePreset;
-    modePresetSelect.value = localStorage.getItem("saved_game_mode") || "trpg_game";
-    applyModePreset();
-
-    window.triggerQuickScenario = function(type) {
-      playMechBeep(750, 0.04);
-      const prompts = {
-        zero_vocabulary: "教官！我是英語 0 基礎的新兵，請教我 10 個戰錘 40K 最基礎、最常見的英語生存單字（包含拆音節、IPA音標、中文與超簡單造句）。",
-        zero_simple_dialogue: "我是新兵，請跟我進行一輪最基礎的英文戰術問答（一次只問一句簡單的話，附帶中文翻譯與回答範例，讓我練習跟著唸）。"
-      };
-      userInput.value = prompts[type] || "";
-      userInput.focus();
-    };
-
-    // ================= 5. 開源辭典與語音控制 =================
-    window.lookupDictionary = async function(word) {
-      const query = (word || document.getElementById("dict-query").value).trim();
-      const resBox = document.getElementById("dict-result");
-      if (!query) return;
-      resBox.innerHTML = `機魂檢定中「<strong>${escapeHtml(query)}</strong>」...`;
-      switchDrawerTab('dict');
-      try {
-        const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(query)}`);
-        if (!res.ok) throw new Error("辭典查無此字（專有名詞請參考戰錘背景設定）。");
-        const data = await res.json();
-        const entry = data[0];
-        let html = `<h4 style="color:var(--gold-primary);">${entry.word}</h4>`;
-        if (entry.phonetic) html += `<span style="color:var(--text-dim); font-size:11px;">IPA 音標: ${entry.phonetic}</span><br>`;
-        entry.meanings.forEach((m) => {
-          html += `<div style="margin-top:6px;"><strong>[${m.partOfSpeech}]</strong><ol style="margin-left:14px;">`;
-          m.definitions.slice(0, 2).forEach(d => {
-            html += `<li>${escapeHtml(d.definition)}</li>`;
-          });
-          html += `</ol></div>`;
-        });
-        resBox.innerHTML = html;
-      } catch (e) {
-        resBox.innerHTML = `<span style="color:var(--crimson);">${e.message}</span>`;
-      }
-    };
-
-    let synth = window.speechSynthesis;
-    let voices = [];
-    let currentUtterance = null;
-
-    function loadVoices() {
-      if (!synth) return;
-      voices = synth.getVoices();
-      voiceSelect.textContent = "";
-      const enVoices = voices.filter(v => v.lang.startsWith("en"));
-      (enVoices.length > 0 ? enVoices : voices).forEach(v => {
-        const opt = document.createElement("option");
-        opt.value = v.name;
-        opt.textContent = `${v.name} (${v.lang})`;
-        if (v.lang === "en-GB" && !voiceSelect.value) opt.selected = true;
-        voiceSelect.appendChild(opt);
-      });
-    }
-    if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-
-    function speakText(text) {
-      if (!synth || !text) return;
-      stopTTS();
-      currentUtterance = new SpeechSynthesisUtterance(text);
-      currentUtterance.rate = parseFloat(ttsRate.value);
-      const selected = voices.find(v => v.name === voiceSelect.value);
-      if (selected) currentUtterance.voice = selected;
-      else currentUtterance.lang = "en-GB";
-
-      currentUtterance.onstart = () => {
-        ttsControllerBar.style.display = "flex";
-        ttsStatusText.textContent = "🔊 慢速跟讀發音中";
-      };
-      currentUtterance.onend = () => { ttsControllerBar.style.display = "none"; };
-      currentUtterance.onerror = () => { ttsControllerBar.style.display = "none"; };
-      synth.speak(currentUtterance);
+      stream.appendChild(wrapper);
+      stream.scrollTop = stream.scrollHeight;
+      lucide.createIcons();
+      return wrapper;
     }
 
-    window.pauseTTS = function() { if (synth && synth.speaking) { synth.pause(); ttsStatusText.textContent = "⏸️ 已暫停"; } };
-    window.resumeTTS = function() { if (synth && synth.paused) { synth.resume(); ttsStatusText.textContent = "🔊 發音中"; } };
-    window.stopTTS = function() { if (synth) { synth.cancel(); ttsControllerBar.style.display = "none"; } };
-
-    window.speakSelectedText = function() {
-      const selectedText = window.getSelection().toString().trim();
-      if (!selectedText) { alert("請先選取想朗讀的英文字句！"); return; }
-      speakText(selectedText);
-    };
-
-    // ================= 6. API Key 與通訊管理 =================
-    function initKeyStorage() {
-      const storedKey = localStorage.getItem("app_vault_key");
-      if (storedKey) {
-        apiKeyInput.value = storedKey;
-        memoryKey = storedKey;
-        validateAndLoadModels(storedKey, false);
-      }
+    // 附加朗讀與創作衍生功能
+    function attachActionButtons(botMsgDiv, text) {
+      const container = botMsgDiv.querySelector('.action-buttons');
+      container.innerHTML = `
+        <button onclick="speakText('${encodeURIComponent(text)}')" class="hover:text-gray-700 flex items-center space-x-1">
+          <i data-lucide="volume-2" class="w-3.5 h-3.5"></i><span>朗讀</span>
+        </button>
+        <button onclick="anchorForDerivation('${encodeURIComponent(text)}')" class="hover:text-indigo-600 flex items-center space-x-1">
+          <i data-lucide="copy-plus" class="w-3.5 h-3.5"></i><span>鎖定為前作衍生</span>
+        </button>
+      `;
+      lucide.createIcons();
     }
 
-    async function validateAndSaveAPIKey() {
-      const key = apiKeyInput.value.trim();
-      if (!key) {
-        keyIndicator.style.background = "#475569";
-        keyIndicator.innerText = "OFFLINE";
-        keyMsg.innerText = "";
-        localStorage.removeItem("app_vault_key");
-        memoryKey = "";
-        return false;
-      }
-      return await validateAndLoadModels(key, true);
-    }
-    window.validateAndSaveAPIKey = validateAndSaveAPIKey;
-
-    async function validateAndLoadModels(key, showFeedback = true) {
-      if (showFeedback) {
-        keyIndicator.style.background = "#eab308";
-        keyIndicator.innerText = "LINKING...";
-      }
-      try {
-        const res = await fetch("https://api.groq.com/openai/v1/models", {
-          headers: { "Authorization": "Bearer " + key }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          availableChatModels = (data.data || []).map(m => m.id).filter(id => !id.includes("whisper") && !id.includes("guard"));
-          keyIndicator.style.background = "var(--green-glow)";
-          keyIndicator.innerText = "MACHINE-SPIRIT ONLINE";
-          if (showFeedback) {
-            keyMsg.style.color = "var(--safe)";
-            keyMsg.innerText = "機魂感應完好";
-          }
-          memoryKey = key;
-          localStorage.setItem("app_vault_key", key);
-          return true;
-        } else {
-          keyIndicator.style.background = "var(--crimson)";
-          keyIndicator.innerText = "KEY INVALID";
-          return false;
-        }
-      } catch (e) {
-        keyIndicator.style.background = "var(--crimson)";
-        keyIndicator.innerText = "DISCONNECTED";
-        return false;
-      }
+    // 重新編輯輸入
+    function editPrompt(encodedText) {
+      const text = decodeURIComponent(encodedText);
+      const input = document.getElementById('user-input');
+      input.value = text;
+      input.focus();
+      autoResize(input);
     }
 
-    function getOptimalModel() {
-      const candidates = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"];
-      return candidates.find(c => availableChatModels.includes(c)) || "llama-3.3-70b-versatile";
+    // 鎖定為前作，用於衍生小說、分鏡或腳本
+    function anchorForDerivation(encodedText) {
+      anchoredContext = decodeURIComponent(encodedText);
+      const bar = document.getElementById('context-anchor-bar');
+      const preview = document.getElementById('anchor-preview');
+      preview.textContent = `鎖定特徵：「${anchoredContext.slice(0, 30)}...」`;
+      bar.classList.remove('hidden');
+      bar.classList.add('flex');
     }
 
-    // ================= 7. 口語辨識與麥克風 =================
-    let recognition = null;
-    let isMicRecording = false;
-
-    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.lang = "en-US";
-      recognition.continuous = true;
-      recognition.interimResults = true;
-
-      recognition.onresult = (e) => {
-        let finalStr = "";
-        for (let i = e.resultIndex; i < e.results.length; ++i) {
-          if (e.results[i].isFinal) finalStr += e.results[i][0].transcript;
-        }
-        if (finalStr) userInput.value += (userInput.value ? " " : "") + finalStr;
-      };
-      recognition.onerror = () => stopMicByUser();
-      recognition.onend = () => stopMicByUser();
+    function clearAnchor() {
+      anchoredContext = "";
+      document.getElementById('context-anchor-bar').classList.add('hidden');
     }
 
-    function startMicByUser() {
-      if (!recognition) { alert("瀏覽器不支援語音輸入"); return; }
-      try {
-        recognition.start();
-        isMicRecording = true;
-        micBtn.classList.add("mic-active");
-      } catch (e) {}
+    // 6. 檔案匯入與跨平台匯出
+    function handleFileUpload(event) {
+      const files = event.target.files;
+      if (!files.length) return;
+      const fileNames = Array.from(files).map(f => f.name).join(', ');
+      document.getElementById('user-input').value += `\n[已附加檔案: ${fileNames}]`;
+      autoResize(document.getElementById('user-input'));
     }
 
-    function stopMicByUser() {
-      if (recognition && isMicRecording) recognition.stop();
-      isMicRecording = false;
-      micBtn.classList.remove("mic-active");
+    function exportChat() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(chatHistory, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `OmniAI_Export_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
     }
-
-    window.toggleVoice = function() {
-      playMechBeep(650, 0.03);
-      if (isMicRecording) stopMicByUser();
-      else startMicByUser();
-    };
-
-    // ================= 8. 遊戲敘事渲染與互動選項生成 =================
-    function escapeHtml(text) {
-      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    // 將回覆轉為帶有遊戲互動選項與高亮單字的 HTML
-    function renderGameNarrativeHtml(text) {
-      if (!text) return "";
-      let html = text;
-
-      // 提取分支決策 [Choice X]: ... 並轉為動態遊戲按鈕
-      let choicesHtml = "";
-      html = html.replace(/\[Choice\s*(\d+)\]:\s*([^\n\r]+)/gi, function(match, num, desc) {
-        choicesHtml += `<button class="choice-btn" onclick="selectGameChoice('${escapeHtml(desc.trim())}')"><span>⚡ [選項 ${num}]:</span> ${escapeHtml(desc.trim())}</button>`;
-        return "";
-      });
-
-      // 戰錘特殊生詞高亮與點擊即查
-      html = html.replace(/\*\*([^*]+)\*\*/g, function(match, word) {
-        return `<strong class="lore-word" onclick="lookupDictionary('${escapeHtml(word)}')">${word}</strong>`;
-      });
-
-      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-      html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li>$1</li>');
-      html = html.replace(/(<li>[\s\S]*?<\/li>)/gm, '<ul>$1</ul>');
-      html = html.replace(/<\/ul>\s*<ul>/g, '');
-      html = html.replace(/\n\n+/g, '</p><p>');
-      html = '<p>' + html + '</p>';
-
-      if (choicesHtml) {
-        html += `<div class="game-choice-container">${choicesHtml}</div>`;
-      }
-      return html;
-    }
-
-    function appendMessage(role, text, index) {
-      const div = document.createElement("div");
-      div.className = "bubble " + role;
-      div.dataset.index = index;
-
-      const textSpan = document.createElement("div");
-      textSpan.className = "bubble-text";
-      if (role === "assistant") textSpan.innerHTML = renderGameNarrativeHtml(text);
-      else textSpan.textContent = text;
-      div.appendChild(textSpan);
-
-      const tools = document.createElement("div");
-      tools.className = "bubble-tools";
-
-      if (role === "assistant") {
-        const spkBtn = document.createElement("button");
-        spkBtn.className = "tool-btn";
-        spkBtn.textContent = "🔊 慢速朗讀";
-        spkBtn.onclick = () => speakText(textSpan.innerText);
-        tools.appendChild(spkBtn);
-      }
-
-      const delBtn = document.createElement("button");
-      delBtn.className = "tool-btn";
-      delBtn.textContent = "🗑️ 刪除";
-      delBtn.onclick = () => { conversation.splice(index, 1); renderAllMessages(); };
-      tools.appendChild(delBtn);
-
-      div.appendChild(tools);
-      chatBox.appendChild(div);
-      chatBox.scrollTop = chatBox.scrollHeight;
-      return { bubble: div, textSpan };
-    }
-
-    function renderAllMessages() {
-      chatBox.textContent = "";
-      conversation.forEach((msg, idx) => { appendMessage(msg.role, msg.content, idx); });
-    }
-
-    window.clearAllChat = function() {
-      if (confirm("確定清空目前戰況冒險記錄？")) {
-        conversation = [];
-        chatBox.textContent = "";
-      }
-    };
-
-    window.destroyAllMemory = function() {
-      if (!confirm("確定銷毀所有金鑰、記錄與角色狀態嗎？此操作不可逆！")) return;
-      conversation = []; memoryKey = ""; apiKeyInput.value = "";
-      localStorage.clear(); chatBox.textContent = "";
-      keyIndicator.style.background = "#475569";
-      keyIndicator.innerText = "OFFLINE";
-      stopMicByUser();
-      stopTTS();
-      alert("機魂已完全抹除。");
-    };
-
-    window.sendMessage = async function() {
-      const rawText = userInput.value.trim();
-      const key = memoryKey || apiKeyInput.value.trim();
-      if (!rawText) return;
-      if (!key) { alert("請在終端配置中填入有效的 Groq API Key！"); return; }
-
-      playMechBeep(450, 0.05);
-      stopMicByUser();
-
-      const userIdx = conversation.length;
-      conversation.push({ role: "user", content: rawText });
-      appendMessage("user", rawText, userIdx);
-      userInput.value = "";
-
-      const aiIdx = conversation.length;
-      const aiMsg = appendMessage("assistant", "", aiIdx);
-      aiMsg.textSpan.innerHTML = '<span style="color:var(--gold-primary);">▍機魂深層推演戰況中...</span>';
-
-      const payloadMessages = [
-        { role: "system", content: sysPrompt.value },
-        ...conversation.slice(-6).map(m => ({ role: m.role, content: m.content }))
-      ];
-
-      try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
-          body: JSON.stringify({ model: getOptimalModel(), messages: payloadMessages, stream: true })
-        });
-
-        if (!response.ok) throw new Error("狀態碼: " + response.status);
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let fullReply = "";
-        let isRendering = false;
-
-        function scheduleStreamRender() {
-          if (!isRendering) {
-            isRendering = true;
-            requestAnimationFrame(() => {
-              aiMsg.textSpan.innerHTML = renderGameNarrativeHtml(fullReply) + '<span style="color:var(--gold-bright); animation: blink 1s infinite;">▍</span>';
-              chatBox.scrollTop = chatBox.scrollHeight;
-              isRendering = false;
-            });
-          }
-        }
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-          for (const line of lines) {
-            if (line.startsWith("data: ") && line !== "data: [DONE]") {
-              try {
-                const parsed = JSON.parse(line.slice(6));
-                fullReply += (parsed.choices[0].delta?.content || "");
-                scheduleStreamRender();
-              } catch (e) {}
-            }
-          }
-        }
-
-        aiMsg.textSpan.innerHTML = renderGameNarrativeHtml(fullReply);
-        conversation.push({ role: "assistant", content: fullReply });
-        renderAllMessages();
-
-        if (autoSpeakCheck.checked) speakText(aiMsg.textSpan.innerText);
-      } catch (err) {
-        aiMsg.textSpan.innerHTML = '<span style="color:var(--crimson);">機魂通訊中斷: ' + err.message + '</span>';
-        conversation.pop();
-      }
-    };
-
-    // 抽屜標籤切換
-    window.switchDrawerTab = function(tab) {
-      document.getElementById("vault-tab-content").style.display = (tab === 'vault') ? "block" : "none";
-      document.getElementById("live-tab-content").style.display = (tab === 'live') ? "block" : "none";
-      document.getElementById("dict-tab-content").style.display = (tab === 'dict') ? "block" : "none";
-
-      document.getElementById("tab-vault").classList.toggle("active", tab === 'vault');
-      document.getElementById("tab-live").classList.toggle("active", tab === 'live');
-      document.getElementById("tab-dict").classList.toggle("active", tab === 'dict');
-    };
-
-    window.checkCodeUpdateRobust = async function() {
-      try {
-        const testUrl = `${window.location.origin}${window.location.pathname}?_v=${Date.now()}`;
-        const res = await fetch(testUrl, { cache: "no-store", method: "HEAD" });
-        if (res.ok && confirm("終端程式碼已確認完備！是否重新載入？")) window.location.reload();
-        else window.location.reload();
-      } catch (e) { window.location.reload(); }
-    };
-
-    window.toggleSettings = function() {
-      playMechBeep(550, 0.03);
-      const p = document.getElementById("settings-panel");
-      p.style.display = (p.style.display === "flex") ? "none" : "flex";
-    };
-
-    window.togglePluginDrawer = function() {
-      playMechBeep(500, 0.03);
-      const isVisible = (pluginDrawer.style.display === "flex");
-      pluginDrawer.style.display = isVisible ? "none" : "flex";
-      pluginToggleBtn.classList.toggle("gold-btn", !isVisible);
-    };
-
-    userInput.addEventListener("keydown", (e) => { if (e.key === "Enter") return; });
-
-    initKeyStorage();
-    renderArchiveList();
-  })();
-</script>
+  </script>
 </body>
 </html>
