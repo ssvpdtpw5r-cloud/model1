@@ -147,11 +147,11 @@
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已升級至 <b>Bilibili rl355169 專用強穿透爬取引擎</b>：
+          已切換至<b>直通 API 輕量正文下載引擎</b>：
           <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>文集直達</b>：針對 <code class="text-pink-400">rl355169</code>（光頭戰錘小百科 70 篇）內建直接鏡像清單，杜絕空白阻斷</li>
-            <li><b>iOS 常亮巡航</b>：支援整夜鎖屏喚醒，批次圖文自動清洗寫入 IndexedDB</li>
-            <li><b>隨時匯出備份</b>：一鍵將幾十萬字設定集直接以 <code class="text-blue-400">.txt</code> 儲存至手機檔案</li>
+            <li><b>免網頁風控</b>：直接呼叫專欄唯讀 API 獲取乾淨正文，徹底解決下載略過問題</li>
+            <li><b>iOS 常亮保護</b>：保持背景穩定下載，每篇自動寫入本機資料庫</li>
+            <li><b>即時字數統計</b>：支援一鍵下載合併後的完整純文字檔案</li>
           </ul>
         </div>
       </div>
@@ -236,7 +236,7 @@
           <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-blue-500 font-mono transition" />
         </div>
 
-        <!-- Bilibili 巡航爬取模組 (強化文集解析) -->
+        <!-- Bilibili 巡航爬取模組 -->
         <div class="p-3.5 rounded-2xl bg-pink-50/40 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900/40 space-y-2.5">
           <div class="flex items-center justify-between">
             <span class="font-bold text-slate-800 dark:text-pink-300 flex items-center gap-1.5">
@@ -272,7 +272,7 @@
               <div id="cruise-progress-bar" class="bg-gradient-to-r from-pink-500 to-indigo-500 h-full w-0 transition-all duration-300"></div>
             </div>
 
-            <div class="border border-slate-200 dark:border-oledBorder rounded-xl bg-white/50 dark:bg-oledSurface p-2 max-h-32 overflow-y-auto space-y-1 font-mono text-[10px]" id="cruise-task-list"></div>
+            <div class="border border-slate-200 dark:border-oledBorder rounded-xl bg-white/50 dark:bg-oledSurface p-2 max-h-36 overflow-y-auto space-y-1 font-mono text-[10px]" id="cruise-task-list"></div>
 
             <div class="flex justify-end gap-2 pt-1">
               <button onclick="downloadAccumulatedTxt()" id="download-txt-btn" class="hidden px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-[10px] flex items-center gap-1 transition">
@@ -404,11 +404,11 @@
       }
     }
 
-    // --- 3. 跨域管道 ---
+    // --- 3. 跨域雙向通道 (支援代理容錯) ---
     async function fetchWithFallback(targetUrl) {
       const endpoints = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
         `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
         `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`
       ];
 
@@ -416,7 +416,7 @@
         try {
           const res = await fetch(ep);
           if (!res.ok) continue;
-          if (ep.endsWith('get?url=' + encodeURIComponent(targetUrl))) {
+          if (ep.includes('/get?url=')) {
             const json = await res.json();
             if (json && json.contents) return json.contents;
           } else {
@@ -428,12 +428,81 @@
       return null;
     }
 
+    // 專用：透過 API 提取專欄正文（完全避開網頁版反爬）
+    async function fetchArticleBodyViaApi(cvId) {
+      const apiUrl = `https://api.bilibili.com/x/article/viewinfo?id=${cvId}`;
+      const res = await fetchWithFallback(apiUrl);
+      if (!res) return null;
+
+      try {
+        const data = typeof res === 'string' ? JSON.parse(res) : res;
+        if (data.code === 0 && data.data) {
+          const title = data.data.title || `專欄 cv${cvId}`;
+          const author = data.data.author_name || '創作者';
+          const rawContent = data.data.content || '';
+
+          // 將回傳的 HTML 節點清洗為乾淨的 Markdown 格式
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(rawContent, 'text/html');
+          let parsedBody = "";
+
+          doc.querySelectorAll('p, img, figure').forEach(node => {
+            if (node.tagName.toLowerCase() === 'img') {
+              const src = node.getAttribute('data-src') || node.src;
+              if (src) parsedBody += `\n\n![插圖](${src.startsWith('//') ? 'https:' + src : src})\n\n`;
+            } else {
+              const t = node.innerText.trim();
+              if (t) parsedBody += `${t}\n\n`;
+            }
+          });
+
+          if (!parsedBody.trim()) {
+            parsedBody = doc.body.innerText.trim();
+          }
+
+          return { title, author, content: parsedBody };
+        }
+      } catch(e) {}
+
+      // 備援：嘗試直接讀取網頁版 HTML
+      const html = await fetchWithFallback(`https://www.bilibili.com/read/cv${cvId}`);
+      if (html) {
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const title = doc.querySelector('.title-holder .title, .opus-title, h1')?.innerText.trim() || `專欄 cv${cvId}`;
+          const author = doc.querySelector('.up-name, .author-name')?.innerText.trim() || '創作者';
+          const contentContainer = doc.querySelector('#article-content, .opus-module-content, .article-holder');
+
+          let parsedBody = "";
+          if (contentContainer) {
+            contentContainer.querySelectorAll('p, img, figure').forEach(node => {
+              if (node.tagName.toLowerCase() === 'img') {
+                const src = node.getAttribute('data-src') || node.src;
+                if (src) parsedBody += `\n\n![插圖](${src.startsWith('//') ? 'https:' + src : src})\n\n`;
+              } else {
+                const t = node.innerText.trim();
+                if (t) parsedBody += `${t}\n\n`;
+              }
+            });
+          } else {
+            parsedBody = doc.body.innerText.slice(0, 4000);
+          }
+          if (parsedBody.trim()) {
+            return { title, author, content: parsedBody };
+          }
+        } catch(e) {}
+      }
+
+      return null;
+    }
+
     function injectPresetRl355169() {
       document.getElementById('bili-target-input').value = 'https://www.bilibili.com/read/readlist/rl355169';
       triggerHaptic(15);
     }
 
-    // --- 4. 夜間巡航爬蟲引擎 (深層支援 rl355169 解析) ---
+    // --- 4. 夜間巡航爬蟲引擎 (專門優化多篇穩定入庫) ---
     let cruiseQueue = [];
 
     function renderCruiseTaskList() {
@@ -487,13 +556,12 @@
 
       let rawTargetList = [];
 
-      // 1. 優先辨識 rl 文集編號 (例如 rl355169)
+      // 1. 優先辨識 rl 文集編號 (如 rl355169)
       const rlMatches = inputVal.match(/rl(\d+)/i);
       if (rlMatches) {
         const numId = rlMatches[1];
-        statusText.innerText = `正在穿透文集 rl${numId} 的所有章節清單...`;
+        statusText.innerText = `正在讀取文集 rl${numId} 的所有章節清單...`;
 
-        // 途徑 A：B 站官方文集 API 穿透
         const listRes = await fetchWithFallback(`https://api.bilibili.com/x/article/list/web/articles?id=${numId}`);
         if (listRes) {
           try {
@@ -506,9 +574,9 @@
           } catch(e) {}
         }
 
-        // 途徑 B：若 API 受限，針對 rl355169 或類似文集嘗試全量抓取目錄
+        // 備援：若 API 傳回空值，直接爬取文集 HTML 目錄頁面
         if (rawTargetList.length === 0) {
-          statusText.innerText = `正在調用文集鏡像爬取清單...`;
+          statusText.innerText = `調用網頁目錄解析文集 rl${numId}...`;
           const pageHtml = await fetchWithFallback(`https://www.bilibili.com/read/readlist/rl${numId}`);
           if (pageHtml) {
             const cvRegex = /(?:read\/cv|cv)(\d+)/gi;
@@ -531,7 +599,7 @@
         rawTargetList.push({ type: 'opus', id: match[1] });
       }
 
-      // 3. 去重
+      // 3. 去除重複
       const uniqueKeys = new Set();
       cruiseQueue = [];
       rawTargetList.forEach(item => {
@@ -550,13 +618,13 @@
 
       if (cruiseQueue.length === 0) {
         stopNightCruise();
-        return alert('未能辨識出任何專欄或文集內容。請確認輸入包含 rl... 或 cv... 網址');
+        return alert('未能辨識出任何專欄或文集內容，請確認輸入包含 rl... 或 cv... 網址');
       }
 
       renderCruiseTaskList();
       statusText.innerText = `鎖定成功！共 ${cruiseQueue.length} 篇專欄，夜間防休眠巡航中...`;
 
-      // 4. 逐篇下載巡航迴圈
+      // 4. 逐篇下載巡航（切換至純淨 API 端點）
       for (let i = 0; i < cruiseQueue.length; i++) {
         if (!isCruiseRunning) break;
 
@@ -564,37 +632,11 @@
         task.status = 'downloading';
         renderCruiseTaskList();
 
-        const targetUrl = task.type === 'cv' 
-          ? `https://www.bilibili.com/read/cv${task.numericId}` 
-          : `https://www.bilibili.com/opus/${task.numericId}`;
+        const articleData = await fetchArticleBodyViaApi(task.numericId);
 
-        const html = await fetchWithFallback(targetUrl);
-
-        if (html) {
+        if (articleData && articleData.content) {
           try {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-
-            const title = doc.querySelector('.title-holder .title, .opus-title, h1')?.innerText.trim() || task.title || `專欄 ${task.id}`;
-            const author = doc.querySelector('.up-name, .author-name')?.innerText.trim() || '創作者';
-            const contentContainer = doc.querySelector('#article-content, .opus-module-content, .article-holder');
-
-            let parsedBody = "";
-            if (contentContainer) {
-              contentContainer.querySelectorAll('p, img, figure').forEach(node => {
-                if (node.tagName.toLowerCase() === 'img') {
-                  const src = node.getAttribute('data-src') || node.src;
-                  if (src) parsedBody += `\n\n![插圖](${src.startsWith('//') ? 'https:' + src : src})\n\n`;
-                } else {
-                  const t = node.innerText.trim();
-                  if (t) parsedBody += `${t}\n\n`;
-                }
-              });
-            } else {
-              parsedBody = doc.body.innerText.slice(0, 4000);
-            }
-
-            const formattedEntry = `\n\n====================\n【B站設定集：${title}】\n創作者：${author}\n識別碼：${task.id}\n原始連結：${targetUrl}\n\n${parsedBody}\n====================\n`;
+            const formattedEntry = `\n\n====================\n【B站設定集：${articleData.title}】\n創作者：${articleData.author}\n識別碼：${task.id}\n原始連結：https://www.bilibili.com/read/cv${task.numericId}\n\n${articleData.content}\n====================\n`;
 
             // 即時單篇入庫
             const textarea = document.getElementById('lorebook-content');
@@ -602,7 +644,7 @@
             updateLorebookStats();
             saveLorebookToDB(textarea.value);
 
-            task.title = title;
+            task.title = articleData.title;
             task.status = 'completed';
           } catch(e) {
             task.status = 'failed';
@@ -612,10 +654,11 @@
         }
 
         renderCruiseTaskList();
-        await new Promise(r => setTimeout(r, 1200));
+        // 1.5 秒平滑間隔，穩定穿透且不觸發頻率限制
+        await new Promise(r => setTimeout(r, 1500));
       }
 
-      statusText.innerText = '巡航完成！所有篇章已全數保存至手機資料庫。';
+      statusText.innerText = '巡航完成！所有成功篇章已永久寫入本地資料庫。';
       document.getElementById('download-txt-btn').classList.remove('hidden');
       stopNightCruise(false);
       triggerHaptic(25);
@@ -1000,7 +1043,7 @@
       preload.src = frameUrl;
     }
 
-    // --- 8. 核心對話發送 (gemini-3.6-flash 原生端點) ---
+    // --- 8. 核心對話發送 ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const rawPrompt = inputEl.value.trim();
