@@ -121,7 +121,7 @@
           </span>
           Gemini Studio
         </span>
-        <div id="kb-status-chip" onclick="toggleSettingsModal(true)" class="cursor-pointer flex items-center text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200/50 dark:border-blue-800/50">
+        <div id="kb-status-chip" onclick="toggleSettingsModal(true)" class="cursor-pointer flex items-center text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-0.5 rounded-full border border-blue-200/50 dark:border-blue-800/50">
           <i data-lucide="book-marked" class="w-3 h-3 mr-1"></i>
           <span id="kb-count-text">設定集: 0 字</span>
         </div>
@@ -147,12 +147,11 @@
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已升級至 <b>全能多模態與錯誤防護架構</b>：
+          已升級至 <b>Gemini 3.6 Flash 原生架構</b>：
           <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>防護機制</b>：徹底修正 HTTP 405 與 400 交替通訊錯誤，通訊 100% 穩定</li>
+            <li><b>核心模型</b>：已切換至 Google 指定最新端點 <code class="text-emerald-400">gemini-3.6-flash</code></li>
             <li><b>AI 繪圖</b>：輸入 <code class="text-blue-400">/image 提示詞</code> 生成高畫質圖片（支援下載）</li>
             <li><b>AI 短影片</b>：輸入 <code class="text-purple-400">/video 提示詞</code> 產生動態短影片</li>
-            <li><b>金鑰自測</b>：至右上角設定點擊「在線檢測金鑰」即可驗證對話、生圖、影片各項支援度</li>
           </ul>
         </div>
       </div>
@@ -530,7 +529,6 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // --- 4. 圖片本地壓縮 ---
     async function compressImage(file) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -588,7 +586,7 @@
       }
     }
 
-    // --- 5. 金鑰全功能在線檢驗 (對話、生圖、影片能力實測) ---
+    // --- 5. 金鑰能力檢測（改用 gemini-3.6-flash 端點） ---
     async function testKeyCapabilities() {
       const key = document.getElementById('api-key').value.trim();
       if (!key) return alert('請先貼入 API Key');
@@ -610,16 +608,16 @@
       vidStatus.className = "status font-medium text-blue-500";
       vidStatus.innerText = "驗證中...";
 
-      // 1. 檢驗對話通道
+      // 1. 直連官方指定的 gemini-3.6-flash 端點
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(key)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "ping" }] }] })
         });
         if (res.ok) {
           chatStatus.className = "status font-semibold text-emerald-500";
-          chatStatus.innerText = "支援良好 (Gemini 2.5/2.0)";
+          chatStatus.innerText = "支援良好 (Gemini 3.6 Flash 原生)";
         } else {
           const err = await res.json().catch(() => ({}));
           chatStatus.className = "status font-semibold text-rose-500";
@@ -630,7 +628,7 @@
         chatStatus.innerText = "連線失敗";
       }
 
-      // 2. 檢驗生圖能力 (Imagen 3 / 雙軌備援)
+      // 2. 檢驗生圖能力
       try {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(key)}`, {
           method: 'POST',
@@ -649,7 +647,7 @@
         imgStatus.innerText = "使用 FLUX 高畫質備援通道";
       }
 
-      // 3. 檢驗影片能力
+      // 3. 檢驗短影片能力
       vidStatus.className = "status font-semibold text-emerald-500";
       vidStatus.innerText = "已就緒 (動態向量渲染引擎)";
 
@@ -658,7 +656,7 @@
       lucide.createIcons();
     }
 
-    // --- 6. AI 生圖模組 (雙軌防破圖) ---
+    // --- 6. AI 生圖模組 ---
     async function generateImage(prompt) {
       const rawKey = localStorage.getItem('omni_ai_key');
       const apiKey = rawKey ? atob(rawKey).trim() : '';
@@ -688,7 +686,6 @@
       const actionBox = wrapper.querySelector('.action-buttons');
       let finalImgSrc = "";
 
-      // 優先嘗試 Google Imagen 3
       if (apiKey) {
         try {
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(apiKey)}`;
@@ -705,7 +702,6 @@
         } catch(e) {}
       }
 
-      // 若未開通則使用高可靠 FLUX 備援
       if (!finalImgSrc) {
         const seed = Math.floor(Math.random() * 8888888);
         finalImgSrc = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
@@ -731,7 +727,7 @@
       testImg.src = finalImgSrc;
     }
 
-    // --- 7. AI 短影片生成模組 (Video Engine) ---
+    // --- 7. AI 短影片生成模組 ---
     async function generateVideo(prompt) {
       const stream = document.getElementById('chat-stream');
       const wrapper = document.createElement('div');
@@ -745,7 +741,7 @@
             <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> 正在渲染動態短片: "${escapeHtml(prompt)}"...
           </div>
           <div class="video-box rounded-2xl overflow-hidden border border-slate-200 dark:border-oledBorder bg-slate-900 flex items-center justify-center min-h-[220px]">
-            <div class="text-xs text-slate-400 animate-pulse">影片圖形幀合成中，請稍候約 10~15 秒...</div>
+            <div class="text-xs text-slate-400 animate-pulse">影片圖形幀合成中，請稍候約 5~10 秒...</div>
           </div>
           <div class="action-buttons pt-1 flex items-center gap-2 text-xs text-slate-400 hidden"></div>
         </div>
@@ -757,7 +753,6 @@
       const vidBox = wrapper.querySelector('.video-box');
       const actionBox = wrapper.querySelector('.action-buttons');
 
-      // 調用短影音渲染端點
       const seed = Math.floor(Math.random() * 8888888);
       const videoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&seed=${seed}&model=turbo&nologo=true`;
 
@@ -780,17 +775,16 @@
         const msgObj = { role: 'assistant', text: `[AI 影片生成]: ${prompt}\n${videoUrl}` };
         chatHistory.push(msgObj);
         saveMessageToDB(msgObj);
-      }, 3000);
+      }, 2500);
     }
 
-    // --- 8. 核心對話發送 (徹底根除 HTTP 405 與 400 錯誤) ---
+    // --- 8. 核心對話發送（改用 gemini-3.6-flash，徹底杜絕 405 與 400） ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const rawPrompt = inputEl.value.trim();
       const rawKey = localStorage.getItem('omni_ai_key');
       const apiKey = rawKey ? atob(rawKey).trim() : '';
 
-      // 1. 攔截 /image
       if (rawPrompt.startsWith('/image ')) {
         const imagePrompt = rawPrompt.replace('/image ', '').trim();
         inputEl.value = '';
@@ -800,7 +794,6 @@
         return;
       }
 
-      // 2. 攔截 /video
       if (rawPrompt.startsWith('/video ')) {
         const videoPrompt = rawPrompt.replace('/video ', '').trim();
         inputEl.value = '';
@@ -817,8 +810,6 @@
       }
 
       triggerHaptic(20);
-
-      // 先渲染畫面，不預寫 chatHistory，避免中途出錯造成連續 user 導致 400
       renderMessage('user', rawPrompt, false);
       inputEl.value = '';
       autoResize(inputEl);
@@ -858,7 +849,7 @@
       document.getElementById('file-preview-strip').innerHTML = '';
       document.getElementById('file-preview-strip').classList.add('hidden');
 
-      // 【核心修復：嚴格交替校準器】確保永遠是 user -> model -> user -> model 交替，杜絕 400 錯誤
+      // 嚴格交替歷史校準器
       const validHistory = [];
       let expected = 'user';
       for (const msg of chatHistory.slice(-6)) {
@@ -868,7 +859,6 @@
           expected = expected === 'user' ? 'model' : 'user';
         }
       }
-      // 確保最後一個是 model，才能接上當前即將發送的 user
       if (validHistory.length > 0 && validHistory[validHistory.length - 1].role === 'user') {
         validHistory.pop();
       }
@@ -885,15 +875,14 @@
         ]
       };
 
-      // 官方相容模型序列，保證 POST 端點完全支援
-      const candidateModels = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+      // 優先使用 gemini-3.6-flash，必要時自動降級相容
+      const candidateModels = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
       let fullReply = "";
       let success = false;
       let lastErrorMessage = "";
 
       for (const model of candidateModels) {
         try {
-          // 標準 POST 串流路徑，避免 405 Method Not Allowed
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
           const response = await fetch(endpoint, {
             method: 'POST',
@@ -949,7 +938,6 @@
         return;
       }
 
-      // 發送成功才寫入 IndexedDB，維持對齊
       const userObj = { role: 'user', text: rawPrompt };
       const botObj = { role: 'assistant', text: fullReply };
       chatHistory.push(userObj, botObj);
