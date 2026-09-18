@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Gemini OmniStudio</title>
+  <title>Gemini OmniStudio - Ultimate Edition</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -33,10 +33,12 @@
   <!-- Highlight.js (代碼高亮) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <!-- KaTeX (LaTeX 數學公式) -->
+  <!-- KaTeX (數學物理公式) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <!-- Mermaid.js (流程圖與心智圖) -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
 
   <style>
     :root { --keyboard-offset: 0px; }
@@ -54,14 +56,14 @@
       transition: padding-bottom 0.1s ease-out;
     }
     .dark .oled-glass {
-      background: rgba(11, 12, 14, 0.88);
+      background: rgba(11, 12, 14, 0.90);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border-color: #20242c;
       box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.85);
     }
     .oled-glass {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-color: #e2e8f0;
@@ -97,7 +99,7 @@
       overflow-x: auto;
     }
     .prose-custom code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; font-size: 0.82rem; }
-    .copy-code-btn, .run-sandbox-btn {
+    .copy-code-btn, .run-sandbox-btn, .insert-canvas-btn {
       padding: 0.25rem 0.55rem;
       font-size: 0.7rem;
       border-radius: 0.5rem;
@@ -105,6 +107,7 @@
       transition: all 0.2s;
     }
     details summary::-webkit-details-marker { display: none; }
+    .mermaid { display: flex; justify-content: center; background: #0b0c0e; padding: 1rem; border-radius: 1rem; margin: 0.8em 0; }
   </style>
 </head>
 <body class="bg-white dark:bg-oled text-slate-800 dark:text-slate-100 antialiased select-none md:select-auto transition-colors duration-200">
@@ -128,24 +131,35 @@
   </div>
   <div id="sidebar-backdrop" onclick="toggleSidebar(false)" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden"></div>
 
-  <!-- Artifact 即時沙盒執行視窗 (Sandbox Modal) -->
+  <!-- 全域模糊搜尋彈窗 (Global Search) -->
+  <div id="search-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-start justify-center p-4 pt-16">
+    <div class="bg-white dark:bg-oledSurface rounded-3xl max-w-lg w-full p-5 space-y-4 border border-slate-200 dark:border-oledBorder shadow-2xl flex flex-col max-h-[80vh]">
+      <div class="flex items-center gap-2 border-b border-slate-100 dark:border-oledBorder pb-3">
+        <i data-lucide="search" class="w-4 h-4 text-blue-500 shrink-0"></i>
+        <input type="text" id="global-search-input" placeholder="搜尋所有工作區歷史紀錄或設定..." oninput="performGlobalSearch(this.value)" class="w-full bg-transparent text-sm outline-none text-slate-800 dark:text-white placeholder:text-slate-400" />
+        <button onclick="toggleSearchModal(false)" class="text-slate-400 hover:text-slate-200"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div id="search-results" class="overflow-y-auto flex-1 space-y-2 text-xs text-slate-400">輸入關鍵字進行毫秒檢索...</div>
+    </div>
+  </div>
+
+  <!-- Artifact 沙盒執行視窗 (Sandbox Modal) -->
   <div id="sandbox-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex flex-col p-4 md:p-6">
     <div class="flex items-center justify-between bg-slate-900 border border-slate-800 px-4 py-2.5 rounded-t-2xl">
       <span class="text-xs font-mono text-emerald-400 flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> 沙盒即時渲染視窗
       </span>
-      <button onclick="toggleSandbox(false)" class="text-slate-400 hover:text-white">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
+      <button onclick="toggleSandbox(false)" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
     <iframe id="sandbox-iframe" class="w-full flex-1 bg-white rounded-b-2xl border border-slate-800 shadow-2xl"></iframe>
   </div>
 
+  <!-- 主視窗容器（含雙欄分屏） -->
   <div id="app-container">
     <!-- 頂部導航列 -->
     <header class="flex items-center justify-between px-3 md:px-5 py-2.5 bg-white/80 dark:bg-oled/80 backdrop-blur-md border-b border-slate-200/80 dark:border-oledBorder shrink-0 z-10">
       <div class="flex items-center space-x-2">
-        <button onclick="toggleSidebar(true)" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-oledCard text-slate-600 dark:text-slate-300">
+        <button onclick="toggleSidebar(true)" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-oledCard text-slate-600 dark:text-slate-300" title="切換工作空間">
           <i data-lucide="menu" class="w-4 h-4"></i>
         </button>
         <span class="font-bold text-sm md:text-base tracking-tight text-slate-800 dark:text-white flex items-center gap-1.5">
@@ -161,50 +175,86 @@
       </div>
       
       <div class="flex items-center space-x-1">
-        <button onclick="toggleDarkMode()" title="切換 OLED 全黑省電" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-amber-400 transition">
+        <button onclick="toggleSearchModal(true)" title="全域搜尋" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 transition">
+          <i data-lucide="search" class="w-4 h-4"></i>
+        </button>
+        <button onclick="toggleCanvasPanel()" id="canvas-toggle-btn" title="切換創作雙欄畫布" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 transition">
+          <i data-lucide="panel-right" class="w-4 h-4"></i>
+        </button>
+        <button onclick="toggleDarkMode()" title="切換 OLED 純黑" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-amber-400 transition">
           <i id="theme-icon" data-lucide="moon" class="w-4 h-4"></i>
         </button>
         <button onclick="clearHistory()" title="重置對話（保留設定集）" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-400 hover:text-rose-500 transition">
           <i data-lucide="refresh-ccw" class="w-4 h-4"></i>
         </button>
-        <button onclick="toggleSettingsModal(true)" title="設定與記憶庫 (Cmd/Ctrl + K)" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-slate-300 transition">
+        <button onclick="toggleSettingsModal(true)" title="設定與記憶庫" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-slate-300 transition">
           <i data-lucide="sliders" class="w-4 h-4"></i>
         </button>
       </div>
     </header>
 
-    <!-- 對話主區域 -->
-    <main class="flex-1 overflow-y-auto px-4 py-5 max-w-3xl w-full mx-auto space-y-6" id="chat-stream">
-      <div class="flex items-start space-x-3">
-        <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
-          <i data-lucide="sparkles" class="w-4 h-4"></i>
+    <!-- 中間核心對話與雙欄分屏區 -->
+    <div class="flex-1 flex overflow-hidden relative">
+      <!-- 左欄：主要對話串 -->
+      <main class="flex-1 overflow-y-auto px-4 py-5 max-w-3xl w-full mx-auto space-y-6" id="chat-stream">
+        <div class="flex items-start space-x-3">
+          <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
+            歡迎使用 <b>Gemini OmniStudio 終極版</b>！全方位功能已整合完畢：
+            <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
+              <li><b>雙欄創作畫布</b>：點擊右上角面板按鈕開啟即時寫作區</li>
+              <li><b>AI 生圖閉環</b>：輸入 <code class="text-blue-400">/image 提示詞</code> 即可生成圖片</li>
+              <li><b>Mermaid 向量架構圖</b>：自動繪製心智圖與流程時序圖</li>
+              <li><b>斜線快捷指令</b>：在輸入框鍵入 <code class="text-blue-400">/</code> 查看快捷操作</li>
+            </ul>
+          </div>
         </div>
-        <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          歡迎使用 <b>Gemini OmniStudio 旗艦平台</b>！已完整啟動：
-          <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>左側多工作區</b>：隨時開闢不同專案對話分頁</li>
-            <li><b>LaTeX 數理渲染</b>：支援行內與獨立複雜公式解析</li>
-            <li><b>思維鏈折疊卡</b>：清晰檢視內部深度推導細節</li>
-            <li><b>即時沙盒 Sandbox</b>：前端網頁與組件代碼一鍵在線預覽</li>
-            <li><b>分鏡與 Prompt 反推</b>：自動衍生視覺分鏡與繪圖指令</li>
-          </ul>
+      </main>
+
+      <!-- 右欄：獨立創作畫布 (Canvas Studio) -->
+      <aside id="canvas-panel" class="hidden w-80 md:w-96 border-l border-slate-200 dark:border-oledBorder bg-slate-50/50 dark:bg-oledSurface flex flex-col z-20">
+        <div class="p-3 border-b border-slate-200 dark:border-oledBorder flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+            <i data-lucide="pen-tool" class="w-3.5 h-3.5 text-blue-500"></i> 創作畫布 (Canvas)
+          </span>
+          <div class="flex items-center space-x-1">
+            <button onclick="downloadCanvasText()" class="p-1 text-slate-400 hover:text-slate-200" title="匯出 Markdown"><i data-lucide="download" class="w-3.5 h-3.5"></i></button>
+            <button onclick="toggleCanvasPanel(false)" class="p-1 text-slate-400 hover:text-slate-200"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+          </div>
         </div>
-      </div>
-    </main>
+        <textarea id="canvas-editor" placeholder="此處為你的長篇小說草稿、論文大綱或企劃筆記。對話串中的文字可一鍵插入此處..." class="flex-1 p-3.5 bg-transparent resize-none outline-none text-xs font-mono leading-relaxed text-slate-800 dark:text-slate-200" oninput="saveCanvasContent()"></textarea>
+      </aside>
+    </div>
 
     <!-- 底部輸入區域 -->
-    <footer class="p-3 max-w-3xl w-full mx-auto shrink-0 z-20">
+    <footer class="p-3 max-w-3xl w-full mx-auto shrink-0 z-20 relative">
+      <!-- 斜線快捷選單 (Slash Commands Popup) -->
+      <div id="slash-menu" class="hidden absolute bottom-full mb-2 left-4 right-4 max-w-md bg-white dark:bg-oledSurface border border-slate-200 dark:border-oledBorder rounded-2xl shadow-2xl p-2 space-y-1 text-xs z-30">
+        <div class="text-[10px] text-slate-400 px-2 py-1 font-semibold uppercase">快捷指令</div>
+        <div onclick="applySlash('/image ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
+          <span class="font-medium text-blue-500">/image [提示詞]</span><span class="text-slate-400">直接呼叫 AI 生成插圖</span>
+        </div>
+        <div onclick="applySlash('/mindmap ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
+          <span class="font-medium text-emerald-500">/mindmap [主題]</span><span class="text-slate-400">繪製 Mermaid 心智思維圖</span>
+        </div>
+        <div onclick="applySlash('/feynman ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
+          <span class="font-medium text-amber-500">/feynman [概念]</span><span class="text-slate-400">費曼學習法小學生白話解釋</span>
+        </div>
+        <div onclick="applySlash('/debate ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
+          <span class="font-medium text-rose-500">/debate [議題]</span><span class="text-slate-400">正反紅白臉深度辯證分析</span>
+        </div>
+      </div>
+
       <div class="oled-glass rounded-3xl border p-2 flex flex-col space-y-2 input-glow transition-all duration-300">
-        
-        <!-- 前作錨定指示條 -->
+        <!-- 特徵鎖定條 -->
         <div id="context-anchor-bar" class="hidden items-center justify-between text-xs bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-3.5 py-1.5 rounded-2xl border border-indigo-100/60 dark:border-indigo-800/40">
           <div class="flex items-center space-x-1.5 truncate">
             <i data-lucide="pin" class="w-3.5 h-3.5 shrink-0 text-blue-500"></i>
             <span id="anchor-preview" class="truncate font-medium">前作錨定啟用中</span>
           </div>
-          <button onclick="clearAnchor()" class="text-slate-400 hover:text-rose-500 transition">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-          </button>
+          <button onclick="clearAnchor()" class="text-slate-400 hover:text-rose-500 transition"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
         </div>
 
         <div id="file-preview-strip" class="hidden flex items-center gap-2 overflow-x-auto py-1 px-1"></div>
@@ -214,9 +264,9 @@
           <textarea 
             id="user-input" 
             rows="1" 
-            placeholder="輸入指令... (Enter 送出, Shift+Enter 換行)" 
+            placeholder="輸入指令或打 / 呼叫快捷... (Enter 送出)" 
             class="flex-1 max-h-32 resize-none bg-transparent outline-none px-2.5 py-1.5 text-slate-800 dark:text-slate-100 text-sm leading-6 placeholder:text-slate-400"
-            oninput="autoResize(this)"></textarea>
+            oninput="handleInputTyping(this)"></textarea>
           
           <label class="cursor-pointer p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledBorder text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0" title="上傳檔案/圖片">
             <i data-lucide="paperclip" class="w-4 h-4"></i>
@@ -232,17 +282,15 @@
           </button>
         </div>
 
-        <!-- 模式與面具切換工具列 -->
+        <!-- 模式切換列 -->
         <div class="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-oledBorder text-xs text-slate-500 dark:text-slate-400">
           <div class="flex items-center space-x-2">
-            <!-- 角色面具 -->
             <select id="persona-select" class="bg-transparent hover:bg-slate-50 dark:hover:bg-oledBorder rounded-lg px-1.5 py-0.5 outline-none font-medium cursor-pointer transition">
               <option value="architect" class="dark:bg-oledCard">🛠️ 全能架構師</option>
               <option value="strict_editor" class="dark:bg-oledCard">🔍 嚴苛故事審稿人</option>
               <option value="socratic_tutor" class="dark:bg-oledCard">🎓 費曼/蘇格拉底導師</option>
-              <option value="lore_chronicler" class="dark:bg-oledCard">📜 世界觀編年史官</option>
+              <option value="debate_judge" class="dark:bg-oledCard">⚖️ 紅白臉辯證裁判</option>
             </select>
-            <!-- 回覆約束模式 -->
             <select id="mode-select" class="bg-transparent hover:bg-slate-50 dark:hover:bg-oledBorder rounded-lg px-1.5 py-0.5 outline-none font-medium cursor-pointer transition">
               <option value="strict_lore" selected class="dark:bg-oledCard">🔒 嚴格記憶依從</option>
               <option value="creative_lore" class="dark:bg-oledCard">📖 創作發散衍生</option>
@@ -269,9 +317,7 @@
           </h3>
           <p class="text-xs text-slate-400">硬錨定至 System Instruction，全域 100% 絕對遵循</p>
         </div>
-        <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-slate-600">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+        <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
 
       <div class="overflow-y-auto space-y-4 flex-1 pr-1 text-xs">
@@ -312,10 +358,11 @@
 
   <script>
     lucide.createIcons();
+    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
-    // --- 1. IndexedDB 現代持久化架構 (Sessions, Messages, Settings) ---
-    const DB_NAME = 'GeminiStudio_OmniDB';
-    const DB_VERSION = 3;
+    // --- 1. IndexedDB 核心模組 ---
+    const DB_NAME = 'GeminiStudio_OmniDB_v4';
+    const DB_VERSION = 1;
     let db = null;
     let currentSessionId = 1;
 
@@ -358,11 +405,18 @@
         }
       };
 
+      const canvasReq = settingsStore.get('canvas_content');
+      canvasReq.onsuccess = () => {
+        if (canvasReq.result) {
+          document.getElementById('canvas-editor').value = canvasReq.result.value || "";
+        }
+      };
+
       const sessReq = sessionsStore.getAll();
       sessReq.onsuccess = async () => {
         const sessions = sessReq.result || [];
         if (sessions.length === 0) {
-          await createNewSession("新對話空間 1", false);
+          await createNewSession("主創作空間", false);
         } else {
           currentSessionId = sessions[0].id;
           renderSessionList(sessions);
@@ -371,14 +425,116 @@
       };
     }
 
-    // 工作區操作
+    // --- 2. 創作畫布 (Canvas) 操作與暫存 ---
+    function toggleCanvasPanel(force) {
+      triggerHaptic(10);
+      const panel = document.getElementById('canvas-panel');
+      const btn = document.getElementById('canvas-toggle-btn');
+      const isShow = force !== undefined ? force : panel.classList.contains('hidden');
+      if (isShow) {
+        panel.classList.remove('hidden');
+        btn.classList.add('text-blue-500');
+      } else {
+        panel.classList.add('hidden');
+        btn.classList.remove('text-blue-500');
+      }
+    }
+
+    function saveCanvasContent() {
+      if (!db) return;
+      const text = document.getElementById('canvas-editor').value;
+      const tx = db.transaction('settings', 'readwrite');
+      tx.objectStore('settings').put({ key: 'canvas_content', value: text });
+    }
+
+    function insertTextToCanvas(encoded) {
+      triggerHaptic(15);
+      toggleCanvasPanel(true);
+      const text = decodeURIComponent(encoded);
+      const editor = document.getElementById('canvas-editor');
+      editor.value += `\n\n${text}\n`;
+      saveCanvasContent();
+      alert('已將段落置入創作畫布！');
+    }
+
+    function downloadCanvasText() {
+      const text = document.getElementById('canvas-editor').value;
+      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `OmniStudio_Canvas_${Date.now()}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // --- 3. 斜線快捷指令 (Slash Commands) ---
+    function handleInputTyping(textarea) {
+      autoResize(textarea);
+      const val = textarea.value;
+      const menu = document.getElementById('slash-menu');
+      if (val.startsWith('/')) {
+        menu.classList.remove('hidden');
+      } else {
+        menu.classList.add('hidden');
+      }
+    }
+
+    function applySlash(prefix) {
+      triggerHaptic(10);
+      const input = document.getElementById('user-input');
+      input.value = prefix;
+      document.getElementById('slash-menu').classList.add('hidden');
+      input.focus();
+      autoResize(input);
+    }
+
+    // --- 4. 全域模糊搜尋 (Fuzzy Search) ---
+    function toggleSearchModal(show) {
+      triggerHaptic(10);
+      document.getElementById('search-modal').classList.toggle('hidden', !show);
+      if (show) document.getElementById('global-search-input').focus();
+    }
+
+    async function performGlobalSearch(keyword) {
+      const container = document.getElementById('search-results');
+      const kw = keyword.trim().toLowerCase();
+      if (!kw || !db) {
+        container.innerHTML = '輸入關鍵字進行檢索...';
+        return;
+      }
+      const tx = db.transaction(['messages', 'sessions'], 'readonly');
+      const msgs = await new Promise(r => {
+        const req = tx.objectStore('messages').getAll();
+        req.onsuccess = () => r(req.result || []);
+      });
+
+      const matched = msgs.filter(m => m.text.toLowerCase().includes(kw));
+      if (matched.length === 0) {
+        container.innerHTML = '查無相符歷史紀錄。';
+        return;
+      }
+
+      container.innerHTML = '';
+      matched.slice(-8).forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'p-2.5 rounded-xl bg-slate-100 dark:bg-oledCard border border-slate-200 dark:border-oledBorder cursor-pointer hover:border-blue-500 transition';
+        div.innerHTML = `<div class="font-bold text-[11px] text-blue-500">${m.role === 'user' ? '提問' : '回覆'}</div><div class="truncate text-slate-700 dark:text-slate-300 mt-1">${escapeHtml(m.text)}</div>`;
+        div.onclick = async () => {
+          toggleSearchModal(false);
+          await switchSession(m.sessionId);
+        };
+        container.appendChild(div);
+      });
+    }
+
+    // --- 5. 工作區操作 ---
     async function createNewSession(title = null, switchNow = true) {
       if (!db) return;
-      const sessionTitle = title || `對話專案 ${Date.now().toString().slice(-4)}`;
+      const sessionTitle = title || `專案 ${Date.now().toString().slice(-4)}`;
       const tx = db.transaction('sessions', 'readwrite');
       const store = tx.objectStore('sessions');
       const req = store.add({ title: sessionTitle, createdAt: Date.now() });
-      
       req.onsuccess = async () => {
         const newId = req.result;
         if (switchNow) {
@@ -402,9 +558,7 @@
             <i data-lucide="message-square" class="w-3.5 h-3.5 shrink-0"></i>
             <span class="truncate">${escapeHtml(sess.title)}</span>
           </div>
-          <button onclick="deleteSession(event, ${sess.id})" class="p-1 text-slate-400 hover:text-rose-500 opacity-60 hover:opacity-100">
-            <i data-lucide="trash" class="w-3 h-3"></i>
-          </button>
+          <button onclick="deleteSession(event, ${sess.id})" class="p-1 text-slate-400 hover:text-rose-500"><i data-lucide="trash" class="w-3 h-3"></i></button>
         `;
         list.appendChild(item);
       });
@@ -430,20 +584,17 @@
       if (!confirm('確定刪除此對話工作區？')) return;
       const tx = db.transaction(['sessions', 'messages'], 'readwrite');
       tx.objectStore('sessions').delete(id);
-      // 同步刪除其所有訊息
       const msgStore = tx.objectStore('messages');
       const index = msgStore.index('sessionId');
       const req = index.getAllKeys(id);
-      req.onsuccess = () => {
-        req.result.forEach(key => msgStore.delete(key));
-      };
+      req.onsuccess = () => req.result.forEach(k => msgStore.delete(k));
       tx.oncomplete = async () => {
         const allSessions = await new Promise(res => {
           const r = db.transaction('sessions', 'readonly').objectStore('sessions').getAll();
           r.onsuccess = () => res(r.result);
         });
         if (allSessions.length === 0) {
-          await createNewSession("主對話專案");
+          await createNewSession("主創作空間");
         } else {
           currentSessionId = allSessions[0].id;
           await refreshSessionList();
@@ -456,17 +607,15 @@
       chatHistory = [];
       const stream = document.getElementById('chat-stream');
       stream.innerHTML = '';
-
       const tx = db.transaction('messages', 'readonly');
       const store = tx.objectStore('messages');
       const index = store.index('sessionId');
       const req = index.getAll(sessId);
-
       req.onsuccess = () => {
         const msgs = req.result || [];
         chatHistory = msgs;
         if (msgs.length === 0) {
-          appendSystemMessage('✨ 新工作區已建立。開始輸入指令或匯入檔案吧！');
+          appendSystemMessage('✨ 專案已準備就緒，輸入訊息或打 / 呼叫快捷。');
         } else {
           msgs.forEach(m => renderMessage(m.role, m.text, false));
         }
@@ -487,7 +636,7 @@
 
     function clearHistory() {
       triggerHaptic(20);
-      if (!confirm('是否清空目前專案的對話紀錄？（世界觀與設定集會完好保留）')) return;
+      if (!confirm('是否清空目前專案的對話紀錄？（世界觀設定會完整保留）')) return;
       const tx = db.transaction('messages', 'readwrite');
       const store = tx.objectStore('messages');
       const index = store.index('sessionId');
@@ -500,7 +649,7 @@
       };
     }
 
-    // --- 2. 全域狀態與初始化 ---
+    // --- 6. 全域狀態與初始化 ---
     let chatHistory = [];
     let anchoredContext = "";
     let recognition = null;
@@ -549,14 +698,11 @@
       }
     }
 
-    // --- 3. 知識庫檔案批次匯入 ---
     function importKnowledgeFiles(event) {
       const files = Array.from(event.target.files);
       if (!files.length) return;
-
       let importedTotalText = "";
       let completedCount = 0;
-
       files.forEach(file => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -567,7 +713,7 @@
             textarea.value += importedTotalText;
             updateLorebookStats();
             triggerHaptic(15);
-            alert(`成功匯入 ${files.length} 個設定文件！請點選下方儲存。`);
+            alert(`成功匯入 ${files.length} 個設定文件！請記得點選下方儲存。`);
           }
         };
         reader.readAsText(file);
@@ -668,7 +814,6 @@
       const key = document.getElementById('api-key').value.trim();
       const lore = document.getElementById('lorebook-content').value;
       if (!key) return alert('請輸入 API Key');
-
       localStorage.setItem('omni_ai_key', btoa(key));
       saveLorebookToDB(lore);
       updateLorebookStats();
@@ -695,7 +840,6 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // --- 4. 圖片本地壓縮 ---
     async function compressImage(file) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -745,7 +889,7 @@
         } else {
           const reader = new FileReader();
           reader.onload = (evt) => {
-            document.getElementById('user-input').value += `\n[暫時附件: ${file.name}]\n${evt.target.result.slice(0, 8000)}`;
+            document.getElementById('user-input').value += `\n[附件: ${file.name}]\n${evt.target.result.slice(0, 8000)}`;
             autoResize(document.getElementById('user-input'));
           };
           reader.readAsText(file);
@@ -753,21 +897,33 @@
       }
     }
 
-    // --- 5. 核心發送與流式引擎 (SSE + LaTeX + CoT + Persona) ---
+    // --- 7. 發送核心與生圖/流式處理 ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
-      const prompt = inputEl.value.trim();
+      const rawPrompt = inputEl.value.trim();
       const rawKey = localStorage.getItem('omni_ai_key');
       const apiKey = rawKey ? atob(rawKey).trim() : '';
 
-      if (!prompt && attachedFilesData.length === 0) return;
+      document.getElementById('slash-menu').classList.add('hidden');
+
+      // 檢查是否為 AI 生圖指令 (/image)
+      if (rawPrompt.startsWith('/image ')) {
+        const imagePrompt = rawPrompt.replace('/image ', '').trim();
+        inputEl.value = '';
+        autoResize(inputEl);
+        renderMessage('user', rawPrompt, true);
+        renderGeneratedImage(imagePrompt);
+        return;
+      }
+
+      if (!rawPrompt && attachedFilesData.length === 0) return;
       if (!apiKey) {
         toggleSettingsModal(true);
         return;
       }
 
       triggerHaptic(20);
-      renderMessage('user', prompt, true);
+      renderMessage('user', rawPrompt, true);
       inputEl.value = '';
       autoResize(inputEl);
 
@@ -775,30 +931,30 @@
       const persona = document.getElementById('persona-select').value;
       const lorebook = document.getElementById('lorebook-content').value.trim();
 
-      // 面具人格與 System Prompt 構造
-      let systemPrompt = "【核心遵循準則】\n";
+      // 組合 System Instruction
+      let systemPrompt = "【核心準則】\n";
       if (persona === 'architect') {
-        systemPrompt += "角色設定：你是一位冷靜嚴謹的系統架構師與全能導師。分析必須層次分明，給出可落地實踐的架構，代碼排版必須規範。\n";
+        systemPrompt += "角色設定：資深系統架構師。分析必須層次分明，給出可落地架構，代碼排版必須規範。\n";
       } else if (persona === 'strict_editor') {
-        systemPrompt += "角色設定：你是一位資深嚴厲的故事審稿編輯。著重抓出邏輯矛盾、設定衝突、情節俗套，並提供精闢的重寫修改指引。\n";
+        systemPrompt += "角色設定：嚴苛的故事審稿編輯。著重挑出邏輯矛盾、設定衝突、老套情節，並給予修改方向。\n";
       } else if (persona === 'socratic_tutor') {
-        systemPrompt += "角色設定：你是採用費曼與蘇格拉底教學法的引導導師。不要直接給出完整答案，先引導關鍵概念並主動提出反思問題檢驗我的理解。\n";
-      } else if (persona === 'lore_chronicler') {
-        systemPrompt += "角色設定：你是世界觀編年史官。嚴格審視任何歷史、人物、陣營脈絡，賦予小說史詩感與深邃細節。\n";
+        systemPrompt += "角色設定：費曼與蘇格拉底教學法導師。不直接給出全解，先啟發核心概念並主動提出反詰問題檢驗理解。\n";
+      } else if (persona === 'debate_judge') {
+        systemPrompt += "角色設定：紅白臉辯證分析師。請分三部分回答：1.正方優勢 2.反方風險與漏洞 3.中立裁判裁決與建議。\n";
       }
 
-      systemPrompt += "排版要求：嚴格使用 Markdown 語法；複雜推導請包覆在 <think>...</think> 標籤中；涉及數理公式請一律使用標準 LaTeX 格式（行內用 $...$，獨立段落用 $$...$$）。\n";
+      systemPrompt += "格式規範：嚴格使用 Markdown；內部推導請放在 <think>...</think> 標籤中；數理公式一律使用標準 LaTeX（行內 $...$，獨立段落 $$...$$）；圖表請輸出標準 ```mermaid 區塊。\n";
 
       if (mode === 'strict_lore') {
-        systemPrompt += "模式約束：【絕對依從模式】一切事實嚴格以提供之設定集為最高準則，未提及者明示不知，絕不自行捏造。\n";
+        systemPrompt += "模式約束：【絕對依從模式】一切事實嚴格以設定集為最高準則，未提及者明示不知，絕不自行捏造。\n";
       } else if (mode === 'creative_lore') {
-        systemPrompt += "模式約束：【創作衍生模式】在絕不違反既定設定的前提下，自由豐富情緒、場景感官細節與劇情張力。\n";
+        systemPrompt += "模式約束：【創作衍生模式】在絕不違反既定設定的前提下，自由豐富情緒與感官細節。\n";
       } else if (mode === 'concise') {
         systemPrompt += "模式約束：【極簡摘要模式】提取核心結論，條列說明。\n";
       }
 
       if (lorebook) {
-        systemPrompt += `\n===================\n【硬錨定世界觀設定集】\n${lorebook}\n===================\n`;
+        systemPrompt += `\n===================\n【硬錨定設定集】\n${lorebook}\n===================\n`;
       }
       if (anchoredContext) {
         systemPrompt += `\n【前作特徵鎖定】: ${anchoredContext}\n`;
@@ -811,7 +967,7 @@
       attachedFilesData.forEach(f => {
         currentParts.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
       });
-      if (prompt) currentParts.push({ text: prompt });
+      if (rawPrompt) currentParts.push({ text: rawPrompt });
 
       attachedFilesData = [];
       document.getElementById('file-preview-strip').innerHTML = '';
@@ -840,7 +996,7 @@
 
       for (const model of candidateModels) {
         try {
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+          const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
           const response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -893,11 +1049,44 @@
       attachActionButtons(botCard, fullReply);
     }
 
-    // --- 6. 渲染引擎 (處理 CoT、LaTeX、Markdown 與代碼按鈕) ---
+    // --- 8. AI 即時生圖閉環渲染 ---
+    function renderGeneratedImage(prompt) {
+      const stream = document.getElementById('chat-stream');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'flex items-start space-x-3';
+      const encodedPrompt = encodeURIComponent(prompt);
+      const imageUrl = `[https://image.pollinations.ai/prompt/$](https://image.pollinations.ai/prompt/$){encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
+
+      wrapper.innerHTML = `
+        <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
+          <i data-lucide="image" class="w-4 h-4"></i>
+        </div>
+        <div class="bg-white dark:bg-oledCard p-3 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] space-y-2">
+          <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-pink-500"></i> AI 生圖: "${escapeHtml(prompt)}"
+          </div>
+          <div class="rounded-2xl overflow-hidden border border-slate-200 dark:border-oledBorder bg-slate-900 flex items-center justify-center min-h-[250px]">
+            <img src="${imageUrl}" alt="${escapeHtml(prompt)}" class="w-full h-auto object-cover rounded-xl" loading="lazy" onload="scrollChatToBottom()" />
+          </div>
+          <div class="action-buttons pt-1 flex items-center gap-2 text-xs text-slate-400">
+            <a href="${imageUrl}" target="_blank" download class="hover:text-blue-500 flex items-center gap-1"><i data-lucide="download" class="w-3.5 h-3.5"></i> 原圖</a>
+          </div>
+        </div>
+      `;
+      stream.appendChild(wrapper);
+      scrollChatToBottom();
+      lucide.createIcons();
+
+      const msgObj = { role: 'assistant', text: `[AI 生圖]: ${prompt}\n![image](${imageUrl})` };
+      chatHistory.push(msgObj);
+      saveMessageToDB(msgObj);
+    }
+
+    // --- 9. 渲染引擎 (處理 CoT、Mermaid、LaTeX、Markdown) ---
     function renderProcessedContent(container, rawText) {
       let processed = rawText;
 
-      // 提取 <think>...</think> 轉化為可折疊思維鏈卡片
+      // 提取 <think> 轉折疊卡
       processed = processed.replace(/<think>([\s\S]*?)<\/think>/gi, (match, p1) => {
         return `
           <details class="my-2 bg-slate-100 dark:bg-oledSurface border border-slate-200 dark:border-oledBorder rounded-2xl p-3 text-xs text-slate-500 dark:text-slate-400">
@@ -913,7 +1102,6 @@
 
       container.innerHTML = marked.parse(processed);
 
-      // 附加代碼複製與即時沙盒按鈕
       enhanceCodeBlocks(container);
 
       // KaTeX 公式自動渲染
@@ -926,6 +1114,20 @@
           throwOnError: false
         });
       }
+
+      // Mermaid 圖表渲染
+      try {
+        container.querySelectorAll('.language-mermaid').forEach((el) => {
+          const parent = el.parentElement;
+          const graphCode = el.innerText;
+          const mermaidDiv = document.createElement('div');
+          mermaidDiv.className = 'mermaid';
+          mermaidDiv.textContent = graphCode;
+          parent.replaceWith(mermaidDiv);
+        });
+        mermaid.run();
+      } catch(e) {}
+
       hljs.highlightAll();
     }
 
@@ -941,7 +1143,14 @@
         const toolbar = document.createElement('div');
         toolbar.className = 'code-toolbar absolute top-2 right-2 flex items-center gap-1.5';
 
-        // 複製代碼鍵
+        // 插入到創作畫布
+        const insertBtn = document.createElement('button');
+        insertBtn.className = 'insert-canvas-btn bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700';
+        insertBtn.innerText = '畫布';
+        insertBtn.onclick = () => insertTextToCanvas(encodeURIComponent(codeText));
+        toolbar.appendChild(insertBtn);
+
+        // 複製代碼
         const copyBtn = document.createElement('button');
         copyBtn.className = 'copy-code-btn bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700';
         copyBtn.innerText = '複製';
@@ -953,11 +1162,11 @@
         };
         toolbar.appendChild(copyBtn);
 
-        // 若為 HTML/SVG 則加入在線沙盒執行鍵
+        // 沙盒執行
         if (['html', 'svg', 'xml'].includes(lang) || codeText.includes('<!DOCTYPE html>') || codeText.includes('<html')) {
           const runBtn = document.createElement('button');
           runBtn.className = 'run-sandbox-btn bg-blue-600/90 hover:bg-blue-600 text-white shadow-sm';
-          runBtn.innerText = '⚡ 執行預覽';
+          runBtn.innerText = '⚡ 執行';
           runBtn.onclick = () => toggleSandbox(true, codeText);
           toolbar.appendChild(runBtn);
         }
@@ -1037,7 +1246,7 @@
       scrollChatToBottom();
     }
 
-    // --- 7. 智慧延伸動作按鈕 (分鏡反推、Anki 匯出、特徵錨定、朗讀) ---
+    // --- 10. 輔助操作按鈕列 ---
     function attachActionButtons(wrapper, text) {
       const container = wrapper.querySelector('.action-buttons');
       if (!container) return;
@@ -1045,14 +1254,17 @@
         <button onclick="speakText('${encodeURIComponent(text)}')" class="hover:text-slate-700 dark:hover:text-slate-200 flex items-center space-x-1 transition">
           <i data-lucide="volume-2" class="w-3.5 h-3.5"></i><span>朗讀</span>
         </button>
+        <button onclick="insertTextToCanvas('${encodeURIComponent(text)}')" class="hover:text-blue-500 flex items-center space-x-1 transition">
+          <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i><span>置入畫布</span>
+        </button>
         <button onclick="anchorForDerivation('${encodeURIComponent(text)}')" class="hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center space-x-1 transition">
           <i data-lucide="copy-plus" class="w-3.5 h-3.5"></i><span>錨定特徵</span>
         </button>
         <button onclick="deriveVisualStoryboard('${encodeURIComponent(text)}')" class="hover:text-amber-500 flex items-center space-x-1 transition">
-          <i data-lucide="clapperboard" class="w-3.5 h-3.5"></i><span>分鏡/繪圖提示詞</span>
+          <i data-lucide="clapperboard" class="w-3.5 h-3.5"></i><span>分鏡 Prompt</span>
         </button>
         <button onclick="exportAnkiCard('${encodeURIComponent(text)}')" class="hover:text-emerald-500 flex items-center space-x-1 transition">
-          <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i><span>導出 Anki 卡</span>
+          <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i><span>Anki 卡</span>
         </button>
         <button onclick="copyToClipboard('${encodeURIComponent(text)}')" class="hover:text-slate-700 dark:hover:text-slate-200 flex items-center space-x-1 transition">
           <i data-lucide="copy" class="w-3.5 h-3.5"></i><span>複製</span>
@@ -1061,29 +1273,27 @@
       lucide.createIcons();
     }
 
-    // 分鏡反推與繪圖 Prompt 生成
     function deriveVisualStoryboard(encodedText) {
       const text = decodeURIComponent(encodedText);
       const input = document.getElementById('user-input');
-      input.value = `請依據上述內容，提煉出視覺分鏡腳本，並提供可直接用於 Midjourney / Stable Diffusion 的英文繪圖 Prompt（含光影、構圖、視角）：\n${text.slice(0, 350)}...`;
+      input.value = `請依據上述內容提煉出視覺分鏡腳本，並提供英文繪圖 Prompt：\n${text.slice(0, 300)}...`;
       input.focus();
       autoResize(input);
       scrollChatToBottom();
     }
 
-    // 提煉 Anki 抽認卡 CSV 檔案
     function exportAnkiCard(encodedText) {
       triggerHaptic(10);
       const text = decodeURIComponent(encodedText);
       const firstLine = text.split('\n')[0].replace(/[#*]/g, '').trim().slice(0, 40) || '知識點總結';
       const cleanBack = text.replace(/"/g, '""').replace(/\n/g, '<br>');
-      const csvContent = `"問題/核心概念：${firstLine}","${cleanBack}"\n`;
+      const csvContent = `"問題：${firstLine}","${cleanBack}"\n`;
 
       const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Anki_Flashcard_${Date.now()}.csv`;
+      a.download = `Anki_Card_${Date.now()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -1119,7 +1329,6 @@
       document.getElementById('context-anchor-bar').classList.add('hidden');
     }
 
-    // 語音輸入與合成
     function initSpeech() {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRec) {
@@ -1164,7 +1373,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Gemini_OmniStudio_Session_${currentSessionId}_${Date.now()}.json`;
+      a.download = `OmniStudio_Session_${currentSessionId}_${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
