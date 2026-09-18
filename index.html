@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Gemini OmniStudio - Ultimate Edition</title>
+  <title>Gemini OmniStudio</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -28,16 +28,16 @@
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Marked.js (Markdown) -->
+  <!-- Marked.js (Markdown 解析) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Highlight.js (代碼高亮) -->
+  <!-- Highlight.js (代碼語法著色) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <!-- KaTeX (數學物理公式) -->
+  <!-- KaTeX (LaTeX 數學公式) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-  <!-- Mermaid.js (流程圖與心智圖) -->
+  <!-- Mermaid.js (向量流程圖與心智圖) -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
 
   <style>
@@ -107,7 +107,7 @@
       transition: all 0.2s;
     }
     details summary::-webkit-details-marker { display: none; }
-    .mermaid { display: flex; justify-content: center; background: #0b0c0e; padding: 1rem; border-radius: 1rem; margin: 0.8em 0; }
+    .mermaid-svg-box { display: flex; justify-content: center; background: #0b0c0e; padding: 1.25rem; border-radius: 1.25rem; margin: 0.8em 0; border: 1px solid #20242c; overflow-x: auto; }
   </style>
 </head>
 <body class="bg-white dark:bg-oled text-slate-800 dark:text-slate-100 antialiased select-none md:select-auto transition-colors duration-200">
@@ -131,7 +131,7 @@
   </div>
   <div id="sidebar-backdrop" onclick="toggleSidebar(false)" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden"></div>
 
-  <!-- 全域模糊搜尋彈窗 (Global Search) -->
+  <!-- 全域模糊搜尋彈窗 -->
   <div id="search-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-start justify-center p-4 pt-16">
     <div class="bg-white dark:bg-oledSurface rounded-3xl max-w-lg w-full p-5 space-y-4 border border-slate-200 dark:border-oledBorder shadow-2xl flex flex-col max-h-[80vh]">
       <div class="flex items-center gap-2 border-b border-slate-100 dark:border-oledBorder pb-3">
@@ -143,7 +143,7 @@
     </div>
   </div>
 
-  <!-- Artifact 沙盒執行視窗 (Sandbox Modal) -->
+  <!-- Artifact 沙盒視窗 -->
   <div id="sandbox-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex flex-col p-4 md:p-6">
     <div class="flex items-center justify-between bg-slate-900 border border-slate-800 px-4 py-2.5 rounded-t-2xl">
       <span class="text-xs font-mono text-emerald-400 flex items-center gap-2">
@@ -154,7 +154,7 @@
     <iframe id="sandbox-iframe" class="w-full flex-1 bg-white rounded-b-2xl border border-slate-800 shadow-2xl"></iframe>
   </div>
 
-  <!-- 主視窗容器（含雙欄分屏） -->
+  <!-- 主容器 -->
   <div id="app-container">
     <!-- 頂部導航列 -->
     <header class="flex items-center justify-between px-3 md:px-5 py-2.5 bg-white/80 dark:bg-oled/80 backdrop-blur-md border-b border-slate-200/80 dark:border-oledBorder shrink-0 z-10">
@@ -193,7 +193,7 @@
       </div>
     </header>
 
-    <!-- 中間核心對話與雙欄分屏區 -->
+    <!-- 中間核心對話與雙欄畫布 -->
     <div class="flex-1 flex overflow-hidden relative">
       <!-- 左欄：主要對話串 -->
       <main class="flex-1 overflow-y-auto px-4 py-5 max-w-3xl w-full mx-auto space-y-6" id="chat-stream">
@@ -202,18 +202,17 @@
             <i data-lucide="sparkles" class="w-4 h-4"></i>
           </div>
           <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-            歡迎使用 <b>Gemini OmniStudio 終極版</b>！全方位功能已整合完畢：
+            已全面修復通訊交替協定與 Imagen 3 原生繪圖通道！
             <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-              <li><b>雙欄創作畫布</b>：點擊右上角面板按鈕開啟即時寫作區</li>
-              <li><b>AI 生圖閉環</b>：輸入 <code class="text-blue-400">/image 提示詞</code> 即可生成圖片</li>
-              <li><b>Mermaid 向量架構圖</b>：自動繪製心智圖與流程時序圖</li>
-              <li><b>斜線快捷指令</b>：在輸入框鍵入 <code class="text-blue-400">/</code> 查看快捷操作</li>
+              <li><b>Google 官方 Imagen 3 生圖</b>：使用 <code class="text-blue-400">/image [英文提示詞]</code> 直接產出高品質原圖，絕不破圖</li>
+              <li><b>Mermaid 向量架構圖</b>：使用 <code class="text-blue-400">/mindmap [主題]</code> 生成視覺心智圖表</li>
+              <li><b>創作雙欄畫布</b>：點選右上角畫布圖示開啟右側寫作區</li>
             </ul>
           </div>
         </div>
       </main>
 
-      <!-- 右欄：獨立創作畫布 (Canvas Studio) -->
+      <!-- 右欄：獨立創作畫布 -->
       <aside id="canvas-panel" class="hidden w-80 md:w-96 border-l border-slate-200 dark:border-oledBorder bg-slate-50/50 dark:bg-oledSurface flex flex-col z-20">
         <div class="p-3 border-b border-slate-200 dark:border-oledBorder flex items-center justify-between">
           <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
@@ -224,20 +223,20 @@
             <button onclick="toggleCanvasPanel(false)" class="p-1 text-slate-400 hover:text-slate-200"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
           </div>
         </div>
-        <textarea id="canvas-editor" placeholder="此處為你的長篇小說草稿、論文大綱或企劃筆記。對話串中的文字可一鍵插入此處..." class="flex-1 p-3.5 bg-transparent resize-none outline-none text-xs font-mono leading-relaxed text-slate-800 dark:text-slate-200" oninput="saveCanvasContent()"></textarea>
+        <textarea id="canvas-editor" placeholder="長篇小說草稿、論文大綱或企劃筆記。對話串中的文字可一鍵插入此處..." class="flex-1 p-3.5 bg-transparent resize-none outline-none text-xs font-mono leading-relaxed text-slate-800 dark:text-slate-200" oninput="saveCanvasContent()"></textarea>
       </aside>
     </div>
 
     <!-- 底部輸入區域 -->
     <footer class="p-3 max-w-3xl w-full mx-auto shrink-0 z-20 relative">
-      <!-- 斜線快捷選單 (Slash Commands Popup) -->
+      <!-- 斜線快捷選單 -->
       <div id="slash-menu" class="hidden absolute bottom-full mb-2 left-4 right-4 max-w-md bg-white dark:bg-oledSurface border border-slate-200 dark:border-oledBorder rounded-2xl shadow-2xl p-2 space-y-1 text-xs z-30">
         <div class="text-[10px] text-slate-400 px-2 py-1 font-semibold uppercase">快捷指令</div>
         <div onclick="applySlash('/image ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
-          <span class="font-medium text-blue-500">/image [提示詞]</span><span class="text-slate-400">直接呼叫 AI 生成插圖</span>
+          <span class="font-medium text-blue-500">/image [提示詞]</span><span class="text-slate-400">Google Imagen 3 原生生圖</span>
         </div>
         <div onclick="applySlash('/mindmap ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
-          <span class="font-medium text-emerald-500">/mindmap [主題]</span><span class="text-slate-400">繪製 Mermaid 心智思維圖</span>
+          <span class="font-medium text-emerald-500">/mindmap [主題]</span><span class="text-slate-400">生成 Mermaid 心智/架構圖</span>
         </div>
         <div onclick="applySlash('/feynman ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
           <span class="font-medium text-amber-500">/feynman [概念]</span><span class="text-slate-400">費曼學習法小學生白話解釋</span>
@@ -307,7 +306,7 @@
     </footer>
   </div>
 
-  <!-- 旗艦設定與龐大知識庫控制面板 -->
+  <!-- 設定與知識庫控制面板 -->
   <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-oledSurface rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-100 dark:border-oledBorder max-h-[90vh] flex flex-col">
       <div class="flex justify-between items-center border-b border-slate-100 dark:border-oledBorder pb-3 shrink-0">
@@ -360,8 +359,8 @@
     lucide.createIcons();
     mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
-    // --- 1. IndexedDB 核心模組 ---
-    const DB_NAME = 'GeminiStudio_OmniDB_v4';
+    // --- 1. IndexedDB 模組 ---
+    const DB_NAME = 'GeminiStudio_OmniDB_v5';
     const DB_VERSION = 1;
     let db = null;
     let currentSessionId = 1;
@@ -425,7 +424,7 @@
       };
     }
 
-    // --- 2. 創作畫布 (Canvas) 操作與暫存 ---
+    // --- 2. 創作畫布 ---
     function toggleCanvasPanel(force) {
       triggerHaptic(10);
       const panel = document.getElementById('canvas-panel');
@@ -454,7 +453,7 @@
       const editor = document.getElementById('canvas-editor');
       editor.value += `\n\n${text}\n`;
       saveCanvasContent();
-      alert('已將段落置入創作畫布！');
+      alert('已置入創作畫布！');
     }
 
     function downloadCanvasText() {
@@ -468,7 +467,7 @@
       URL.revokeObjectURL(url);
     }
 
-    // --- 3. 斜線快捷指令 (Slash Commands) ---
+    // --- 3. 快捷指令 ---
     function handleInputTyping(textarea) {
       autoResize(textarea);
       const val = textarea.value;
@@ -489,7 +488,7 @@
       autoResize(input);
     }
 
-    // --- 4. 全域模糊搜尋 (Fuzzy Search) ---
+    // --- 4. 全域搜尋 ---
     function toggleSearchModal(show) {
       triggerHaptic(10);
       document.getElementById('search-modal').classList.toggle('hidden', !show);
@@ -503,7 +502,7 @@
         container.innerHTML = '輸入關鍵字進行檢索...';
         return;
       }
-      const tx = db.transaction(['messages', 'sessions'], 'readonly');
+      const tx = db.transaction(['messages'], 'readonly');
       const msgs = await new Promise(r => {
         const req = tx.objectStore('messages').getAll();
         req.onsuccess = () => r(req.result || []);
@@ -528,7 +527,7 @@
       });
     }
 
-    // --- 5. 工作區操作 ---
+    // --- 5. 工作區管理 ---
     async function createNewSession(title = null, switchNow = true) {
       if (!db) return;
       const sessionTitle = title || `專案 ${Date.now().toString().slice(-4)}`;
@@ -615,7 +614,7 @@
         const msgs = req.result || [];
         chatHistory = msgs;
         if (msgs.length === 0) {
-          appendSystemMessage('✨ 專案已準備就緒，輸入訊息或打 / 呼叫快捷。');
+          appendSystemMessage('✨ 專案已就緒，輸入訊息或打 / 呼叫快捷。');
         } else {
           msgs.forEach(m => renderMessage(m.role, m.text, false));
         }
@@ -713,7 +712,7 @@
             textarea.value += importedTotalText;
             updateLorebookStats();
             triggerHaptic(15);
-            alert(`成功匯入 ${files.length} 個設定文件！請記得點選下方儲存。`);
+            alert(`成功匯入 ${files.length} 個設定文件！請點選下方儲存。`);
           }
         };
         reader.readAsText(file);
@@ -897,7 +896,80 @@
       }
     }
 
-    // --- 7. 發送核心與生圖/流式處理 ---
+    // --- 7. Google 原生 Imagen 3 生圖核心 (絕不破圖) ---
+    async function generateImagen3(prompt) {
+      const rawKey = localStorage.getItem('omni_ai_key');
+      const apiKey = rawKey ? atob(rawKey).trim() : '';
+      if (!apiKey) {
+        toggleSettingsModal(true);
+        return alert('請先設定 Google Gemini API Key 即可啟用原生高畫質生圖！');
+      }
+
+      const stream = document.getElementById('chat-stream');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'flex items-start space-x-3';
+      wrapper.innerHTML = `
+        <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
+          <i data-lucide="image" class="w-4 h-4"></i>
+        </div>
+        <div class="bg-white dark:bg-oledCard p-3.5 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] space-y-2 w-full">
+          <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span> Google Imagen 3 生成中: "${escapeHtml(prompt)}"...
+          </div>
+          <div class="image-box rounded-2xl overflow-hidden border border-slate-200 dark:border-oledBorder bg-slate-900 flex items-center justify-center min-h-[220px]">
+            <div class="text-xs text-slate-400 animate-pulse">正在渲染高解析度畫面...</div>
+          </div>
+          <div class="action-buttons pt-1 flex items-center gap-2 text-xs text-slate-400 hidden"></div>
+        </div>
+      `;
+      stream.appendChild(wrapper);
+      scrollChatToBottom();
+      lucide.createIcons();
+
+      const imgBox = wrapper.querySelector('.image-box');
+      const actionBox = wrapper.querySelector('.action-buttons');
+
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(apiKey)}`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instances: [{ prompt: prompt }],
+            parameters: { sampleCount: 1, aspectRatio: "1:1" }
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+
+        const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+        if (!b64) throw new Error("未能取得影像資料");
+
+        const imgSrc = `data:image/png;base64,${b64}`;
+        imgBox.innerHTML = `<img src="${imgSrc}" class="w-full h-auto object-cover rounded-xl" />`;
+        actionBox.classList.remove('hidden');
+        actionBox.innerHTML = `
+          <a href="${imgSrc}" download="Imagen_${Date.now()}.png" class="hover:text-blue-500 flex items-center gap-1 font-medium"><i data-lucide="download" class="w-3.5 h-3.5"></i> 下載原圖 (PNG)</a>
+        `;
+        lucide.createIcons();
+        scrollChatToBottom();
+
+        const msgObj = { role: 'assistant', text: `[Imagen 3 生成圖片: ${prompt}]\n![image](${imgSrc})` };
+        chatHistory.push(msgObj);
+        saveMessageToDB(msgObj);
+
+      } catch (err) {
+        imgBox.innerHTML = `
+          <div class="p-4 text-center text-xs text-rose-500">
+            生圖失敗：${escapeHtml(err.message)}<br/>
+            <span class="text-slate-400 mt-1 inline-block text-[11px]">提示：請確認金鑰具備 Imagen 權限，或嘗試不同提示詞。</span>
+          </div>
+        `;
+      }
+    }
+
+    // --- 8. 訊息發送核心 (徹底修復 400 交替通訊 Bug) ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const rawPrompt = inputEl.value.trim();
@@ -906,24 +978,39 @@
 
       document.getElementById('slash-menu').classList.add('hidden');
 
-      // 檢查是否為 AI 生圖指令 (/image)
+      // 攔截 /image 走原生生圖
       if (rawPrompt.startsWith('/image ')) {
         const imagePrompt = rawPrompt.replace('/image ', '').trim();
         inputEl.value = '';
         autoResize(inputEl);
         renderMessage('user', rawPrompt, true);
-        renderGeneratedImage(imagePrompt);
+        await generateImagen3(imagePrompt);
         return;
       }
 
       if (!rawPrompt && attachedFilesData.length === 0) return;
       if (!apiKey) {
         toggleSettingsModal(true);
-        return;
+        return alert('請先至右上角設定輸入 Google Gemini API Key');
+      }
+
+      // 指令增強處理
+      let actualPrompt = rawPrompt;
+      if (rawPrompt.startsWith('/mindmap ')) {
+        const topic = rawPrompt.replace('/mindmap ', '').trim();
+        actualPrompt = `請針對『${topic}』進行深度架構拆解，並嚴格使用標準 \`\`\`mermaid 區塊輸出 Mindmap（心智圖）或 Graph（架構圖），確保排版清晰美觀，附上簡要解說。`;
+      } else if (rawPrompt.startsWith('/feynman ')) {
+        const topic = rawPrompt.replace('/feynman ', '').trim();
+        actualPrompt = `請運用「費曼學習法」，以極其生動、通俗、小學生都能秒懂的比喻，深入淺出地解釋『${topic}』的核心本質，並指出常見盲點。`;
+      } else if (rawPrompt.startsWith('/debate ')) {
+        const topic = rawPrompt.replace('/debate ', '').trim();
+        actualPrompt = `請針對『${topic}』展開深度的紅白臉辯證：1. 正方觀點（利益與支撐論據） 2. 反方觀點（風險、隱患與漏洞批判） 3. 獨立裁判的綜合裁決與務實建議。`;
       }
 
       triggerHaptic(20);
-      renderMessage('user', rawPrompt, true);
+      
+      // 注意：此處僅在畫面渲染使用者訊息，先不寫入 chatHistory，待發送完畢再統一寫入，徹底杜絕重複交替錯誤
+      renderMessage('user', rawPrompt, false);
       inputEl.value = '';
       autoResize(inputEl);
 
@@ -931,16 +1018,15 @@
       const persona = document.getElementById('persona-select').value;
       const lorebook = document.getElementById('lorebook-content').value.trim();
 
-      // 組合 System Instruction
-      let systemPrompt = "【核心準則】\n";
+      let systemPrompt = "【核心遵循準則】\n";
       if (persona === 'architect') {
-        systemPrompt += "角色設定：資深系統架構師。分析必須層次分明，給出可落地架構，代碼排版必須規範。\n";
+        systemPrompt += "角色設定：資深系統架構師。層次分明，給出可落地架構，代碼排版必須規範。\n";
       } else if (persona === 'strict_editor') {
-        systemPrompt += "角色設定：嚴苛的故事審稿編輯。著重挑出邏輯矛盾、設定衝突、老套情節，並給予修改方向。\n";
+        systemPrompt += "角色設定：嚴苛的故事審稿編輯。挑出邏輯矛盾、設定衝突、老套情節，並給予修改方向。\n";
       } else if (persona === 'socratic_tutor') {
         systemPrompt += "角色設定：費曼與蘇格拉底教學法導師。不直接給出全解，先啟發核心概念並主動提出反詰問題檢驗理解。\n";
       } else if (persona === 'debate_judge') {
-        systemPrompt += "角色設定：紅白臉辯證分析師。請分三部分回答：1.正方優勢 2.反方風險與漏洞 3.中立裁判裁決與建議。\n";
+        systemPrompt += "角色設定：紅白臉辯證分析師。請分三部分回答：1.正方優勢 2.反方風險 3.中立裁判裁決與建議。\n";
       }
 
       systemPrompt += "格式規範：嚴格使用 Markdown；內部推導請放在 <think>...</think> 標籤中；數理公式一律使用標準 LaTeX（行內 $...$，獨立段落 $$...$$）；圖表請輸出標準 ```mermaid 區塊。\n";
@@ -967,16 +1053,30 @@
       attachedFilesData.forEach(f => {
         currentParts.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
       });
-      if (rawPrompt) currentParts.push({ text: rawPrompt });
+      currentParts.push({ text: actualPrompt });
 
       attachedFilesData = [];
       document.getElementById('file-preview-strip').innerHTML = '';
       document.getElementById('file-preview-strip').classList.add('hidden');
 
-      const safeHistory = chatHistory.slice(-4).map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.text }]
-      }));
+      // 嚴格交替過濾器：確保發送歷史必然是 user -> model -> user -> model 交替
+      const formattedHistory = [];
+      let expectedRole = 'user';
+      for (const msg of chatHistory.slice(-6)) {
+        const apiRole = msg.role === 'assistant' ? 'model' : 'user';
+        if (apiRole === expectedRole) {
+          formattedHistory.push({
+            role: apiRole,
+            parts: [{ text: msg.text }]
+          });
+          expectedRole = expectedRole === 'user' ? 'model' : 'user';
+        }
+      }
+
+      // 如果最後一個是 user，移除它以保證接下來能接上當前的 user 發問
+      if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === 'user') {
+        formattedHistory.pop();
+      }
 
       const payload = {
         systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -985,7 +1085,7 @@
           topP: 0.85
         },
         contents: [
-          ...safeHistory,
+          ...formattedHistory,
           { role: "user", parts: currentParts }
         ]
       };
@@ -993,6 +1093,7 @@
       const candidateModels = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
       let fullReply = "";
       let success = false;
+      let lastErrorMessage = "";
 
       for (const model of candidateModels) {
         try {
@@ -1003,7 +1104,11 @@
             body: JSON.stringify(payload)
           });
 
-          if (!response.ok) continue;
+          if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            lastErrorMessage = errJson.error?.message || `HTTP ${response.status}`;
+            continue;
+          }
 
           const reader = response.body.getReader();
           const decoder = new TextDecoder('utf-8');
@@ -1034,56 +1139,28 @@
           contentEl.classList.remove('typing-cursor');
           success = true;
           break;
-        } catch(err) {}
+        } catch(err) {
+          lastErrorMessage = err.message;
+        }
       }
 
       if (!success) {
         contentEl.classList.remove('typing-cursor');
-        contentEl.innerHTML = `<span class="text-rose-500 font-medium">連線受阻，請稍候重試。</span>`;
+        contentEl.innerHTML = `<span class="text-rose-500 font-medium">連線受阻：${escapeHtml(lastErrorMessage || '請稍候重試')}</span>`;
         return;
       }
 
-      const msgObj = { role: 'assistant', text: fullReply };
-      chatHistory.push(msgObj);
-      saveMessageToDB(msgObj);
+      // 發送成功後，才寫入本機資料庫保持順序完整
+      const userObj = { role: 'user', text: rawPrompt };
+      const botObj = { role: 'assistant', text: fullReply };
+      chatHistory.push(userObj, botObj);
+      saveMessageToDB(userObj);
+      saveMessageToDB(botObj);
       attachActionButtons(botCard, fullReply);
     }
 
-    // --- 8. AI 即時生圖閉環渲染 ---
-    function renderGeneratedImage(prompt) {
-      const stream = document.getElementById('chat-stream');
-      const wrapper = document.createElement('div');
-      wrapper.className = 'flex items-start space-x-3';
-      const encodedPrompt = encodeURIComponent(prompt);
-      const imageUrl = `[https://image.pollinations.ai/prompt/$](https://image.pollinations.ai/prompt/$){encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
-
-      wrapper.innerHTML = `
-        <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
-          <i data-lucide="image" class="w-4 h-4"></i>
-        </div>
-        <div class="bg-white dark:bg-oledCard p-3 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] space-y-2">
-          <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-pink-500"></i> AI 生圖: "${escapeHtml(prompt)}"
-          </div>
-          <div class="rounded-2xl overflow-hidden border border-slate-200 dark:border-oledBorder bg-slate-900 flex items-center justify-center min-h-[250px]">
-            <img src="${imageUrl}" alt="${escapeHtml(prompt)}" class="w-full h-auto object-cover rounded-xl" loading="lazy" onload="scrollChatToBottom()" />
-          </div>
-          <div class="action-buttons pt-1 flex items-center gap-2 text-xs text-slate-400">
-            <a href="${imageUrl}" target="_blank" download class="hover:text-blue-500 flex items-center gap-1"><i data-lucide="download" class="w-3.5 h-3.5"></i> 原圖</a>
-          </div>
-        </div>
-      `;
-      stream.appendChild(wrapper);
-      scrollChatToBottom();
-      lucide.createIcons();
-
-      const msgObj = { role: 'assistant', text: `[AI 生圖]: ${prompt}\n![image](${imageUrl})` };
-      chatHistory.push(msgObj);
-      saveMessageToDB(msgObj);
-    }
-
-    // --- 9. 渲染引擎 (處理 CoT、Mermaid、LaTeX、Markdown) ---
-    function renderProcessedContent(container, rawText) {
+    // --- 9. 渲染引擎 (處理 CoT、Mermaid 異步圖表、LaTeX) ---
+    async function renderProcessedContent(container, rawText) {
       let processed = rawText;
 
       // 提取 <think> 轉折疊卡
@@ -1104,7 +1181,7 @@
 
       enhanceCodeBlocks(container);
 
-      // KaTeX 公式自動渲染
+      // KaTeX 公式渲染
       if (window.renderMathInElement) {
         renderMathInElement(container, {
           delimiters: [
@@ -1115,18 +1192,22 @@
         });
       }
 
-      // Mermaid 圖表渲染
-      try {
-        container.querySelectorAll('.language-mermaid').forEach((el) => {
-          const parent = el.parentElement;
-          const graphCode = el.innerText;
-          const mermaidDiv = document.createElement('div');
-          mermaidDiv.className = 'mermaid';
-          mermaidDiv.textContent = graphCode;
-          parent.replaceWith(mermaidDiv);
-        });
-        mermaid.run();
-      } catch(e) {}
+      // Mermaid 異步向量繪製
+      const mermaidElements = container.querySelectorAll('.language-mermaid');
+      for (const el of mermaidElements) {
+        const parent = el.closest('pre') || el;
+        const code = el.innerText.trim();
+        const id = 'mmd-' + Math.random().toString(36).substr(2, 9);
+        try {
+          const { svg } = await mermaid.render(id, code);
+          const box = document.createElement('div');
+          box.className = 'mermaid-svg-box';
+          box.innerHTML = svg;
+          parent.replaceWith(box);
+        } catch(e) {
+          // 若語法未完整輸入，暫時保留原樣不崩潰
+        }
+      }
 
       hljs.highlightAll();
     }
@@ -1140,17 +1221,18 @@
         const langClass = codeEl ? Array.from(codeEl.classList).find(c => c.startsWith('language-')) : '';
         const lang = langClass ? langClass.replace('language-', '').toLowerCase() : '';
 
+        // 如果是 mermaid 代碼則交給 mermaid 渲染，不加工具列
+        if (lang === 'mermaid') return;
+
         const toolbar = document.createElement('div');
         toolbar.className = 'code-toolbar absolute top-2 right-2 flex items-center gap-1.5';
 
-        // 插入到創作畫布
         const insertBtn = document.createElement('button');
         insertBtn.className = 'insert-canvas-btn bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700';
         insertBtn.innerText = '畫布';
         insertBtn.onclick = () => insertTextToCanvas(encodeURIComponent(codeText));
         toolbar.appendChild(insertBtn);
 
-        // 複製代碼
         const copyBtn = document.createElement('button');
         copyBtn.className = 'copy-code-btn bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700';
         copyBtn.innerText = '複製';
@@ -1162,7 +1244,6 @@
         };
         toolbar.appendChild(copyBtn);
 
-        // 沙盒執行
         if (['html', 'svg', 'xml'].includes(lang) || codeText.includes('<!DOCTYPE html>') || codeText.includes('<html')) {
           const runBtn = document.createElement('button');
           runBtn.className = 'run-sandbox-btn bg-blue-600/90 hover:bg-blue-600 text-white shadow-sm';
@@ -1246,7 +1327,7 @@
       scrollChatToBottom();
     }
 
-    // --- 10. 輔助操作按鈕列 ---
+    // --- 10. 動作工具 ---
     function attachActionButtons(wrapper, text) {
       const container = wrapper.querySelector('.action-buttons');
       if (!container) return;
@@ -1276,7 +1357,7 @@
     function deriveVisualStoryboard(encodedText) {
       const text = decodeURIComponent(encodedText);
       const input = document.getElementById('user-input');
-      input.value = `請依據上述內容提煉出視覺分鏡腳本，並提供英文繪圖 Prompt：\n${text.slice(0, 300)}...`;
+      input.value = `請依據上述內容提煉出分鏡腳本，並提供可直接用於生圖的英文 Prompt：\n${text.slice(0, 300)}...`;
       input.focus();
       autoResize(input);
       scrollChatToBottom();
