@@ -1,21 +1,37 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Gemini Studio</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            oled: '#000000',
+            oledSurface: '#0d0e11',
+            oledCard: '#15171c',
+            oledBorder: '#232730'
+          }
+        }
+      }
+    }
+  </script>
+
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Marked.js (Markdown 解析) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Highlight.js (代碼高亮) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css" />
+  <!-- Highlight.js (代碼語法著色) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
   <style>
@@ -24,27 +40,35 @@
       height: 100%;
       height: 100dvh;
       overflow: hidden;
-      background-color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     #app-container {
       height: 100%;
       display: flex;
       flex-direction: column;
       padding-bottom: var(--keyboard-offset);
-      transition: padding-bottom 0.12s cubic-bezier(0.1, 0.9, 0.2, 1);
+      transition: padding-bottom 0.1s cubic-bezier(0.1, 0.9, 0.2, 1);
     }
-    /* 玻璃擬態與光暈 */
-    .glass-dock {
+    /* OLED 全黑擬態毛玻璃 */
+    .dark .oled-glass {
+      background: rgba(13, 14, 17, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-color: #232730;
+      box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.8);
+    }
+    .oled-glass {
       background: rgba(255, 255, 255, 0.88);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 1px 1px rgba(0, 0, 0, 0.05);
+      border-color: #e2e8f0;
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
     }
+    /* 發光聚焦邊框 */
     .input-glow:focus-within {
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), 0 12px 32px -4px rgba(59, 130, 246, 0.12);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4), 0 0 25px -3px rgba(59, 130, 246, 0.2);
     }
-    /* 打字游標動畫 */
+    /* 打字游標 */
     .typing-cursor::after {
       content: '▋';
       display: inline-block;
@@ -54,75 +78,102 @@
       margin-left: 2px;
     }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-    /* 骨架屏流光動態 */
+    /* 骨架屏 */
     .skeleton-shimmer {
-      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background: linear-gradient(90deg, #18191f 25%, #252833 50%, #18191f 75%);
       background-size: 200% 100%;
       animation: shimmer 1.5s infinite;
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    /* Markdown 樣式細節 */
+    /* Markdown 樣式細化 */
     .prose-custom p { margin-bottom: 0.6em; line-height: 1.65; }
     .prose-custom p:last-child { margin-bottom: 0; }
-    .prose-custom pre { border-radius: 0.85rem; margin: 0.6em 0; overflow-x: auto; background: #22272e; }
+    .prose-custom pre {
+      position: relative;
+      border-radius: 1rem;
+      margin: 0.8em 0;
+      padding: 1rem;
+      background: #090a0d !important;
+      border: 1px solid #1f232b;
+      overflow-x: auto;
+    }
     .prose-custom code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.82rem; }
+    /* 代碼複製按鈕 */
+    .copy-code-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.7rem;
+      color: #94a3b8;
+      background: #1a1d24;
+      border: 1px solid #2d333f;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .copy-code-btn:hover { color: #ffffff; background: #2b303c; }
   </style>
 </head>
-<body class="text-slate-800 antialiased select-none md:select-auto">
+<body class="bg-white dark:bg-oled text-slate-800 dark:text-slate-100 antialiased select-none md:select-auto transition-colors duration-200">
 
-  <!-- 診斷狀態告警浮條 (平時靜音，異常時優雅滑出) -->
-  <div id="diag-banner" class="hidden fixed top-3 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-4 py-2 rounded-2xl shadow-xl text-xs flex items-center space-x-2 transition-all duration-300">
+  <!-- 浮動告警條 -->
+  <div id="diag-banner" class="hidden fixed top-3 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-4 py-2 rounded-2xl shadow-xl text-xs flex items-center space-x-2">
     <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
     <span id="diag-banner-text">系統偵測到配置異常</span>
     <button onclick="toggleSettingsModal(true)" class="underline font-bold ml-2">檢查</button>
   </div>
 
   <div id="app-container">
-    <!-- 頂部導航 -->
-    <header class="flex items-center justify-between px-4 py-2.5 bg-white/80 backdrop-blur-md border-b border-slate-200/80 shrink-0 z-10">
+    <!-- 頂部導航列 -->
+    <header class="flex items-center justify-between px-4 py-2.5 bg-white/80 dark:bg-oled/80 backdrop-blur-md border-b border-slate-200/80 dark:border-oledBorder shrink-0 z-10">
       <div class="flex items-center space-x-2">
-        <span class="font-bold text-base tracking-tight text-slate-800 flex items-center gap-2">
+        <span class="font-bold text-base tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
           <span class="w-6 h-6 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-sm">
             <i data-lucide="sparkle" class="w-3.5 h-3.5"></i>
           </span>
           Gemini Studio
         </span>
-        <div id="net-status" class="flex items-center text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+        <div id="net-status" class="flex items-center text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/40 dark:border-emerald-800/40">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-          <span id="net-text">在線良好</span>
+          <span id="net-text">在線正常</span>
         </div>
       </div>
       
       <div class="flex items-center space-x-1">
-        <button onclick="clearHistory()" title="清除本對話歷史" class="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-rose-600 transition">
+        <!-- OLED 純黑省電模式切換按鍵 -->
+        <button onclick="toggleDarkMode()" title="切換 OLED 全黑省電模式" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-amber-400 transition">
+          <i id="theme-icon" data-lucide="moon" class="w-4 h-4"></i>
+        </button>
+        <button onclick="clearHistory()" title="清除紀錄" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-400 hover:text-rose-500 transition">
           <i data-lucide="trash-2" class="w-4 h-4"></i>
         </button>
-        <button onclick="toggleSettingsModal(true)" title="設定 (快捷鍵: Cmd/Ctrl + K)" class="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition">
+        <button onclick="toggleSettingsModal(true)" title="設定 (Cmd/Ctrl + K)" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-slate-300 transition">
           <i data-lucide="settings" class="w-4 h-4"></i>
         </button>
       </div>
     </header>
 
-    <!-- 對話主區域 -->
+    <!-- 對話區域 (自適應寬度與螢幕旋轉) -->
     <main class="flex-1 overflow-y-auto px-4 py-5 max-w-3xl w-full mx-auto space-y-6" id="chat-stream">
       <div class="flex items-start space-x-3">
         <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
-        <div class="bg-white p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700">
-          歡迎來到 <b>Gemini Studio</b>！全套高規格已就緒：支援<b>真·逐字流式輸出</b>、<b>代碼高亮與公式渲染</b>、<b>圖片本地自動壓縮</b>與 <b>IndexedDB 超大資料庫持久化</b>。
+        <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
+          已啟用 <b>OLED 全黑極致省電模式</b> 與 <b>自動旋轉版面自適應</b>。支援程式碼一鍵複製、觸覺反饋與 Gemini 3.6 Flash 原生串流。
         </div>
       </div>
     </main>
 
-    <!-- 底部浮動輸入區 (Gemini 2026 旗艦毛玻璃設計) -->
-    <footer class="p-3.5 max-w-3xl w-full mx-auto shrink-0 z-20">
-      <div class="glass-dock rounded-3xl border border-slate-200/70 p-2.5 flex flex-col space-y-2 input-glow transition-all duration-300">
+    <!-- 底部浮動輸入區 (橫豎螢幕自動高度收攏) -->
+    <footer class="p-3 max-w-3xl w-full mx-auto shrink-0 z-20" id="footer-container">
+      <div class="oled-glass rounded-3xl border p-2 flex flex-col space-y-2 input-glow transition-all duration-300">
         
-        <!-- 前作衍生特徵指示 -->
-        <div id="context-anchor-bar" class="hidden items-center justify-between text-xs bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 px-3.5 py-1.5 rounded-2xl border border-indigo-100/60">
+        <!-- 前作特徵指示 -->
+        <div id="context-anchor-bar" class="hidden items-center justify-between text-xs bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-3.5 py-1.5 rounded-2xl border border-indigo-100/60 dark:border-indigo-800/40">
           <div class="flex items-center space-x-1.5 truncate">
-            <i data-lucide="pin" class="w-3.5 h-3.5 shrink-0 text-blue-600"></i>
+            <i data-lucide="pin" class="w-3.5 h-3.5 shrink-0 text-blue-500"></i>
             <span id="anchor-preview" class="truncate font-medium">特徵錨定啟用中</span>
           </div>
           <button onclick="clearAnchor()" class="text-slate-400 hover:text-rose-500 transition">
@@ -130,24 +181,24 @@
           </button>
         </div>
 
-        <!-- 檔案預覽列 -->
+        <!-- 檔案預覽 -->
         <div id="file-preview-strip" class="hidden flex items-center gap-2 overflow-x-auto py-1 px-1"></div>
 
-        <!-- 文字輸入區域 -->
+        <!-- 輸入欄位 -->
         <div class="flex items-end space-x-1.5">
           <textarea 
             id="user-input" 
             rows="1" 
             placeholder="輸入指令... (Enter 送出, Shift+Enter 換行)" 
-            class="flex-1 max-h-36 resize-none bg-transparent outline-none px-2.5 py-1.5 text-slate-800 text-sm leading-6 placeholder:text-slate-400"
+            class="flex-1 max-h-32 resize-none bg-transparent outline-none px-2.5 py-1.5 text-slate-800 dark:text-slate-100 text-sm leading-6 placeholder:text-slate-400"
             oninput="autoResize(this)"></textarea>
           
-          <label class="cursor-pointer p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition shrink-0" title="上傳檔案/圖片 (自動壓縮)">
+          <label class="cursor-pointer p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledBorder text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0" title="上傳檔案/圖片">
             <i data-lucide="paperclip" class="w-4 h-4"></i>
             <input type="file" id="file-uploader" class="hidden" onchange="handleFileUpload(event)" multiple accept="image/*,.txt,.md,.pdf,.json" />
           </label>
 
-          <button id="mic-btn" onclick="toggleSpeechRecognition()" class="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition shrink-0" title="語音輸入">
+          <button id="mic-btn" onclick="toggleSpeechRecognition()" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledBorder text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0" title="語音輸入">
             <i data-lucide="mic" class="w-4 h-4"></i>
           </button>
 
@@ -156,16 +207,16 @@
           </button>
         </div>
 
-        <!-- 底部控制列 -->
-        <div class="flex items-center justify-between pt-1.5 border-t border-slate-100 text-xs text-slate-500">
-          <select id="mode-select" class="bg-transparent hover:bg-slate-50 rounded-lg px-1.5 py-0.5 outline-none font-medium cursor-pointer transition">
-            <option value="concise">⚡ 快速精要 (極速省流)</option>
-            <option value="in_depth" selected>🔬 深度探究 (理智縝密)</option>
-            <option value="storyteller">📖 小說世界觀 (感性豐沛)</option>
+        <!-- 控制工具列 -->
+        <div class="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-oledBorder text-xs text-slate-500 dark:text-slate-400">
+          <select id="mode-select" class="bg-transparent hover:bg-slate-50 dark:hover:bg-oledBorder rounded-lg px-1.5 py-0.5 outline-none font-medium cursor-pointer transition">
+            <option value="concise" class="dark:bg-oledCard">⚡ 快速精要 (極速省流)</option>
+            <option value="in_depth" selected class="dark:bg-oledCard">🔬 深度探究 (理智縝密)</option>
+            <option value="storyteller" class="dark:bg-oledCard">📖 小說世界觀 (感性豐沛)</option>
           </select>
           <div class="flex items-center space-x-3 text-slate-400">
-            <button onclick="exportChat()" class="hover:text-slate-700 flex items-center space-x-1 transition">
-              <i data-lucide="download" class="w-3.5 h-3.5"></i><span>匯出備份</span>
+            <button onclick="exportChat()" class="hover:text-slate-700 dark:hover:text-slate-200 flex items-center space-x-1 transition">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i><span>匯出記錄</span>
             </button>
           </div>
         </div>
@@ -174,31 +225,30 @@
   </div>
 
   <!-- 設定與金鑰面板 -->
-  <div id="settings-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-100">
-      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-        <h3 class="font-bold text-slate-800 text-base">偏好與安全金鑰</h3>
+  <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-oledSurface rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-100 dark:border-oledBorder">
+      <div class="flex justify-between items-center border-b border-slate-100 dark:border-oledBorder pb-3">
+        <h3 class="font-bold text-slate-800 dark:text-white text-base">偏好與安全金鑰</h3>
         <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-slate-600">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-600 flex justify-between">
+        <label class="text-xs font-semibold text-slate-600 dark:text-slate-300 flex justify-between">
           <span>Google Gemini API Key</span>
-          <span id="key-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 hidden font-semibold">有效</span>
+          <span id="key-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 hidden font-semibold">就緒</span>
         </label>
-        <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 rounded-2xl p-2.5 text-xs outline-none focus:border-blue-500 font-mono transition" />
-        <p class="text-[11px] text-slate-400 leading-normal">安全沙盒存於瀏覽器本地，直接直連 Google 官方，不經第三方。</p>
+        <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-2xl p-2.5 text-xs outline-none focus:border-blue-500 font-mono transition" />
       </div>
 
       <div class="space-y-1">
-        <label class="text-xs font-semibold text-slate-600">全局記憶點 (約束人設、偏好)</label>
-        <textarea id="core-memories" rows="3" placeholder="例如：深入研究、兼具理性感性、台灣繁體用語..." class="w-full border border-slate-200 rounded-2xl p-2 text-xs outline-none focus:border-blue-500 transition"></textarea>
+        <label class="text-xs font-semibold text-slate-600 dark:text-slate-300">全局記憶點 (約束條件)</label>
+        <textarea id="core-memories" rows="3" placeholder="例如：深入探討、理性與感性兼具、台灣繁體中文..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-2xl p-2 text-xs outline-none focus:border-blue-500 transition"></textarea>
       </div>
 
       <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-2xl text-xs transition shadow-md shadow-blue-500/20">
-        儲存設定並啟動快檢
+        儲存設定並即刻套用
       </button>
     </div>
   </div>
@@ -206,7 +256,7 @@
   <script>
     lucide.createIcons();
 
-    // --- 1. IndexedDB 現代持久化模組 ---
+    // --- 1. IndexedDB 超大容量資料庫 ---
     const DB_NAME = 'GeminiStudioDB';
     const DB_VERSION = 1;
     let db = null;
@@ -235,6 +285,7 @@
     }
 
     function clearHistory() {
+      triggerHaptic();
       if (!confirm('確定要清空所有對話記錄嗎？')) return;
       if (db) {
         const tx = db.transaction('messages', 'readwrite');
@@ -243,7 +294,7 @@
       chatHistory = [];
       const stream = document.getElementById('chat-stream');
       stream.innerHTML = '';
-      appendSystemMessage('歷史記錄已清空。');
+      appendSystemMessage('對話紀錄已全部清除。');
     }
 
     async function loadHistoryFromDB() {
@@ -254,23 +305,22 @@
         const req = store.getAll();
         req.onsuccess = () => {
           chatHistory = req.result || [];
-          chatHistory.forEach(item => {
-            renderMessage(item.role, item.text, false);
-          });
+          chatHistory.forEach(item => renderMessage(item.role, item.text, false));
           resolve();
         };
       });
     }
 
-    // --- 2. 全域狀態與初始化 ---
+    // --- 2. 全域變數與初始化 ---
     let chatHistory = [];
     let anchoredContext = "";
     let recognition = null;
     let isRecording = false;
-    let attachedFilesData = []; // 多模態壓縮後的圖片或文字 Base64
+    let attachedFilesData = [];
 
     window.addEventListener('DOMContentLoaded', async () => {
-      setupViewportAdjustment();
+      initTheme();
+      setupViewportAndOrientation();
       setupKeyboardShortcuts();
       loadSettings();
       checkConnection();
@@ -279,7 +329,69 @@
       runSilentPreflight();
     });
 
-    // --- 3. 桌面端鍵盤快捷鍵 (Ergonomics) ---
+    // --- 3. 觸覺微震動 (Haptic Feedback) ---
+    function triggerHaptic(duration = 15) {
+      if ('vibrate' in navigator) {
+        try { navigator.vibrate(duration); } catch(e) {}
+      }
+    }
+
+    // --- 4. OLED 全黑省電主題控制 ---
+    function initTheme() {
+      const savedTheme = localStorage.getItem('omni_theme') || 'dark'; // 預設深色省電
+      applyTheme(savedTheme === 'dark');
+    }
+
+    function toggleDarkMode() {
+      triggerHaptic();
+      const isDark = document.documentElement.classList.toggle('dark');
+      applyTheme(isDark);
+      localStorage.setItem('omni_theme', isDark ? 'dark' : 'light');
+    }
+
+    function applyTheme(isDark) {
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      const icon = document.getElementById('theme-icon');
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        if (metaTheme) metaTheme.setAttribute('content', '#000000');
+        icon.setAttribute('data-lucide', 'sun');
+      } else {
+        document.documentElement.classList.remove('dark');
+        if (metaTheme) metaTheme.setAttribute('content', '#ffffff');
+        icon.setAttribute('data-lucide', 'moon');
+      }
+      lucide.createIcons();
+    }
+
+    // --- 5. 螢幕自動旋轉與虛擬鍵盤防遮蔽自適應 ---
+    function setupViewportAndOrientation() {
+      // VisualViewport 動態縮放
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', handleViewportResize);
+      }
+      // 螢幕旋轉監聽
+      window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+          handleViewportResize();
+          scrollChatToBottom();
+        }, 150);
+      });
+    }
+
+    function handleViewportResize() {
+      if (!window.visualViewport) return;
+      const offset = window.innerHeight - window.visualViewport.height;
+      document.documentElement.style.setProperty('--keyboard-offset', `${Math.max(0, offset)}px`);
+      
+      // 橫螢幕時輸入框縮減高度，避免佔滿全屏
+      const isLandscape = window.innerWidth > window.innerHeight;
+      const userInput = document.getElementById('user-input');
+      userInput.style.maxHeight = isLandscape ? '4rem' : '8rem';
+      scrollChatToBottom();
+    }
+
+    // 快捷鍵 (Cmd/Ctrl+K, Enter)
     function setupKeyboardShortcuts() {
       const textarea = document.getElementById('user-input');
       textarea.addEventListener('keydown', (e) => {
@@ -296,17 +408,6 @@
       });
     }
 
-    // --- 4. 移動端虛擬鍵盤防遮擋 (VisualViewport) ---
-    function setupViewportAdjustment() {
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-          const offset = window.innerHeight - window.visualViewport.height;
-          document.documentElement.style.setProperty('--keyboard-offset', `${Math.max(0, offset)}px`);
-          scrollChatToBottom();
-        });
-      }
-    }
-
     function scrollChatToBottom() {
       const stream = document.getElementById('chat-stream');
       stream.scrollTop = stream.scrollHeight;
@@ -317,21 +418,20 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
-    // --- 5. 背景靜默自檢系統 (Silent Pre-flight) ---
-    async function runSilentPreflight() {
+    // 背景靜默自檢
+    function runSilentPreflight() {
       const rawKey = localStorage.getItem('omni_ai_key');
       const banner = document.getElementById('diag-banner');
       const bannerText = document.getElementById('diag-banner-text');
 
       if (!rawKey) {
-        bannerText.innerText = "尚未配置 Gemini API Key，點擊設定";
+        bannerText.innerText = "尚未配置 Gemini API Key，請點擊輸入";
         banner.classList.remove('hidden');
-        return;
+      } else {
+        banner.classList.add('hidden');
       }
-      banner.classList.add('hidden');
     }
 
-    // --- 6. 設定與金鑰儲存 ---
     function loadSettings() {
       const savedKey = localStorage.getItem('omni_ai_key');
       const savedMem = localStorage.getItem('omni_ai_memories');
@@ -345,8 +445,9 @@
     }
 
     function saveSettings() {
+      triggerHaptic();
       const key = document.getElementById('api-key').value.trim();
-      if (!key) return alert('請先輸入 API Key');
+      if (!key) return alert('請輸入 API Key');
       localStorage.setItem('omni_ai_key', btoa(key));
       localStorage.setItem('omni_ai_memories', document.getElementById('core-memories').value.trim());
       toggleSettingsModal(false);
@@ -355,6 +456,7 @@
     }
 
     function toggleSettingsModal(show) {
+      triggerHaptic(10);
       document.getElementById('settings-modal').classList.toggle('hidden', !show);
     }
 
@@ -362,17 +464,17 @@
       const netText = document.getElementById('net-text');
       const netBox = document.getElementById('net-status');
       if (navigator.onLine) {
-        netText.textContent = '在線良好';
-        netBox.className = 'flex items-center text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full';
+        netText.textContent = '在線正常';
+        netBox.className = 'flex items-center text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/40 dark:border-emerald-800/40';
       } else {
-        netText.textContent = '連線受阻';
-        netBox.className = 'flex items-center text-[11px] font-medium text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full';
+        netText.textContent = '離線受阻';
+        netBox.className = 'flex items-center text-[11px] font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 rounded-full border border-rose-200/40 dark:border-rose-800/40';
       }
     }
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // --- 7. 前端智慧圖片壓縮器 (Canvas Image Compressor) ---
+    // --- 6. 圖片本地自動壓縮 ---
     async function compressImage(file) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -394,7 +496,6 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // 壓制成 80% 質量的 WebP
             const base64 = canvas.toDataURL('image/webp', 0.82);
             resolve({
               mimeType: 'image/webp',
@@ -412,6 +513,7 @@
     async function handleFileUpload(e) {
       const files = Array.from(e.target.files);
       if (!files.length) return;
+      triggerHaptic(10);
 
       const previewStrip = document.getElementById('file-preview-strip');
       previewStrip.classList.remove('hidden');
@@ -422,14 +524,13 @@
           attachedFilesData.push(compressed);
 
           const tag = document.createElement('div');
-          tag.className = 'relative flex items-center gap-1.5 bg-slate-100 border border-slate-200 text-xs px-2 py-1 rounded-xl shrink-0';
+          tag.className = 'relative flex items-center gap-1.5 bg-slate-100 dark:bg-oledCard border border-slate-200 dark:border-oledBorder text-xs px-2 py-1 rounded-xl shrink-0';
           tag.innerHTML = `
             <img src="${compressed.preview}" class="w-4 h-4 rounded object-cover" />
-            <span class="truncate max-w-[100px]">${compressed.name}</span>
+            <span class="truncate max-w-[100px] text-slate-700 dark:text-slate-300">${compressed.name}</span>
           `;
           previewStrip.appendChild(tag);
         } else {
-          // 純文字/JSON/Markdown 讀取
           const reader = new FileReader();
           reader.onload = (evt) => {
             const content = evt.target.result;
@@ -441,7 +542,7 @@
       }
     }
 
-    // --- 8. 官方 SSE 真·流式傳輸核心 (True Streaming) ---
+    // --- 7. 真·SSE 流式核心傳輸 ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const prompt = inputEl.value.trim();
@@ -454,7 +555,7 @@
         return;
       }
 
-      // 渲染使用者訊息
+      triggerHaptic(20);
       renderMessage('user', prompt, true);
       inputEl.value = '';
       autoResize(inputEl);
@@ -462,29 +563,21 @@
       const mode = document.getElementById('mode-select').value;
       const memory = localStorage.getItem('omni_ai_memories') || '';
 
-      let systemPrompt = `助手偏好: ${memory}。使用標準 Markdown 回覆。代碼須標註語言類型。`;
-      if (anchoredContext) systemPrompt += `\n[保留原特徵]: ${anchoredContext}`;
+      let systemPrompt = `助手偏好: ${memory}。回覆排版請使用標準 Markdown，程式碼請明確標註語言名稱。`;
+      if (anchoredContext) systemPrompt += `\n[特徵錨定]: ${anchoredContext}`;
       if (mode === 'concise') systemPrompt += "\n限制: 極簡答覆，提取重點。";
       else if (mode === 'in_depth') systemPrompt += "\n風格: 深入探討、理性與感性兼具、結構詳盡。";
       else if (mode === 'storyteller') systemPrompt += "\n風格: 小說敘事，情感充沛。";
 
-      // 建立骨架屏佔位卡
       const botCard = appendSkeletonMessage();
       const contentEl = botCard.querySelector('.content-body');
 
-      // 組合 Parts (文字 + 多模態圖片)
       const currentParts = [];
       attachedFilesData.forEach(f => {
-        currentParts.push({
-          inlineData: {
-            mimeType: f.mimeType,
-            data: f.data
-          }
-        });
+        currentParts.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
       });
       if (prompt) currentParts.push({ text: prompt });
 
-      // 清空暫存附件
       attachedFilesData = [];
       document.getElementById('file-preview-strip').innerHTML = '';
       document.getElementById('file-preview-strip').classList.add('hidden');
@@ -506,7 +599,6 @@
 
       for (const model of candidateModels) {
         try {
-          // Google 官方標準 SSE 串流端點
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
           const response = await fetch(endpoint, {
             method: 'POST',
@@ -516,7 +608,6 @@
 
           if (!response.ok) continue;
 
-          // 開始接收串流
           const reader = response.body.getReader();
           const decoder = new TextDecoder('utf-8');
           contentEl.innerHTML = '';
@@ -536,8 +627,8 @@
                   const parsed = JSON.parse(jsonStr);
                   const token = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
                   fullReply += token;
-                  // 即時 Markdown 渲染
                   contentEl.innerHTML = marked.parse(fullReply);
+                  addCodeCopyButtons(contentEl);
                   hljs.highlightAll();
                   scrollChatToBottom();
                 } catch(e) {}
@@ -548,9 +639,7 @@
           contentEl.classList.remove('typing-cursor');
           success = true;
           break;
-        } catch(err) {
-          // 嘗試下一個備援模型
-        }
+        } catch(err) {}
       }
 
       if (!success) {
@@ -565,7 +654,25 @@
       attachActionButtons(botCard, fullReply);
     }
 
-    // --- 9. 訊息渲染與 Markdown 工具 ---
+    // --- 8. 代碼一鍵複製按鈕增強 ---
+    function addCodeCopyButtons(container) {
+      container.querySelectorAll('pre').forEach((pre) => {
+        if (pre.querySelector('.copy-code-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'copy-code-btn';
+        btn.innerText = '複製代碼';
+        btn.onclick = () => {
+          triggerHaptic(10);
+          const code = pre.querySelector('code')?.innerText || pre.innerText;
+          navigator.clipboard.writeText(code);
+          btn.innerText = '已複製！';
+          setTimeout(() => btn.innerText = '複製代碼', 1500);
+        };
+        pre.appendChild(btn);
+      });
+    }
+
+    // --- 9. 訊息渲染與輔助功能 ---
     function renderMessage(role, text, save = false) {
       const stream = document.getElementById('chat-stream');
       const wrapper = document.createElement('div');
@@ -575,7 +682,7 @@
         wrapper.innerHTML = `
           <div class="flex flex-col items-end space-y-1 max-w-[85%]">
             <div class="bg-blue-600 text-white p-3.5 rounded-3xl rounded-tr-sm text-sm leading-relaxed shadow-sm">${escapeHtml(text)}</div>
-            <button onclick="editPrompt('${encodeURIComponent(text)}')" class="text-[11px] text-slate-400 hover:text-blue-600 flex items-center space-x-1 px-1 transition">
+            <button onclick="editPrompt('${encodeURIComponent(text)}')" class="text-[11px] text-slate-400 hover:text-blue-500 flex items-center space-x-1 px-1 transition">
               <i data-lucide="edit-3" class="w-3 h-3"></i><span>編輯重發</span>
             </button>
           </div>
@@ -585,11 +692,12 @@
           <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
             <i data-lucide="sparkles" class="w-4 h-4"></i>
           </div>
-          <div class="bg-white p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 shadow-sm leading-relaxed max-w-[88%] space-y-2">
-            <div class="content-body prose-custom text-sm text-slate-700">${marked.parse(text)}</div>
-            <div class="action-buttons pt-2 border-t border-slate-50 flex items-center space-x-3 text-xs text-slate-400"></div>
+          <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] space-y-2">
+            <div class="content-body prose-custom text-sm text-slate-700 dark:text-slate-200">${marked.parse(text)}</div>
+            <div class="action-buttons pt-2 border-t border-slate-50 dark:border-oledBorder flex items-center space-x-3 text-xs text-slate-400"></div>
           </div>
         `;
+        addCodeCopyButtons(wrapper);
         attachActionButtons(wrapper, text);
       }
 
@@ -614,12 +722,12 @@
         <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5 animate-pulse">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
-        <div class="bg-white p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 shadow-sm leading-relaxed max-w-[88%] space-y-2 w-full">
+        <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] space-y-2 w-full">
           <div class="content-body space-y-2">
             <div class="h-3.5 skeleton-shimmer rounded-full w-3/4"></div>
             <div class="h-3.5 skeleton-shimmer rounded-full w-1/2"></div>
           </div>
-          <div class="action-buttons pt-2 border-t border-slate-50 flex items-center space-x-3 text-xs text-slate-400"></div>
+          <div class="action-buttons pt-2 border-t border-slate-50 dark:border-oledBorder flex items-center space-x-3 text-xs text-slate-400"></div>
         </div>
       `;
       stream.appendChild(wrapper);
@@ -631,7 +739,7 @@
     function appendSystemMessage(text) {
       const stream = document.getElementById('chat-stream');
       const div = document.createElement('div');
-      div.className = 'text-center text-xs text-slate-400 my-2';
+      div.className = 'text-center text-xs text-slate-400 dark:text-slate-500 my-2';
       div.innerText = text;
       stream.appendChild(div);
       scrollChatToBottom();
@@ -641,13 +749,13 @@
       const container = wrapper.querySelector('.action-buttons');
       if (!container) return;
       container.innerHTML = `
-        <button onclick="speakText('${encodeURIComponent(text)}')" class="hover:text-slate-700 flex items-center space-x-1 transition">
+        <button onclick="speakText('${encodeURIComponent(text)}')" class="hover:text-slate-700 dark:hover:text-slate-200 flex items-center space-x-1 transition">
           <i data-lucide="volume-2" class="w-3.5 h-3.5"></i><span>朗讀</span>
         </button>
-        <button onclick="anchorForDerivation('${encodeURIComponent(text)}')" class="hover:text-indigo-600 flex items-center space-x-1 transition">
+        <button onclick="anchorForDerivation('${encodeURIComponent(text)}')" class="hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center space-x-1 transition">
           <i data-lucide="copy-plus" class="w-3.5 h-3.5"></i><span>鎖定特徵</span>
         </button>
-        <button onclick="copyToClipboard('${encodeURIComponent(text)}')" class="hover:text-slate-700 flex items-center space-x-1 transition">
+        <button onclick="copyToClipboard('${encodeURIComponent(text)}')" class="hover:text-slate-700 dark:hover:text-slate-200 flex items-center space-x-1 transition">
           <i data-lucide="copy" class="w-3.5 h-3.5"></i><span>複製內容</span>
         </button>
       `;
@@ -655,11 +763,13 @@
     }
 
     function copyToClipboard(encoded) {
+      triggerHaptic(10);
       navigator.clipboard.writeText(decodeURIComponent(encoded));
       alert('已複製到剪貼簿');
     }
 
     function editPrompt(encodedText) {
+      triggerHaptic(10);
       const text = decodeURIComponent(encodedText);
       const input = document.getElementById('user-input');
       input.value = text;
@@ -668,6 +778,7 @@
     }
 
     function anchorForDerivation(encodedText) {
+      triggerHaptic(15);
       anchoredContext = decodeURIComponent(encodedText);
       const bar = document.getElementById('context-anchor-bar');
       const preview = document.getElementById('anchor-preview');
@@ -677,11 +788,12 @@
     }
 
     function clearAnchor() {
+      triggerHaptic(10);
       anchoredContext = "";
       document.getElementById('context-anchor-bar').classList.add('hidden');
     }
 
-    // --- 10. 語音辨識與朗讀 ---
+    // 語音輸入
     function initSpeech() {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRec) {
@@ -699,6 +811,7 @@
 
     function toggleSpeechRecognition(force) {
       if (!recognition) return alert('瀏覽器不支援語音輸入');
+      triggerHaptic(15);
       const btn = document.getElementById('mic-btn');
       if (isRecording || force === false) {
         recognition.stop();
@@ -720,11 +833,12 @@
     }
 
     function exportChat() {
+      triggerHaptic(10);
       const blob = new Blob([JSON.stringify(chatHistory, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Gemini_Studio_Export_${Date.now()}.json`;
+      a.download = `Gemini_Studio_Backup_${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
