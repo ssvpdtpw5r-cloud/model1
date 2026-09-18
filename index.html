@@ -147,10 +147,10 @@
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已升級至<b>高抗阻多線程 Bilibili 設定集爬取架構</b>：
+          已升級至<b>高抗阻 Bilibili 圖文爬取管線</b>！
           <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>多線程代理線路</b>：徹底排除 iOS Safari 的 <code class="text-rose-400">Load failed</code> 網路逾時錯誤</li>
-            <li><b>智慧識別</b>：輸入創作者 UID 或文集 ID，系統自動翻頁檢索文章</li>
+            <li><b>即時進度監控</b>：自動計算檢索到的篇數，並以視覺化進度條顯示進度</li>
+            <li><b>多節點抗阻連線</b>：內建智慧線路切換，支援 UID、文集 ID 或直接貼上專欄網址</li>
             <li><b>API Key 永久鎖定</b>：記憶體與本地安全庫雙重保護，不重發驗證消耗額度</li>
           </ul>
         </div>
@@ -236,7 +236,7 @@
           <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-blue-500 font-mono transition" />
         </div>
 
-        <!-- Bilibili 自動抓取模組 -->
+        <!-- Bilibili 自動抓取模組 (含進度監控與篇數統計) -->
         <div class="p-3.5 rounded-2xl bg-pink-50/40 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900/40 space-y-2.5">
           <div class="flex items-center justify-between">
             <span class="font-bold text-slate-800 dark:text-pink-300 flex items-center gap-1.5">
@@ -247,14 +247,19 @@
             </button>
           </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-            輸入創作者 <b>UID</b>（如 <code>12345678</code>）、<b>文集 ID</b>（如 <code>rl123456</code>）或直接貼上專欄網址。
+            支援輸入創作者 <b>UID</b>（如 <code>12345678</code>）、<b>文集 ID</b>（如 <code>rl123456</code>）或直接貼上專欄網址（支援多個 cv 網址換行貼入）。
           </p>
-          <div class="flex items-center gap-2">
-            <input type="text" id="bili-target-input" placeholder="輸入 UID、文集 ID (rl...) 或專欄 cv 網址" class="flex-1 border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition" />
-          </div>
-          <div id="bili-progress" class="hidden text-[11px] font-medium text-pink-600 dark:text-pink-400 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
-            <span id="bili-progress-text">準備抓取...</span>
+          <textarea id="bili-target-input" rows="2" placeholder="輸入 UID、文集 ID (rl...) 或貼上專欄 cv 網址（每行一個）" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
+
+          <!-- 即時項目數量與進度條 -->
+          <div id="bili-progress-container" class="hidden space-y-1.5 pt-1">
+            <div class="flex justify-between text-[11px] font-medium text-pink-600 dark:text-pink-400">
+              <span id="bili-status-text">檢索中...</span>
+              <span id="bili-count-badge" class="font-bold">項目: 0/0</span>
+            </div>
+            <div class="w-full bg-slate-200 dark:bg-oledBorder h-2 rounded-full overflow-hidden">
+              <div id="bili-progress-bar" class="bg-gradient-to-r from-pink-500 to-rose-500 h-full w-0 transition-all duration-300"></div>
+            </div>
           </div>
         </div>
 
@@ -361,59 +366,85 @@
       appendSystemMessage('✨ 對話已乾淨重置！世界觀與設定集已重新硬錨定。');
     }
 
-    // --- 2. 抗阻多重跨域管道 (徹底排除 Load failed) ---
+    // --- 2. 抗阻多重跨域管道 (具備 6 秒超時熔斷機制) ---
+    async function fetchWithTimeout(url, options = {}, timeout = 6000) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+      } catch (err) {
+        clearTimeout(id);
+        throw err;
+      }
+    }
+
     async function fetchWithMultiProxy(targetUrl, isJson = true) {
-      const proxies = [
-        // 管道 1：AllOrigins
+      const proxyPipelines = [
+        // 管道 1：AllOrigins 原生
         async (u) => {
-          const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`);
+          const res = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
+          if (!data || !data.contents) throw new Error("無內容");
           return isJson ? JSON.parse(data.contents) : data.contents;
         },
-        // 管道 2：Corsproxy.io
+        // 管道 2：AllOrigins Raw (繞過 JSON 封裝)
         async (u) => {
-          const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(u)}`);
+          const res = await fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return isJson ? await res.json() : await res.text();
         },
-        // 管道 3：CodeTabs
+        // 管道 3：CodeTabs 備援
         async (u) => {
-          const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`);
+          const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return isJson ? await res.json() : await res.text();
         }
       ];
 
-      for (let i = 0; i < proxies.length; i++) {
+      for (let i = 0; i < proxyPipelines.length; i++) {
         try {
-          const result = await proxies[i](targetUrl);
+          const result = await proxyPipelines[i](targetUrl);
           if (result) return result;
         } catch(e) {
           // 當前管道失敗，自動降級至下一管道
         }
       }
-      throw new Error("所有跨域管道皆無法連通目標，請稍候重試或檢查網址");
+      throw new Error("跨域管道暫時受阻，建議直接貼上專欄 cv 網址");
     }
 
+    // --- 3. 智慧爬取控制核心（含進度條與數量監控） ---
     async function startAutoBiliCrawl() {
       const inputVal = document.getElementById('bili-target-input').value.trim();
-      if (!inputVal) return alert('請輸入創作者 UID、文集 ID 或連結');
+      if (!inputVal) return alert('請輸入創作者 UID、文集 ID 或專欄 cv 網址');
 
       const btn = document.getElementById('bili-auto-btn');
-      const progressBox = document.getElementById('bili-progress');
-      const progressText = document.getElementById('bili-progress-text');
+      const progressContainer = document.getElementById('bili-progress-container');
+      const statusText = document.getElementById('bili-status-text');
+      const countBadge = document.getElementById('bili-count-badge');
+      const progressBar = document.getElementById('bili-progress-bar');
 
       btn.disabled = true;
-      progressBox.classList.remove('hidden');
+      progressContainer.classList.remove('hidden');
+      progressBar.style.width = '5%';
+      statusText.innerText = '正在檢索目標章節清單...';
+      countBadge.innerText = '項目: 檢索中';
 
       let articleIds = [];
 
       try {
-        // 1. 若直接輸入單篇 cv 網址
-        if (inputVal.includes('read/cv') || inputVal.startsWith('cv')) {
-          const cvMatch = inputVal.match(/cv(\d+)/);
-          if (cvMatch) articleIds = [cvMatch[1]];
+        // 1. 若為直接換行貼入的多個 cv 連結
+        const lines = inputVal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const directCvs = [];
+        lines.forEach(line => {
+          const match = line.match(/cv(\d+)/);
+          if (match) directCvs.push(match[1]);
+        });
+
+        if (directCvs.length > 0 && !inputVal.includes('space.bilibili') && !inputVal.includes('readlist')) {
+          articleIds = directCvs;
         
         // 2. 若為文集 ID (rl...)
         } else if (inputVal.includes('rl') || inputVal.includes('readlist')) {
@@ -422,14 +453,14 @@
           if (match) rlid = match[1];
           else rlid = inputVal.replace(/\D/g, '');
 
-          progressText.innerText = `檢索文集 rl${rlid} 章節中...`;
+          statusText.innerText = `正在分析文集 rl${rlid}...`;
           const listApi = `https://api.bilibili.com/x/article/list/web/articles?id=${rlid}`;
           const resData = await fetchWithMultiProxy(listApi, true);
 
           if (resData && resData.data && resData.data.articles) {
             articleIds = resData.data.articles.map(a => a.id);
           } else {
-            throw new Error(resData?.message || '未能解析該文集文章列表');
+            throw new Error('未能解析該文集，請確認是否為公開文集');
           }
 
         // 3. 創作者 UID
@@ -441,11 +472,11 @@
 
           if (!mid) throw new Error('無法識別有效的 UID 格式');
 
-          progressText.innerText = `正在檢索創作者 UID:${mid} 的專欄列表...`;
+          statusText.innerText = `正在檢索創作者 UID:${mid} 的專欄列表...`;
           let page = 1;
 
           while (page <= 5) {
-            progressText.innerText = `讀取專欄目錄 第 ${page} 頁...`;
+            statusText.innerText = `檢索第 ${page} 頁目錄中...`;
             const spaceApi = `https://api.bilibili.com/x/space/article?mid=${mid}&pn=${page}&ps=30&sort=publish_time`;
             const resData = await fetchWithMultiProxy(spaceApi, true);
 
@@ -462,17 +493,26 @@
         }
 
         articleIds = [...new Set(articleIds)];
-        if (articleIds.length === 0) throw new Error('未檢索到任何公開專欄文章');
+        const totalItems = articleIds.length;
 
-        progressText.innerText = `發現 ${articleIds.length} 篇專欄，開始深度圖文解析...`;
+        if (totalItems === 0) throw new Error('未檢索到任何公開專欄文章');
+
+        // 顯示檢索到的可用數量
+        countBadge.innerText = `可用項目: 0/${totalItems}`;
+        statusText.innerText = `已搜尋到 ${totalItems} 篇專欄，開始解析圖文...`;
+        progressBar.style.width = '10%';
 
         let successCount = 0;
         let combinedText = "";
 
-        for (let i = 0; i < articleIds.length; i++) {
+        for (let i = 0; i < totalItems; i++) {
           const cvId = articleIds[i];
           const articleUrl = `https://www.bilibili.com/read/cv${cvId}`;
-          progressText.innerText = `下載中 (${i + 1}/${articleIds.length}): cv${cvId}`;
+          const currentStep = i + 1;
+          
+          statusText.innerText = `正在下載: cv${cvId}`;
+          countBadge.innerText = `進度: ${currentStep}/${totalItems}`;
+          progressBar.style.width = `${Math.round((currentStep / totalItems) * 100)}%`;
 
           try {
             const html = await fetchWithMultiProxy(articleUrl, false);
@@ -498,10 +538,10 @@
               parsedBody = doc.body.innerText.slice(0, 5000);
             }
 
-            combinedText += `\n\n====================\n【B站設定集：${title}】\n創作者：${author}\n章節編號：cv${cvId}\n連結：${articleUrl}\n\n${parsedBody}\n====================\n`;
+            combinedText += `\n\n====================\n【B站設定集：${title}】\n創作者：${author}\n篇章編號：cv${cvId}\n連結：${articleUrl}\n\n${parsedBody}\n====================\n`;
             successCount++;
           } catch(e) {
-            // 單篇錯誤跳過，確保不中斷其餘抓取
+            // 單篇異常容錯跳過
           }
         }
 
@@ -510,22 +550,24 @@
           textarea.value += combinedText;
           updateLorebookStats();
           saveLorebookToDB(textarea.value);
-          progressText.innerText = `全量抓取完成！成功入庫 ${successCount} 篇設定集。`;
+          
+          statusText.innerText = `爬取完成！成功入庫 ${successCount} 篇設定集。`;
+          progressBar.style.width = '100%';
           triggerHaptic(20);
-          setTimeout(() => progressBox.classList.add('hidden'), 5000);
+          setTimeout(() => progressContainer.classList.add('hidden'), 5000);
         } else {
-          progressText.innerText = `專欄正文抓取未完成，請確認內容是否為公開專欄。`;
+          statusText.innerText = `正文抓取受阻，建議直接貼上專欄 cv 網址。`;
         }
 
       } catch(err) {
         alert('抓取提示: ' + err.message);
-        progressBox.classList.add('hidden');
+        progressContainer.classList.add('hidden');
       }
 
       btn.disabled = false;
     }
 
-    // 本機檔案批次匯入
+    // 本地檔案批次匯入
     function importKnowledgeFiles(event) {
       const files = Array.from(event.target.files);
       if (!files.length) return;
@@ -557,7 +599,7 @@
       document.getElementById('auth-status-text').innerText = `設定集: ${len > 1000 ? (len/1000).toFixed(1) + 'k' : len} 字 (授權有效)`;
     }
 
-    // --- 3. 全域狀態與初始化 ---
+    // --- 4. 全域狀態與初始化 ---
     let chatHistory = [];
     let anchoredContext = "";
     let recognition = null;
@@ -694,7 +736,7 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // --- 4. 圖片本地壓縮 ---
+    // --- 5. 圖片壓縮 ---
     async function compressImage(file) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -752,7 +794,7 @@
       }
     }
 
-    // --- 5. AI 高畫質生圖模組 ---
+    // --- 6. 多模態生圖與影片 ---
     async function generateImage(prompt) {
       const rawKey = localStorage.getItem('omni_ai_key');
       const apiKey = rawKey ? atob(rawKey).trim() : '';
@@ -823,7 +865,6 @@
       testImg.src = finalImgSrc;
     }
 
-    // --- 6. AI 動態短片生成模組 ---
     async function generateVideo(prompt) {
       const stream = document.getElementById('chat-stream');
       const wrapper = document.createElement('div');
@@ -883,7 +924,7 @@
       preload.src = frameUrl;
     }
 
-    // --- 7. 核心對話發送（gemini-3.6-flash 原生端點） ---
+    // --- 7. 核心對話發送 ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const rawPrompt = inputEl.value.trim();
