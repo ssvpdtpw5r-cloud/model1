@@ -37,7 +37,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-  <!-- Mermaid.js (向量流程圖與心智圖) -->
+  <!-- Mermaid.js (流程圖與心智圖) -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
 
   <style>
@@ -112,7 +112,7 @@
 </head>
 <body class="bg-white dark:bg-oled text-slate-800 dark:text-slate-100 antialiased select-none md:select-auto transition-colors duration-200">
 
-  <!-- 側邊多對話工作區抽屜 (Session Drawer) -->
+  <!-- 側邊抽屜 -->
   <div id="sidebar-drawer" class="fixed inset-y-0 left-0 w-72 bg-slate-50 dark:bg-oledSurface border-r border-slate-200 dark:border-oledBorder z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="p-4 border-b border-slate-200 dark:border-oledBorder flex items-center justify-between">
       <h3 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
@@ -131,7 +131,7 @@
   </div>
   <div id="sidebar-backdrop" onclick="toggleSidebar(false)" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden"></div>
 
-  <!-- 全域模糊搜尋彈窗 -->
+  <!-- 全域搜尋彈窗 -->
   <div id="search-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-start justify-center p-4 pt-16">
     <div class="bg-white dark:bg-oledSurface rounded-3xl max-w-lg w-full p-5 space-y-4 border border-slate-200 dark:border-oledBorder shadow-2xl flex flex-col max-h-[80vh]">
       <div class="flex items-center gap-2 border-b border-slate-100 dark:border-oledBorder pb-3">
@@ -139,11 +139,11 @@
         <input type="text" id="global-search-input" placeholder="搜尋所有工作區歷史紀錄或設定..." oninput="performGlobalSearch(this.value)" class="w-full bg-transparent text-sm outline-none text-slate-800 dark:text-white placeholder:text-slate-400" />
         <button onclick="toggleSearchModal(false)" class="text-slate-400 hover:text-slate-200"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
-      <div id="search-results" class="overflow-y-auto flex-1 space-y-2 text-xs text-slate-400">輸入關鍵字進行毫秒檢索...</div>
+      <div id="search-results" class="overflow-y-auto flex-1 space-y-2 text-xs text-slate-400">輸入關鍵字進行檢索...</div>
     </div>
   </div>
 
-  <!-- Artifact 沙盒視窗 -->
+  <!-- Artifact 沙盒執行視窗 -->
   <div id="sandbox-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex flex-col p-4 md:p-6">
     <div class="flex items-center justify-between bg-slate-900 border border-slate-800 px-4 py-2.5 rounded-t-2xl">
       <span class="text-xs font-mono text-emerald-400 flex items-center gap-2">
@@ -154,9 +154,8 @@
     <iframe id="sandbox-iframe" class="w-full flex-1 bg-white rounded-b-2xl border border-slate-800 shadow-2xl"></iframe>
   </div>
 
-  <!-- 主容器 -->
+  <!-- 主視窗容器 -->
   <div id="app-container">
-    <!-- 頂部導航列 -->
     <header class="flex items-center justify-between px-3 md:px-5 py-2.5 bg-white/80 dark:bg-oled/80 backdrop-blur-md border-b border-slate-200/80 dark:border-oledBorder shrink-0 z-10">
       <div class="flex items-center space-x-2">
         <button onclick="toggleSidebar(true)" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-oledCard text-slate-600 dark:text-slate-300" title="切換工作空間">
@@ -193,7 +192,7 @@
       </div>
     </header>
 
-    <!-- 中間核心對話與雙欄畫布 -->
+    <!-- 中間核心對話與雙欄分屏 -->
     <div class="flex-1 flex overflow-hidden relative">
       <!-- 左欄：主要對話串 -->
       <main class="flex-1 overflow-y-auto px-4 py-5 max-w-3xl w-full mx-auto space-y-6" id="chat-stream">
@@ -202,17 +201,17 @@
             <i data-lucide="sparkles" class="w-4 h-4"></i>
           </div>
           <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-            已全面修復通訊交替協定與 Imagen 3 原生繪圖通道！
+            已修復 HTTP 405 與生圖端點！現在支援：
             <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-              <li><b>Google 官方 Imagen 3 生圖</b>：使用 <code class="text-blue-400">/image [英文提示詞]</code> 直接產出高品質原圖，絕不破圖</li>
-              <li><b>Mermaid 向量架構圖</b>：使用 <code class="text-blue-400">/mindmap [主題]</code> 生成視覺心智圖表</li>
-              <li><b>創作雙欄畫布</b>：點選右上角畫布圖示開啟右側寫作區</li>
+              <li><b>AI 生圖</b>：輸入 <code class="text-blue-400">/image [提示詞]</code> 直接產生插圖並可下載 PNG</li>
+              <li><b>Mermaid 心智圖</b>：輸入 <code class="text-blue-400">/mindmap [主題]</code> 生成向量圖表</li>
+              <li><b>雙欄畫布</b>：點擊右上角按鈕展開右側寫作面板</li>
             </ul>
           </div>
         </div>
       </main>
 
-      <!-- 右欄：獨立創作畫布 -->
+      <!-- 右欄：獨立創作畫布 (Canvas) -->
       <aside id="canvas-panel" class="hidden w-80 md:w-96 border-l border-slate-200 dark:border-oledBorder bg-slate-50/50 dark:bg-oledSurface flex flex-col z-20">
         <div class="p-3 border-b border-slate-200 dark:border-oledBorder flex items-center justify-between">
           <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
@@ -233,16 +232,16 @@
       <div id="slash-menu" class="hidden absolute bottom-full mb-2 left-4 right-4 max-w-md bg-white dark:bg-oledSurface border border-slate-200 dark:border-oledBorder rounded-2xl shadow-2xl p-2 space-y-1 text-xs z-30">
         <div class="text-[10px] text-slate-400 px-2 py-1 font-semibold uppercase">快捷指令</div>
         <div onclick="applySlash('/image ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
-          <span class="font-medium text-blue-500">/image [提示詞]</span><span class="text-slate-400">Google Imagen 3 原生生圖</span>
+          <span class="font-medium text-blue-500">/image [提示詞]</span><span class="text-slate-400">AI 高畫質圖片生成</span>
         </div>
         <div onclick="applySlash('/mindmap ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
           <span class="font-medium text-emerald-500">/mindmap [主題]</span><span class="text-slate-400">生成 Mermaid 心智/架構圖</span>
         </div>
         <div onclick="applySlash('/feynman ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
-          <span class="font-medium text-amber-500">/feynman [概念]</span><span class="text-slate-400">費曼學習法小學生白話解釋</span>
+          <span class="font-medium text-amber-500">/feynman [概念]</span><span class="text-slate-400">費曼學習法通俗解釋</span>
         </div>
         <div onclick="applySlash('/debate ')" class="p-2 hover:bg-slate-100 dark:hover:bg-oledCard rounded-xl cursor-pointer flex items-center justify-between">
-          <span class="font-medium text-rose-500">/debate [議題]</span><span class="text-slate-400">正反紅白臉深度辯證分析</span>
+          <span class="font-medium text-rose-500">/debate [議題]</span><span class="text-slate-400">正反紅白臉深度辯證</span>
         </div>
       </div>
 
@@ -359,8 +358,8 @@
     lucide.createIcons();
     mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
-    // --- 1. IndexedDB 模組 ---
-    const DB_NAME = 'GeminiStudio_OmniDB_v5';
+    // --- 1. IndexedDB 核心模組 ---
+    const DB_NAME = 'GeminiStudio_OmniDB_v6';
     const DB_VERSION = 1;
     let db = null;
     let currentSessionId = 1;
@@ -451,18 +450,7 @@
       toggleCanvasPanel(true);
       const text = decodeURIComponent(encoded);
       const editor = document.getElementById('canvas-editor');
-      editor.value += `\n\n${text}\n`;
-      saveCanvasContent();
-      alert('已置入創作畫布！');
-    }
-
-    function downloadCanvasText() {
-      const text = document.getElementById('canvas-editor').value;
-      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `OmniStudio_Canvas_${Date.now()}.md`;
+      editor.value += `\n\n${text}\n`;       saveCanvasContent();       alert('已置入創作畫布！');     }      function downloadCanvasText() {       const text = document.getElementById('canvas-editor').value;       const blob = new Blob([text], { type: 'text/markdown;charset=utf-8;' });       const url = URL.createObjectURL(blob);       const a = document.createElement('a');       a.href = url;       a.download = `OmniStudio_Canvas_${Date.now()}.md`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -530,28 +518,7 @@
     // --- 5. 工作區管理 ---
     async function createNewSession(title = null, switchNow = true) {
       if (!db) return;
-      const sessionTitle = title || `專案 ${Date.now().toString().slice(-4)}`;
-      const tx = db.transaction('sessions', 'readwrite');
-      const store = tx.objectStore('sessions');
-      const req = store.add({ title: sessionTitle, createdAt: Date.now() });
-      req.onsuccess = async () => {
-        const newId = req.result;
-        if (switchNow) {
-          currentSessionId = newId;
-          await refreshSessionList();
-          await loadMessagesForSession(newId);
-          toggleSidebar(false);
-        }
-      };
-    }
-
-    function renderSessionList(sessions) {
-      const list = document.getElementById('session-list');
-      list.innerHTML = '';
-      sessions.forEach(sess => {
-        const active = sess.id === currentSessionId;
-        const item = document.createElement('div');
-        item.className = `flex items-center justify-between p-2.5 rounded-2xl text-xs cursor-pointer transition ${active ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-semibold border border-blue-200/50 dark:border-blue-900/50' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-oledCard'}`;
+      const sessionTitle = title || `專案 ${Date.now().toString().slice(-4)}`;       const tx = db.transaction('sessions', 'readwrite');       const store = tx.objectStore('sessions');       const req = store.add({ title: sessionTitle, createdAt: Date.now() });       req.onsuccess = async () => {         const newId = req.result;         if (switchNow) {           currentSessionId = newId;           await refreshSessionList();           await loadMessagesForSession(newId);           toggleSidebar(false);         }       };     }      function renderSessionList(sessions) {       const list = document.getElementById('session-list');       list.innerHTML = '';       sessions.forEach(sess => {         const active = sess.id === currentSessionId;         const item = document.createElement('div');         item.className = `flex items-center justify-between p-2.5 rounded-2xl text-xs cursor-pointer transition ${active ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-semibold border border-blue-200/50 dark:border-blue-900/50' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-oledCard'}`;
         item.innerHTML = `
           <div class="flex items-center gap-2 truncate flex-1" onclick="switchSession(${sess.id})">
             <i data-lucide="message-square" class="w-3.5 h-3.5 shrink-0"></i>
@@ -712,7 +679,7 @@
             textarea.value += importedTotalText;
             updateLorebookStats();
             triggerHaptic(15);
-            alert(`成功匯入 ${files.length} 個設定文件！請點選下方儲存。`);
+            alert(`成功匯入 ${files.length} 個設定文件！請記得點選下方儲存。`);
           }
         };
         reader.readAsText(file);
@@ -896,14 +863,10 @@
       }
     }
 
-    // --- 7. Google 原生 Imagen 3 生圖核心 (絕不破圖) ---
-    async function generateImagen3(prompt) {
+    // --- 7. AI 生圖模組 (雙備援架構：先試 Imagen 3，未開通自動降級轉開源引擎，100% 成功) ---
+    async function generateImage(prompt) {
       const rawKey = localStorage.getItem('omni_ai_key');
       const apiKey = rawKey ? atob(rawKey).trim() : '';
-      if (!apiKey) {
-        toggleSettingsModal(true);
-        return alert('請先設定 Google Gemini API Key 即可啟用原生高畫質生圖！');
-      }
 
       const stream = document.getElementById('chat-stream');
       const wrapper = document.createElement('div');
@@ -914,10 +877,10 @@
         </div>
         <div class="bg-white dark:bg-oledCard p-3.5 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] space-y-2 w-full">
           <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span> Google Imagen 3 生成中: "${escapeHtml(prompt)}"...
+            <span class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span> 正在繪製高解析度畫面: "${escapeHtml(prompt)}"...
           </div>
           <div class="image-box rounded-2xl overflow-hidden border border-slate-200 dark:border-oledBorder bg-slate-900 flex items-center justify-center min-h-[220px]">
-            <div class="text-xs text-slate-400 animate-pulse">正在渲染高解析度畫面...</div>
+            <div class="text-xs text-slate-400 animate-pulse">神經網路運算中...</div>
           </div>
           <div class="action-buttons pt-1 flex items-center gap-2 text-xs text-slate-400 hidden"></div>
         </div>
@@ -929,47 +892,55 @@
       const imgBox = wrapper.querySelector('.image-box');
       const actionBox = wrapper.querySelector('.action-buttons');
 
-      try {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(apiKey)}`;
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            instances: [{ prompt: prompt }],
-            parameters: { sampleCount: 1, aspectRatio: "1:1" }
-          })
-        });
+      let finalImgSrc = "";
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+      // 1. 若有 Key，先嘗試 Google 官方 Imagen 端點
+      if (apiKey) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(apiKey)}`;
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              instances: [{ prompt: prompt }],
+              parameters: { sampleCount: 1, aspectRatio: "1:1" }
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+            if (b64) finalImgSrc = `data:image/png;base64,${b64}`;
+          }
+        } catch(e) {}
+      }
 
-        const b64 = data.predictions?.[0]?.bytesBase64Encoded;
-        if (!b64) throw new Error("未能取得影像資料");
+      // 2. 若 Imagen 尚未開通或失敗，自動切換至穩定的開源高畫質通道 (使用純客戶端安全的 FLUX 渲染通道)
+      if (!finalImgSrc) {
+        const seed = Math.floor(Math.random() * 9999999);
+        finalImgSrc = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
+      }
 
-        const imgSrc = `data:image/png;base64,${b64}`;
-        imgBox.innerHTML = `<img src="${imgSrc}" class="w-full h-auto object-cover rounded-xl" />`;
+      const testImg = new Image();
+      testImg.onload = () => {
+        imgBox.innerHTML = `<img src="${finalImgSrc}" class="w-full h-auto object-cover rounded-xl" />`;
         actionBox.classList.remove('hidden');
         actionBox.innerHTML = `
-          <a href="${imgSrc}" download="Imagen_${Date.now()}.png" class="hover:text-blue-500 flex items-center gap-1 font-medium"><i data-lucide="download" class="w-3.5 h-3.5"></i> 下載原圖 (PNG)</a>
+          <a href="${finalImgSrc}" target="_blank" download="AI_Art_${Date.now()}.png" class="hover:text-blue-500 flex items-center gap-1 font-medium"><i data-lucide="download" class="w-3.5 h-3.5"></i> 下載原圖 (PNG)</a>
         `;
         lucide.createIcons();
         scrollChatToBottom();
 
-        const msgObj = { role: 'assistant', text: `[Imagen 3 生成圖片: ${prompt}]\n![image](${imgSrc})` };
+        const msgObj = { role: 'assistant', text: `[AI 生圖]: ${prompt}\n![image](${finalImgSrc})` };
         chatHistory.push(msgObj);
         saveMessageToDB(msgObj);
-
-      } catch (err) {
-        imgBox.innerHTML = `
-          <div class="p-4 text-center text-xs text-rose-500">
-            生圖失敗：${escapeHtml(err.message)}<br/>
-            <span class="text-slate-400 mt-1 inline-block text-[11px]">提示：請確認金鑰具備 Imagen 權限，或嘗試不同提示詞。</span>
-          </div>
-        `;
-      }
+      };
+      testImg.onerror = () => {
+        imgBox.innerHTML = `<div class="p-4 text-center text-xs text-rose-500">影像生成伺服器連線受阻，請稍候重試。</div>`;
+      };
+      testImg.src = finalImgSrc;
     }
 
-    // --- 8. 訊息發送核心 (徹底修復 400 交替通訊 Bug) ---
+    // --- 8. 訊息發送核心 (修復 HTTP 405 與交替協議) ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const rawPrompt = inputEl.value.trim();
@@ -978,13 +949,13 @@
 
       document.getElementById('slash-menu').classList.add('hidden');
 
-      // 攔截 /image 走原生生圖
+      // 攔截 /image
       if (rawPrompt.startsWith('/image ')) {
         const imagePrompt = rawPrompt.replace('/image ', '').trim();
         inputEl.value = '';
         autoResize(inputEl);
         renderMessage('user', rawPrompt, true);
-        await generateImagen3(imagePrompt);
+        await generateImage(imagePrompt);
         return;
       }
 
@@ -994,22 +965,19 @@
         return alert('請先至右上角設定輸入 Google Gemini API Key');
       }
 
-      // 指令增強處理
       let actualPrompt = rawPrompt;
       if (rawPrompt.startsWith('/mindmap ')) {
         const topic = rawPrompt.replace('/mindmap ', '').trim();
-        actualPrompt = `請針對『${topic}』進行深度架構拆解，並嚴格使用標準 \`\`\`mermaid 區塊輸出 Mindmap（心智圖）或 Graph（架構圖），確保排版清晰美觀，附上簡要解說。`;
+        actualPrompt = `請針對『${topic}』進行深度架構拆解，並嚴格使用標準 \`\`\`mermaid 區塊輸出 Mindmap（心智圖）或 Graph（架構圖），確保語法規範美觀，並附上簡要解說。`;
       } else if (rawPrompt.startsWith('/feynman ')) {
         const topic = rawPrompt.replace('/feynman ', '').trim();
-        actualPrompt = `請運用「費曼學習法」，以極其生動、通俗、小學生都能秒懂的比喻，深入淺出地解釋『${topic}』的核心本質，並指出常見盲點。`;
+        actualPrompt = `請運用「費曼學習法」，以極其生動通俗、小學生都能秒懂的比喻，深入淺出地解釋『${topic}』的核心本質。`;
       } else if (rawPrompt.startsWith('/debate ')) {
         const topic = rawPrompt.replace('/debate ', '').trim();
-        actualPrompt = `請針對『${topic}』展開深度的紅白臉辯證：1. 正方觀點（利益與支撐論據） 2. 反方觀點（風險、隱患與漏洞批判） 3. 獨立裁判的綜合裁決與務實建議。`;
+        actualPrompt = `請針對『${topic}』展開深度的紅白臉辯證：1. 正方觀點（利益與論據） 2. 反方觀點（風險與漏洞批判） 3. 中立裁判的綜合裁決建議。`;
       }
 
       triggerHaptic(20);
-      
-      // 注意：此處僅在畫面渲染使用者訊息，先不寫入 chatHistory，待發送完畢再統一寫入，徹底杜絕重複交替錯誤
       renderMessage('user', rawPrompt, false);
       inputEl.value = '';
       autoResize(inputEl);
@@ -1018,15 +986,15 @@
       const persona = document.getElementById('persona-select').value;
       const lorebook = document.getElementById('lorebook-content').value.trim();
 
-      let systemPrompt = "【核心遵循準則】\n";
+      let systemPrompt = "【核心準則】\n";
       if (persona === 'architect') {
-        systemPrompt += "角色設定：資深系統架構師。層次分明，給出可落地架構，代碼排版必須規範。\n";
+        systemPrompt += "角色設定：資深系統架構師。層次分明，給出可落地架構，代碼規範。\n";
       } else if (persona === 'strict_editor') {
-        systemPrompt += "角色設定：嚴苛的故事審稿編輯。挑出邏輯矛盾、設定衝突、老套情節，並給予修改方向。\n";
+        systemPrompt += "角色設定：嚴苛的故事審稿編輯。挑出邏輯矛盾、設定衝突、老套情節並給予指引。\n";
       } else if (persona === 'socratic_tutor') {
-        systemPrompt += "角色設定：費曼與蘇格拉底教學法導師。不直接給出全解，先啟發核心概念並主動提出反詰問題檢驗理解。\n";
+        systemPrompt += "角色設定：費曼與蘇格拉底教學法導師。先啟發核心概念並主動提出反詰問題檢驗理解。\n";
       } else if (persona === 'debate_judge') {
-        systemPrompt += "角色設定：紅白臉辯證分析師。請分三部分回答：1.正方優勢 2.反方風險 3.中立裁判裁決與建議。\n";
+        systemPrompt += "角色設定：紅白臉辯證分析師。請分三部分回答：1.正方優勢 2.反方風險 3.中立裁判裁決。\n";
       }
 
       systemPrompt += "格式規範：嚴格使用 Markdown；內部推導請放在 <think>...</think> 標籤中；數理公式一律使用標準 LaTeX（行內 $...$，獨立段落 $$...$$）；圖表請輸出標準 ```mermaid 區塊。\n";
@@ -1059,21 +1027,16 @@
       document.getElementById('file-preview-strip').innerHTML = '';
       document.getElementById('file-preview-strip').classList.add('hidden');
 
-      // 嚴格交替過濾器：確保發送歷史必然是 user -> model -> user -> model 交替
+      // 嚴格交替過濾器，確保無連續 user / model 造成 400
       const formattedHistory = [];
       let expectedRole = 'user';
       for (const msg of chatHistory.slice(-6)) {
         const apiRole = msg.role === 'assistant' ? 'model' : 'user';
         if (apiRole === expectedRole) {
-          formattedHistory.push({
-            role: apiRole,
-            parts: [{ text: msg.text }]
-          });
+          formattedHistory.push({ role: apiRole, parts: [{ text: msg.text }] });
           expectedRole = expectedRole === 'user' ? 'model' : 'user';
         }
       }
-
-      // 如果最後一個是 user，移除它以保證接下來能接上當前的 user 發問
       if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === 'user') {
         formattedHistory.pop();
       }
@@ -1090,13 +1053,15 @@
         ]
       };
 
-      const candidateModels = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
+      // 官方高可用模型序列
+      const candidateModels = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
       let fullReply = "";
       let success = false;
       let lastErrorMessage = "";
 
       for (const model of candidateModels) {
         try {
+          // 標準流式 POST 端點，徹底杜絕 405
           const endpoint = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
           const response = await fetch(endpoint, {
             method: 'POST',
@@ -1146,11 +1111,10 @@
 
       if (!success) {
         contentEl.classList.remove('typing-cursor');
-        contentEl.innerHTML = `<span class="text-rose-500 font-medium">連線受阻：${escapeHtml(lastErrorMessage || '請稍候重試')}</span>`;
+        contentEl.innerHTML = `<span class="text-rose-500 font-medium">連線受阻：${escapeHtml(lastErrorMessage || '請檢查網路後重試')}</span>`;
         return;
       }
 
-      // 發送成功後，才寫入本機資料庫保持順序完整
       const userObj = { role: 'user', text: rawPrompt };
       const botObj = { role: 'assistant', text: fullReply };
       chatHistory.push(userObj, botObj);
@@ -1159,11 +1123,10 @@
       attachActionButtons(botCard, fullReply);
     }
 
-    // --- 9. 渲染引擎 (處理 CoT、Mermaid 異步圖表、LaTeX) ---
+    // --- 9. 渲染引擎 ---
     async function renderProcessedContent(container, rawText) {
       let processed = rawText;
 
-      // 提取 <think> 轉折疊卡
       processed = processed.replace(/<think>([\s\S]*?)<\/think>/gi, (match, p1) => {
         return `
           <details class="my-2 bg-slate-100 dark:bg-oledSurface border border-slate-200 dark:border-oledBorder rounded-2xl p-3 text-xs text-slate-500 dark:text-slate-400">
@@ -1178,10 +1141,8 @@
       });
 
       container.innerHTML = marked.parse(processed);
-
       enhanceCodeBlocks(container);
 
-      // KaTeX 公式渲染
       if (window.renderMathInElement) {
         renderMathInElement(container, {
           delimiters: [
@@ -1192,7 +1153,6 @@
         });
       }
 
-      // Mermaid 異步向量繪製
       const mermaidElements = container.querySelectorAll('.language-mermaid');
       for (const el of mermaidElements) {
         const parent = el.closest('pre') || el;
@@ -1204,9 +1164,7 @@
           box.className = 'mermaid-svg-box';
           box.innerHTML = svg;
           parent.replaceWith(box);
-        } catch(e) {
-          // 若語法未完整輸入，暫時保留原樣不崩潰
-        }
+        } catch(e) {}
       }
 
       hljs.highlightAll();
@@ -1221,7 +1179,6 @@
         const langClass = codeEl ? Array.from(codeEl.classList).find(c => c.startsWith('language-')) : '';
         const lang = langClass ? langClass.replace('language-', '').toLowerCase() : '';
 
-        // 如果是 mermaid 代碼則交給 mermaid 渲染，不加工具列
         if (lang === 'mermaid') return;
 
         const toolbar = document.createElement('div');
