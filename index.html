@@ -147,9 +147,9 @@
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已整合<b>Bilibili 創作者龐大圖文設定集抓取器</b>！
+          已啟動<b>全自動 Bilibili UID / 文集全集抓取器</b>！
           <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>B站專欄批次解析</b>：在右上角設定貼上文章網址（一行一個），自動下載並清洗正文與插圖對照</li>
+            <li><b>UID / 文集 ID 智慧抓取</b>：直接輸入創作者 UID 或文集 ID，自動遍歷所有文章並整合圖文入庫</li>
             <li><b>API Key 永久鎖定</b>：記憶體與本地安全庫雙重保護，不重發驗證消耗額度</li>
             <li><b>多模態指令支援</b>：<code class="text-blue-400">/image</code> 高畫質繪圖、<code class="text-purple-400">/video</code> 動態短片生成</li>
           </ul>
@@ -242,21 +242,26 @@
           </p>
         </div>
 
-        <!-- Bilibili 專欄圖文批次抓取模組 -->
+        <!-- Bilibili 創作者 UID / 文集 ID 自動全抓模組 -->
         <div class="p-3.5 rounded-2xl bg-pink-50/40 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900/40 space-y-2.5">
           <div class="flex items-center justify-between">
             <span class="font-bold text-slate-800 dark:text-pink-300 flex items-center gap-1.5">
-              <i data-lucide="link" class="w-4 h-4 text-pink-500"></i> Bilibili 創作者圖文設定集抓取
+              <i data-lucide="layers" class="w-4 h-4 text-pink-500"></i> Bilibili UID / 文集 ID 自動全抓
             </span>
-            <button onclick="crawlBilibiliArticles()" id="bili-crawl-btn" class="px-3 py-1 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-[11px] font-medium transition shadow-sm flex items-center gap-1">
-              <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i> 一鍵抓取入庫
+            <button onclick="startAutoBiliCrawl()" id="bili-auto-btn" class="px-3 py-1 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-[11px] font-medium transition shadow-sm flex items-center gap-1">
+              <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i> 開始全量爬取
             </button>
           </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-            支援輸入多個專欄網址（如 <code>https://www.bilibili.com/read/cv...</code>），每行一個。自動解析標題、正文與高清插圖對照。
+            輸入創作者 <b>UID</b>（如 <code>12345678</code>）可遍歷其名下所有專欄；輸入 <b>文集 ID</b>（如 <code>rl123456</code> 或直接貼上文集連結）可抓取該系列全部文章。
           </p>
-          <textarea id="bili-urls" rows="2" placeholder="貼上專欄連結，例如：&#10;https://www.bilibili.com/read/cv12345678&#10;https://www.bilibili.com/read/cv87654321" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
-          <div id="bili-progress" class="hidden text-[11px] font-medium text-pink-600 dark:text-pink-400">正在抓取並清洗文字...</div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="bili-target-input" placeholder="輸入 UID、文集 ID (rl...) 或文集網址" class="flex-1 border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition" />
+          </div>
+          <div id="bili-progress" class="hidden text-[11px] font-medium text-pink-600 dark:text-pink-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
+            <span id="bili-progress-text">準備抓取...</span>
+          </div>
         </div>
 
         <!-- 本地檔案批次匯入功能 -->
@@ -362,77 +367,144 @@
       appendSystemMessage('✨ 對話已乾淨重置！世界觀與設定集已重新硬錨定，無任何先前錯誤污染。');
     }
 
-    // --- 2. Bilibili 專欄圖文批次爬取與清洗模組 ---
-    async function crawlBilibiliArticles() {
-      const urlsText = document.getElementById('bili-urls').value.trim();
-      if (!urlsText) return alert('請貼入至少一個 B 站專欄連結');
+    // --- 2. Bilibili UID / 文集 ID 自動全抓管線 ---
+    async function fetchProxyJson(url) {
+      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxy);
+      const data = await res.json();
+      return JSON.parse(data.contents);
+    }
 
-      const urls = urlsText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
-      const btn = document.getElementById('bili-crawl-btn');
-      const progress = document.getElementById('bili-progress');
+    async function fetchProxyHtml(url) {
+      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxy);
+      const data = await res.json();
+      return data.contents;
+    }
+
+    async function startAutoBiliCrawl() {
+      const inputVal = document.getElementById('bili-target-input').value.trim();
+      if (!inputVal) return alert('請輸入創作者 UID、文集 ID 或連結');
+
+      const btn = document.getElementById('bili-auto-btn');
+      const progressBox = document.getElementById('bili-progress');
+      const progressText = document.getElementById('bili-progress-text');
 
       btn.disabled = true;
-      progress.classList.remove('hidden');
+      progressBox.classList.remove('hidden');
 
-      let successCount = 0;
-      let totalAppendedText = "";
+      let articleIds = []; // 收集所有的 cv 數字 ID
 
-      for (let i = 0; i < urls.length; i++) {
-        const url = urls[i];
-        progress.innerText = `正在抓取 (${i + 1}/${urls.length}): ${url.slice(0, 32)}...`;
+      try {
+        // 模式 A：文集 ID (rl... 或包含 /read/readlist/rl)
+        if (inputVal.includes('rl') || inputVal.includes('readlist')) {
+          let rlid = inputVal;
+          const match = inputVal.match(/rl(\d+)/);
+          if (match) rlid = match[1];
+          else rlid = inputVal.replace(/\D/g, '');
 
-        try {
-          // 透過純前端穿透代理獲取 HTML
-          const proxyEndpoint = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-          const res = await fetch(proxyEndpoint);
-          const data = await res.json();
+          progressText.innerText = `正在檢索文集 rl${rlid} 的章節清單...`;
+          const listApi = `https://api.bilibili.com/x/article/list/web/articles?id=${rlid}`;
+          const resData = await fetchProxyJson(listApi);
 
-          if (!data || !data.contents) throw new Error("遠端未能取得內容");
-
-          // 解析 DOM
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(data.contents, 'text/html');
-
-          // 提取標題、作者
-          const title = doc.querySelector('.title-holder .title, .opus-title, h1')?.innerText.trim() || '未命名 B 站專欄';
-          const author = doc.querySelector('.up-name, .author-name')?.innerText.trim() || '創作者';
-
-          // 提取圖文正文
-          const contentContainer = doc.querySelector('#article-content, .opus-module-content, .article-holder');
-          let parsedBody = "";
-
-          if (contentContainer) {
-            // 清洗圖文節點，轉化為帶有圖注說明的 Markdown
-            contentContainer.querySelectorAll('p, img, figure').forEach(node => {
-              if (node.tagName.toLowerCase() === 'img') {
-                const src = node.getAttribute('data-src') || node.src;
-                if (src) parsedBody += `\n\n![插圖](${src.startsWith('//') ? 'https:' + src : src})\n\n`;
-              } else {
-                const t = node.innerText.trim();
-                if (t) parsedBody += `${t}\n\n`;
-              }
-            });
+          if (resData.code === 0 && resData.data && resData.data.articles) {
+            articleIds = resData.data.articles.map(a => a.id);
           } else {
-            parsedBody = doc.body.innerText.slice(0, 6000);
+            throw new Error(resData.message || '無法解析文集資料');
           }
 
-          totalAppendedText += `\n\n====================\n【B站設定集：${title}】\n創作者：${author}\n原始連結：${url}\n\n${parsedBody}\n====================\n`;
-          successCount++;
-        } catch(e) {
-          console.warn("抓取失敗: " + url, e);
-        }
-      }
+        // 模式 B：創作者 UID（純數字或空間連結）
+        } else {
+          let mid = inputVal;
+          const spaceMatch = inputVal.match(/space\.bilibili\.com\/(\d+)/);
+          if (spaceMatch) mid = spaceMatch[1];
+          else mid = inputVal.replace(/\D/g, '');
 
-      if (successCount > 0) {
-        const textarea = document.getElementById('lorebook-content');
-        textarea.value += totalAppendedText;
-        updateLorebookStats();
-        saveLorebookToDB(textarea.value);
-        progress.innerText = `抓取完畢！已成功將 ${successCount} 篇專欄完整寫入本地資料庫。`;
-        triggerHaptic(20);
-        setTimeout(() => progress.classList.add('hidden'), 4000);
-      } else {
-        progress.innerText = `抓取未成功，請確認專欄網址是否可公開訪問。`;
+          if (!mid) throw new Error('無法辨識有效的 UID 格式');
+
+          progressText.innerText = `正在分析創作者 UID:${mid} 的所有專欄分頁...`;
+          let page = 1;
+          let totalCount = 0;
+
+          while (true) {
+            progressText.innerText = `檢索第 ${page} 頁專欄目錄中...`;
+            const spaceApi = `https://api.bilibili.com/x/space/article?mid=${mid}&pn=${page}&ps=30&sort=publish_time`;
+            const resData = await fetchProxyJson(spaceApi);
+
+            if (resData.code === 0 && resData.data && resData.data.articles) {
+              const currentArticles = resData.data.articles;
+              if (currentArticles.length === 0) break;
+
+              currentArticles.forEach(a => articleIds.push(a.id));
+              totalCount = resData.data.count || articleIds.length;
+
+              if (articleIds.length >= totalCount || page >= 10) break; // 最多連鎖抓取前 10 頁
+              page++;
+            } else {
+              break;
+            }
+          }
+        }
+
+        articleIds = [...new Set(articleIds)];
+        if (articleIds.length === 0) throw new Error('未檢索到任何專欄文章');
+
+        progressText.innerText = `找到 ${articleIds.length} 篇設定集，開始逐篇深度解析圖文...`;
+
+        let successCount = 0;
+        let combinedText = "";
+
+        for (let i = 0; i < articleIds.length; i++) {
+          const cvId = articleIds[i];
+          const articleUrl = `https://www.bilibili.com/read/cv${cvId}`;
+          progressText.innerText = `下載中 (${i + 1}/${articleIds.length}): cv${cvId}`;
+
+          try {
+            const html = await fetchProxyHtml(articleUrl);
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            const title = doc.querySelector('.title-holder .title, .opus-title, h1')?.innerText.trim() || `設定篇章 cv${cvId}`;
+            const author = doc.querySelector('.up-name, .author-name')?.innerText.trim() || '創作者';
+            const contentContainer = doc.querySelector('#article-content, .opus-module-content, .article-holder');
+
+            let parsedBody = "";
+            if (contentContainer) {
+              contentContainer.querySelectorAll('p, img, figure').forEach(node => {
+                if (node.tagName.toLowerCase() === 'img') {
+                  const src = node.getAttribute('data-src') || node.src;
+                  if (src) parsedBody += `\n\n![插圖](${src.startsWith('//') ? 'https:' + src : src})\n\n`;
+                } else {
+                  const t = node.innerText.trim();
+                  if (t) parsedBody += `${t}\n\n`;
+                }
+              });
+            } else {
+              parsedBody = doc.body.innerText.slice(0, 6000);
+            }
+
+            combinedText += `\n\n====================\n【B站設定集：${title}】\n創作者：${author}\n章節編號：cv${cvId}\n連結：${articleUrl}\n\n${parsedBody}\n====================\n`;
+            successCount++;
+          } catch(e) {
+            console.warn(`cv${cvId} 抓取失敗`, e);
+          }
+        }
+
+        if (successCount > 0) {
+          const textarea = document.getElementById('lorebook-content');
+          textarea.value += combinedText;
+          updateLorebookStats();
+          saveLorebookToDB(textarea.value);
+          progressText.innerText = `全量抓取完成！成功匯入 ${successCount} 篇圖文設定集。`;
+          triggerHaptic(20);
+          setTimeout(() => progressBox.classList.add('hidden'), 5000);
+        } else {
+          progressText.innerText = `專欄正文抓取失敗，請確認內容是否為公開專欄。`;
+        }
+
+      } catch(err) {
+        alert('抓取中斷: ' + err.message);
+        progressBox.classList.add('hidden');
       }
 
       btn.disabled = false;
