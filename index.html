@@ -134,7 +134,7 @@
         <button onclick="clearHistory()" title="重置對話（保留世界觀記憶）" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-400 hover:text-rose-500 transition">
           <i data-lucide="refresh-ccw" class="w-4 h-4"></i>
         </button>
-        <button onclick="toggleSettingsModal(true)" title="設定與金鑰管理 (Cmd/Ctrl + K)" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-slate-300 transition">
+        <button onclick="toggleSettingsModal(true)" title="設定與設定集庫 (Cmd/Ctrl + K)" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-slate-300 transition">
           <i data-lucide="sliders" class="w-4 h-4"></i>
         </button>
       </div>
@@ -147,12 +147,11 @@
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已啟動<b>永久授權與全能多模態生成引擎</b>：
+          已整合<b>Bilibili 創作者龐大圖文設定集抓取器</b>！
           <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>API Key 永久驗證</b>：一次儲存即可長期使用，啟動不再連線重複消耗 RPM 額度</li>
-            <li><b>高畫質生圖</b>：輸入 <code class="text-blue-400">/image 提示詞</code> 產生高畫質圖像，支援儲存與原圖下載</li>
-            <li><b>動態影片</b>：輸入 <code class="text-purple-400">/video 提示詞</code> 產生動態畫面</li>
-            <li><b>錯誤免疫</b>：內建對話歷史自動清理器，徹底免除 HTTP 400 與 405 錯誤</li>
+            <li><b>B站專欄批次解析</b>：在右上角設定貼上文章網址（一行一個），自動下載並清洗正文與插圖對照</li>
+            <li><b>API Key 永久鎖定</b>：記憶體與本地安全庫雙重保護，不重發驗證消耗額度</li>
+            <li><b>多模態指令支援</b>：<code class="text-blue-400">/image</code> 高畫質繪圖、<code class="text-purple-400">/video</code> 動態短片生成</li>
           </ul>
         </div>
       </div>
@@ -184,7 +183,7 @@
             class="flex-1 max-h-32 resize-none bg-transparent outline-none px-2.5 py-1.5 text-slate-800 dark:text-slate-100 text-sm leading-6 placeholder:text-slate-400"
             oninput="autoResize(this)"></textarea>
           
-          <label class="cursor-pointer p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledBorder text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0" title="上傳檔案/圖片">
+          <label class="cursor-pointer p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledBorder text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0" title="上傳單次檔案/圖片">
             <i data-lucide="paperclip" class="w-4 h-4"></i>
             <input type="file" id="file-uploader" class="hidden" onchange="handleFileUpload(event)" multiple accept="image/*,.txt,.md,.pdf,.json" />
           </label>
@@ -231,30 +230,44 @@
       </div>
 
       <div class="overflow-y-auto space-y-4 flex-1 pr-1 text-xs">
-        <!-- 金鑰配置與快速檢驗 -->
-        <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-oledCard border border-slate-200 dark:border-oledBorder space-y-2.5">
+        <!-- 金鑰配置 -->
+        <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-oledCard border border-slate-200 dark:border-oledBorder space-y-2">
           <div class="flex items-center justify-between">
             <label class="font-semibold text-slate-700 dark:text-slate-200">Google Gemini API Key</label>
             <span id="key-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 font-semibold">永久有效</span>
           </div>
           <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-blue-500 font-mono transition" />
           <p class="text-[11px] text-slate-400 leading-normal">
-            金鑰直接存於本地安全沙盒（IndexedDB）。儲存後即鎖定授權，無需重複發送檢驗消耗頻率額度。
+            金鑰存於本地 IndexedDB 安全沙盒。儲存即鎖定，不反覆連網檢測以避免觸發 429 頻率限制。
           </p>
         </div>
 
-        <!-- 檔案大量匯入功能 -->
+        <!-- Bilibili 專欄圖文批次抓取模組 -->
+        <div class="p-3.5 rounded-2xl bg-pink-50/40 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900/40 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-800 dark:text-pink-300 flex items-center gap-1.5">
+              <i data-lucide="link" class="w-4 h-4 text-pink-500"></i> Bilibili 創作者圖文設定集抓取
+            </span>
+            <button onclick="crawlBilibiliArticles()" id="bili-crawl-btn" class="px-3 py-1 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-[11px] font-medium transition shadow-sm flex items-center gap-1">
+              <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i> 一鍵抓取入庫
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+            支援輸入多個專欄網址（如 <code>https://www.bilibili.com/read/cv...</code>），每行一個。自動解析標題、正文與高清插圖對照。
+          </p>
+          <textarea id="bili-urls" rows="2" placeholder="貼上專欄連結，例如：&#10;https://www.bilibili.com/read/cv12345678&#10;https://www.bilibili.com/read/cv87654321" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
+          <div id="bili-progress" class="hidden text-[11px] font-medium text-pink-600 dark:text-pink-400">正在抓取並清洗文字...</div>
+        </div>
+
+        <!-- 本地檔案批次匯入功能 -->
         <div class="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-2">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-700 dark:text-blue-300">批次匯入設定集文件 (.txt, .md, .json)</span>
+            <span class="font-bold text-slate-700 dark:text-blue-300">本機批次匯入設定文件 (.txt, .md, .json)</span>
             <label class="cursor-pointer px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-medium transition shadow-sm">
               <span>選擇檔案匯入</span>
               <input type="file" id="kb-file-input" class="hidden" onchange="importKnowledgeFiles(event)" multiple accept=".txt,.md,.json,.csv" />
             </label>
           </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-            支援將整套小說人物表、技能體系、世界歷史一次性讀入，永久保存在本地資料庫中。
-          </p>
         </div>
 
         <!-- 知識庫編輯區 -->
@@ -349,7 +362,83 @@
       appendSystemMessage('✨ 對話已乾淨重置！世界觀與設定集已重新硬錨定，無任何先前錯誤污染。');
     }
 
-    // --- 2. 批次匯入龐大文件 ---
+    // --- 2. Bilibili 專欄圖文批次爬取與清洗模組 ---
+    async function crawlBilibiliArticles() {
+      const urlsText = document.getElementById('bili-urls').value.trim();
+      if (!urlsText) return alert('請貼入至少一個 B 站專欄連結');
+
+      const urls = urlsText.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+      const btn = document.getElementById('bili-crawl-btn');
+      const progress = document.getElementById('bili-progress');
+
+      btn.disabled = true;
+      progress.classList.remove('hidden');
+
+      let successCount = 0;
+      let totalAppendedText = "";
+
+      for (let i = 0; i < urls.length; i++) {
+        const url = urls[i];
+        progress.innerText = `正在抓取 (${i + 1}/${urls.length}): ${url.slice(0, 32)}...`;
+
+        try {
+          // 透過純前端穿透代理獲取 HTML
+          const proxyEndpoint = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+          const res = await fetch(proxyEndpoint);
+          const data = await res.json();
+
+          if (!data || !data.contents) throw new Error("遠端未能取得內容");
+
+          // 解析 DOM
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(data.contents, 'text/html');
+
+          // 提取標題、作者
+          const title = doc.querySelector('.title-holder .title, .opus-title, h1')?.innerText.trim() || '未命名 B 站專欄';
+          const author = doc.querySelector('.up-name, .author-name')?.innerText.trim() || '創作者';
+
+          // 提取圖文正文
+          const contentContainer = doc.querySelector('#article-content, .opus-module-content, .article-holder');
+          let parsedBody = "";
+
+          if (contentContainer) {
+            // 清洗圖文節點，轉化為帶有圖注說明的 Markdown
+            contentContainer.querySelectorAll('p, img, figure').forEach(node => {
+              if (node.tagName.toLowerCase() === 'img') {
+                const src = node.getAttribute('data-src') || node.src;
+                if (src) parsedBody += `\n\n![插圖](${src.startsWith('//') ? 'https:' + src : src})\n\n`;
+              } else {
+                const t = node.innerText.trim();
+                if (t) parsedBody += `${t}\n\n`;
+              }
+            });
+          } else {
+            parsedBody = doc.body.innerText.slice(0, 6000);
+          }
+
+          totalAppendedText += `\n\n====================\n【B站設定集：${title}】\n創作者：${author}\n原始連結：${url}\n\n${parsedBody}\n====================\n`;
+          successCount++;
+        } catch(e) {
+          console.warn("抓取失敗: " + url, e);
+        }
+      }
+
+      if (successCount > 0) {
+        const textarea = document.getElementById('lorebook-content');
+        textarea.value += totalAppendedText;
+        updateLorebookStats();
+        saveLorebookToDB(textarea.value);
+        progress.innerText = `抓取完畢！已成功將 ${successCount} 篇專欄完整寫入本地資料庫。`;
+        triggerHaptic(20);
+        setTimeout(() => progress.classList.add('hidden'), 4000);
+      } else {
+        progress.innerText = `抓取未成功，請確認專欄網址是否可公開訪問。`;
+      }
+
+      btn.disabled = false;
+    }
+
+    // 本機檔案批次匯入
     function importKnowledgeFiles(event) {
       const files = Array.from(event.target.files);
       if (!files.length) return;
@@ -499,7 +588,7 @@
       saveLorebookToDB(lore);
       updateLorebookStats();
       toggleSettingsModal(false);
-      alert('金鑰已安全鎖定，永久有效！');
+      alert('設定與知識庫已安全儲存！');
     }
 
     function toggleSettingsModal(show) {
@@ -576,7 +665,7 @@
       }
     }
 
-    // --- 5. AI 高畫質生圖模組（雙軌防破圖 + 自動解析） ---
+    // --- 5. AI 高畫質生圖模組（雙軌防破圖） ---
     async function generateImage(prompt) {
       const rawKey = localStorage.getItem('omni_ai_key');
       const apiKey = rawKey ? atob(rawKey).trim() : '';
@@ -606,7 +695,6 @@
       const actionBox = wrapper.querySelector('.action-buttons');
       let finalImgSrc = "";
 
-      // 1. 若有金鑰，先嘗試官方 Imagen 3 端點
       if (apiKey) {
         try {
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(apiKey)}`;
@@ -623,7 +711,6 @@
         } catch(e) {}
       }
 
-      // 2. 備援通道：極速高畫質 FLUX.1-Turbo
       if (!finalImgSrc) {
         const seed = Math.floor(Math.random() * 9999999);
         finalImgSrc = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
@@ -649,7 +736,7 @@
       testImg.src = finalImgSrc;
     }
 
-    // --- 6. AI 動態短片生成模組（真正動態播放與導出） ---
+    // --- 6. AI 動態短片生成模組 ---
     async function generateVideo(prompt) {
       const stream = document.getElementById('chat-stream');
       const wrapper = document.createElement('div');
@@ -709,7 +796,7 @@
       preload.src = frameUrl;
     }
 
-    // --- 7. 核心對話發送（使用 gemini-3.6-flash，全面修復 405 與 400） ---
+    // --- 7. 核心對話發送（支援 gemini-3.6-flash，嚴格修復 400 與 405） ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const rawPrompt = inputEl.value.trim();
@@ -806,7 +893,6 @@
         ]
       };
 
-      // 鎖定官方最新標準 gemini-3.6-flash
       const candidateModels = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
       let fullReply = "";
       let success = false;
