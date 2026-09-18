@@ -147,11 +147,11 @@
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已適配 <b>B站手機分享文字與短網址解包引擎</b>！
+          已啟用<b>「iOS 夜間睡眠全自動爬取與檔案儲存引擎」</b>！
           <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>萬能格式適配</b>：支援直接貼入包含標題與 <code class="text-pink-400">b23.tv/...</code> 短網址的整串分享文字</li>
-            <li><b>自動重定向追蹤</b>：自動追蹤 302 跳轉還原真實文章，並逐篇將圖文存入本地資料庫</li>
-            <li><b>永久授權鎖定</b>：記憶體與本地安全庫雙重保護，不重發驗證消耗額度</li>
+            <li><b>螢幕防休眠常亮鎖定</b>：睡前啟動，防止 Safari 自動凍結斷線</li>
+            <li><b>防風控平緩下載</b>：隨機延遲模擬真人閱覽，避免 WAF 攔截</li>
+            <li><b>自動儲存雙通道</b>：完成後直接生成 <code class="text-pink-400">.txt</code> 存入 iPhone 檔案，並自動硬錨定至 IndexedDB</li>
           </ul>
         </div>
       </div>
@@ -236,29 +236,33 @@
           <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-blue-500 font-mono transition" />
         </div>
 
-        <!-- Bilibili 設定集全自動抓取模組 (支援手機分享格式與短網址) -->
-        <div class="p-3.5 rounded-2xl bg-pink-50/40 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900/40 space-y-2.5">
+        <!-- iOS 睡眠夜間全自動掛機爬取模組 -->
+        <div class="p-3.5 rounded-2xl bg-gradient-to-br from-pink-50/50 to-purple-50/40 dark:from-pink-950/30 dark:to-purple-950/20 border border-pink-100 dark:border-pink-900/40 space-y-2.5">
           <div class="flex items-center justify-between">
             <span class="font-bold text-slate-800 dark:text-pink-300 flex items-center gap-1.5">
-              <i data-lucide="layers" class="w-4 h-4 text-pink-500"></i> Bilibili 設定集智慧抓取
+              <i data-lucide="moon" class="w-4 h-4 text-purple-400"></i> iOS 夜間掛機自動下載與存檔
             </span>
-            <button onclick="startAutoBiliCrawl()" id="bili-auto-btn" class="px-3 py-1 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-[11px] font-medium transition shadow-sm flex items-center gap-1">
-              <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i> 一鍵解析下載
+            <button onclick="startOvernightCrawl()" id="bili-auto-btn" class="px-3 py-1 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white rounded-xl text-[11px] font-medium transition shadow-sm flex items-center gap-1">
+              <i data-lucide="play" class="w-3.5 h-3.5"></i> 啟動夜間守護爬取
             </button>
           </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-            支援手機端複製的整段文字（包含標題與 <code>b23.tv/...</code> 短網址）、標準專欄 <code>cv...</code> 連結、文集 ID 或創作者 UID。
+            貼上專欄清單、包含 <code class="text-pink-400">b23.tv</code> 短連結的分享文字、或文集連結。系統會<b>保持螢幕常亮防止 iPhone 凍結</b>，平緩下載完後自動儲存為 <code class="text-emerald-400">.txt</code> 檔至手機並存入資料庫。
           </p>
-          <textarea id="bili-target-input" rows="3" placeholder="直接貼上手機 B 站複製的整串內容！例如：&#10;【【战锤40k】LEX翻译：荷鲁斯·卢佩卡尔-哔哩哔哩】 https://b23.tv/shWQUam&#10;或貼上多篇專欄連結..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
+          <textarea id="bili-target-input" rows="3" placeholder="支援直接貼入多個 B 站分享文字或網址：&#10;【【战锤40k】LEX翻译：荷鲁斯·卢佩卡尔-哔哩哔哩】 https://b23.tv/shWQUam&#10;https://www.bilibili.com/read/cv...&#10;rl123456 (文集)" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
 
-          <!-- 即時項目數量與進度條 -->
+          <!-- 視覺化進度條與狀態 -->
           <div id="bili-progress-container" class="hidden space-y-1.5 pt-1">
             <div class="flex justify-between text-[11px] font-medium text-pink-600 dark:text-pink-400">
-              <span id="bili-status-text">提取項目中...</span>
-              <span id="bili-count-badge" class="font-bold">項目: 0/0</span>
+              <span id="bili-status-text">防休眠鎖定中...</span>
+              <span id="bili-count-badge" class="font-bold">進度: 0/0</span>
             </div>
-            <div class="w-full bg-slate-200 dark:bg-oledBorder h-2 rounded-full overflow-hidden">
-              <div id="bili-progress-bar" class="bg-gradient-to-r from-pink-500 to-rose-500 h-full w-0 transition-all duration-300"></div>
+            <div class="w-full bg-slate-200 dark:bg-oledBorder h-2.5 rounded-full overflow-hidden">
+              <div id="bili-progress-bar" class="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 h-full w-0 transition-all duration-300"></div>
+            </div>
+            <div class="text-[10px] text-slate-400 flex items-center justify-between">
+              <span>💡 提示：手機可接上電源插頭，螢幕將保持微亮運算</span>
+              <button onclick="stopOvernightCrawl()" class="text-rose-400 hover:underline">中途停止並儲存</button>
             </div>
           </div>
         </div>
@@ -266,7 +270,7 @@
         <!-- 本地檔案批次匯入功能 -->
         <div class="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-2">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-700 dark:text-blue-300">本機批次匯入設定文件 (.txt, .md, .json)</span>
+            <span class="font-bold text-slate-700 dark:text-blue-300">手動匯入文字檔 (.txt, .md, .json)</span>
             <label class="cursor-pointer px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-medium transition shadow-sm">
               <span>選擇檔案匯入</span>
               <input type="file" id="kb-file-input" class="hidden" onchange="importKnowledgeFiles(event)" multiple accept=".txt,.md,.json,.csv" />
@@ -280,7 +284,7 @@
             <label class="font-semibold text-slate-600 dark:text-slate-300">核心世界觀 / 永恆設定內文</label>
             <span id="kb-char-counter" class="text-[10px] text-slate-400 font-mono">0 字</span>
           </div>
-          <textarea id="lorebook-content" rows="6" placeholder="貼上或匯入你的世界觀規則、角色人設、特定用語約束..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-2xl p-3 text-xs outline-none focus:border-blue-500 font-mono transition leading-relaxed"></textarea>
+          <textarea id="lorebook-content" rows="6" placeholder="設定集內文，夜間爬取後將自動寫入此處..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-2xl p-3 text-xs outline-none focus:border-blue-500 font-mono transition leading-relaxed"></textarea>
         </div>
       </div>
 
@@ -366,7 +370,41 @@
       appendSystemMessage('✨ 對話已乾淨重置！世界觀與設定集已重新硬錨定。');
     }
 
-    // --- 2. 穩健跨域抓取引擎 (支援重定向追蹤) ---
+    // --- 2. iOS 螢幕常亮鎖定引擎 (Screen Wake Lock API + 無聲音訊防休眠) ---
+    let wakeLock = null;
+    let silentAudioElement = null;
+    let isCrawlRunning = false;
+
+    async function enableWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {}
+
+      // Safari 備援機制：播放極微弱的靜音音訊避免 iOS 切斷背景網路
+      try {
+        if (!silentAudioElement) {
+          silentAudioElement = document.createElement('audio');
+          silentAudioElement.loop = true;
+          // 一秒靜音 wav base64
+          silentAudioElement.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+        }
+        await silentAudioElement.play();
+      } catch (e) {}
+    }
+
+    function disableWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
+      }
+      if (silentAudioElement) {
+        silentAudioElement.pause();
+      }
+    }
+
+    // --- 3. 跨域穿透與短網址解包 ---
     async function fetchWithFallback(targetUrl) {
       const endpoints = [
         `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
@@ -389,25 +427,28 @@
       return null;
     }
 
-    // 短網址解包器：將 b23.tv/... 還原出真實文章網址或 HTML
     async function resolveShortUrl(shortUrl) {
       const html = await fetchWithFallback(shortUrl);
       if (!html) return null;
-
-      // 1. 從重定向 HTML 或 Meta 標籤提取真實 URL
       const cvMatch = html.match(/(?:cv|\/read\/cv|\/read\/mobile\?id=)(\d+)/i);
       if (cvMatch) return { type: 'cv', id: cvMatch[1], html };
-
       const opusMatch = html.match(/(?:opus\/)(\d+)/i);
       if (opusMatch) return { type: 'opus', id: opusMatch[1], html };
-
       return { type: 'raw', html };
     }
 
-    // --- 3. 智慧解析與單篇即時入庫模組 ---
-    async function startAutoBiliCrawl() {
+    // --- 4. 夜間全自動掛機爬取核心 ---
+    function stopOvernightCrawl() {
+      isCrawlRunning = false;
+      disableWakeLock();
+      const statusText = document.getElementById('bili-status-text');
+      statusText.innerText = '已由使用者手動終止。已下載文章已全部儲存。';
+      document.getElementById('bili-auto-btn').disabled = false;
+    }
+
+    async function startOvernightCrawl() {
       const inputVal = document.getElementById('bili-target-input').value.trim();
-      if (!inputVal) return alert('請貼入 B 站專欄連結、b23.tv 短網址或包含連結的文字');
+      if (!inputVal) return alert('請貼入 B 站分享文字、cv 連結或文集 ID');
 
       const btn = document.getElementById('bili-auto-btn');
       const progressContainer = document.getElementById('bili-progress-container');
@@ -417,41 +458,35 @@
 
       btn.disabled = true;
       progressContainer.classList.remove('hidden');
-      progressBar.style.width = '5%';
-      statusText.innerText = '正在智慧掃描並解析分享內容...';
+      isCrawlRunning = true;
+
+      // 啟用螢幕常亮防止 iPhone 睡眠
+      await enableWakeLock();
+      statusText.innerText = '已啟動 iOS 防休眠守護，正在萃取目標文章清單...';
 
       let targetList = [];
 
-      // 1. 自動檢測是否包含 b23.tv 短網址
+      // 解析 b23.tv 短連結
       const shortUrlRegex = /https?:\/\/b23\.tv\/[a-zA-Z0-9]+/gi;
       const shortMatches = inputVal.match(shortUrlRegex) || [];
-
       for (const sUrl of shortMatches) {
-        statusText.innerText = `正在解包短網址: ${sUrl}...`;
-        const resolved = await resolveShortUrl(sUrl);
-        if (resolved && resolved.id) {
-          targetList.push({ type: resolved.type, id: resolved.id, preloadedHtml: resolved.html });
-        }
+        statusText.innerText = `解包短網址中: ${sUrl}...`;
+        const res = await resolveShortUrl(sUrl);
+        if (res && res.id) targetList.push({ type: res.type, id: res.id, preloadedHtml: res.html });
       }
 
-      // 2. 常規 cv 與 opus 網址提取
+      // 解析 cv 與 opus
       const cvRegex = /(?:cv|\/read\/cv|\/read\/mobile\?id=)(\d+)/gi;
       const opusRegex = /(?:opus\/)(\d+)/gi;
-
       let match;
-      while ((match = cvRegex.exec(inputVal)) !== null) {
-        targetList.push({ type: 'cv', id: match[1] });
-      }
-      while ((match = opusRegex.exec(inputVal)) !== null) {
-        targetList.push({ type: 'opus', id: match[1] });
-      }
+      while ((match = cvRegex.exec(inputVal)) !== null) targetList.push({ type: 'cv', id: match[1] });
+      while ((match = opusRegex.exec(inputVal)) !== null) targetList.push({ type: 'opus', id: match[1] });
 
-      // 3. 文集 ID (rl...) 提取
+      // 解析文集 ID
       const rlMatch = inputVal.match(/rl(\d+)/i);
       if (rlMatch) {
-        const rlid = rlMatch[1];
-        statusText.innerText = `正在檢索文集 rl${rlid} 章節清單...`;
-        const listData = await fetchWithFallback(`https://api.bilibili.com/x/article/list/web/articles?id=${rlid}`);
+        statusText.innerText = `檢索文集 rl${rlMatch[1]} 章節...`;
+        const listData = await fetchWithFallback(`https://api.bilibili.com/x/article/list/web/articles?id=${rlMatch[1]}`);
         if (listData) {
           try {
             const parsed = typeof listData === 'string' ? JSON.parse(listData) : listData;
@@ -462,32 +497,27 @@
         }
       }
 
-      // 去重
-      const uniqueKeys = new Set();
-      const finalList = [];
-      targetList.forEach(item => {
-        const key = `${item.type}_${item.id}`;
-        if (!uniqueKeys.has(key)) {
-          uniqueKeys.add(key);
-          finalList.push(item);
-        }
-      });
+      // 去除重複項目
+      const uniqueMap = new Map();
+      targetList.forEach(item => uniqueMap.set(`${item.type}_${item.id}`, item));
+      const finalList = Array.from(uniqueMap.values());
 
       const total = finalList.length;
       if (total === 0) {
-        btn.disabled = false;
-        progressContainer.classList.add('hidden');
-        return alert('未能從貼入內容中識別到有效的文章網址。請確認連結是否包含 b23.tv 或 cv 編號。');
+        stopOvernightCrawl();
+        return alert('未能辨識到有效文章網址，請確認內容是否包含 cv 編號或 b23.tv 連結');
       }
 
-      countBadge.innerText = `可用篇數: ${total} 篇`;
-      statusText.innerText = `已辨識 ${total} 篇專欄，開始解析圖文正文...`;
-      progressBar.style.width = '10%';
+      countBadge.innerText = `總篇數: 0/${total}`;
+      statusText.innerText = `辨識成功，共有 ${total} 篇設定集。開始平緩夜間下載...`;
 
+      let downloadedTextCollection = "";
       let successCount = 0;
       const textarea = document.getElementById('lorebook-content');
 
       for (let i = 0; i < total; i++) {
+        if (!isCrawlRunning) break;
+
         const item = finalList[i];
         const step = i + 1;
         const targetUrl = item.type === 'cv' 
@@ -508,7 +538,7 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
 
-            const title = doc.querySelector('.title-holder .title, .opus-title, h1')?.innerText.trim() || `專欄 ${item.type}${item.id}`;
+            const title = doc.querySelector('.title-holder .title, .opus-title, h1')?.innerText.trim() || `專欄篇章 ${item.type}${item.id}`;
             const author = doc.querySelector('.up-name, .author-name')?.innerText.trim() || '創作者';
             const contentContainer = doc.querySelector('#article-content, .opus-module-content, .article-holder');
 
@@ -527,27 +557,47 @@
               parsedBody = doc.body.innerText.slice(0, 4000);
             }
 
-            const formattedEntry = `\n\n====================\n【B站設定集：${title}】\n創作者：${author}\n篇章識別碼：${item.type}${item.id}\n原始連結：${targetUrl}\n\n${parsedBody}\n====================\n`;
+            const singleEntry = `\n\n====================\n【B站設定集：${title}】\n創作者：${author}\n篇章識別碼：${item.type}${item.id}\n原始連結：${targetUrl}\n\n${parsedBody}\n====================\n`;
 
-            // 即時單篇寫入本地庫
-            textarea.value += formattedEntry;
+            // 1. 即時寫入本地 IndexedDB
+            textarea.value += singleEntry;
             updateLorebookStats();
             saveLorebookToDB(textarea.value);
+
+            // 2. 收集入文字包準備存檔
+            downloadedTextCollection += singleEntry;
             successCount++;
 
           } catch(e) {}
         }
+
+        // 防風控隨機間隔延遲（2.5 ~ 4.2 秒）
+        if (i < total - 1 && isCrawlRunning) {
+          const delayTime = Math.floor(Math.random() * 1700) + 2500;
+          statusText.innerText = `模擬閱覽平息頻率中 (${(delayTime/1000).toFixed(1)}s)... 下一篇: ${i + 2}/${total}`;
+          await new Promise(r => setTimeout(r, delayTime));
+        }
       }
 
+      // 全部爬取完畢：自動打包為純文字檔並觸發 iOS「儲存到檔案」
       if (successCount > 0) {
-        statusText.innerText = `抓取完成！已入庫 ${successCount} 篇設定集。`;
+        statusText.innerText = `🎉 恭喜！夜間任務已完成，共儲存 ${successCount} 篇設定集。正在匯出純文字檔...`;
         progressBar.style.width = '100%';
-        triggerHaptic(20);
-        setTimeout(() => progressContainer.classList.add('hidden'), 5000);
-      } else {
-        statusText.innerText = `連線受限，請確認網址是否可公開存取。`;
+        triggerHaptic(30);
+
+        // 自動觸發下載 .txt 至手機儲存空間
+        const blob = new Blob(["\uFEFF" + downloadedTextCollection], { type: 'text/plain;charset=utf-8;' });
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `Bilibili_Lorebook_Export_${Date.now()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
       }
 
+      disableWakeLock();
       btn.disabled = false;
     }
 
@@ -568,8 +618,9 @@
             const textarea = document.getElementById('lorebook-content');
             textarea.value += importedTotalText;
             updateLorebookStats();
+            saveLorebookToDB(textarea.value);
             triggerHaptic(15);
-            alert(`成功匯入 ${files.length} 個設定文件！請記得點選下方儲存。`);
+            alert(`成功匯入 ${files.length} 個設定文件！已寫入本地資料庫。`);
           }
         };
         reader.readAsText(file);
@@ -583,7 +634,7 @@
       document.getElementById('auth-status-text').innerText = `設定集: ${len > 1000 ? (len/1000).toFixed(1) + 'k' : len} 字 (授權有效)`;
     }
 
-    // --- 4. 全域狀態與初始化 ---
+    // --- 5. 全域狀態與初始化 ---
     let chatHistory = [];
     let anchoredContext = "";
     let recognition = null;
@@ -720,7 +771,7 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // --- 5. 圖片壓縮 ---
+    // --- 6. 圖片本地壓縮 ---
     async function compressImage(file) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -778,7 +829,7 @@
       }
     }
 
-    // --- 6. 多模態生圖與影片 ---
+    // --- 7. 多模態生圖與影片 ---
     async function generateImage(prompt) {
       const rawKey = localStorage.getItem('omni_ai_key');
       const apiKey = rawKey ? atob(rawKey).trim() : '';
@@ -908,7 +959,7 @@
       preload.src = frameUrl;
     }
 
-    // --- 7. 核心對話發送 ---
+    // --- 8. 核心對話發送 (gemini-3.6-flash 原生端點) ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const rawPrompt = inputEl.value.trim();
@@ -1074,7 +1125,7 @@
       attachActionButtons(botCard, fullReply);
     }
 
-    // --- 8. 介面輔助函數 ---
+    // --- 9. 介面輔助函數 ---
     function addCodeCopyButtons(container) {
       container.querySelectorAll('pre').forEach((pre) => {
         if (pre.querySelector('.copy-code-btn')) return;
