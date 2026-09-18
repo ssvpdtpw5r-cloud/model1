@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Gemini Studio</title>
+  <title>Gemini Studio - Lorebook Edition</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -30,7 +30,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Marked.js (Markdown 解析) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Highlight.js (代碼語法著色) -->
+  <!-- Highlight.js (代碼高亮) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
@@ -49,26 +49,23 @@
       padding-bottom: var(--keyboard-offset);
       transition: padding-bottom 0.1s cubic-bezier(0.1, 0.9, 0.2, 1);
     }
-    /* OLED 全黑擬態毛玻璃 */
     .dark .oled-glass {
-      background: rgba(13, 14, 17, 0.85);
+      background: rgba(13, 14, 17, 0.88);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border-color: #232730;
       box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.8);
     }
     .oled-glass {
-      background: rgba(255, 255, 255, 0.88);
+      background: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-color: #e2e8f0;
       box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
     }
-    /* 發光聚焦邊框 */
     .input-glow:focus-within {
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4), 0 0 25px -3px rgba(59, 130, 246, 0.2);
     }
-    /* 打字游標 */
     .typing-cursor::after {
       content: '▋';
       display: inline-block;
@@ -78,14 +75,12 @@
       margin-left: 2px;
     }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-    /* 骨架屏 */
     .skeleton-shimmer {
       background: linear-gradient(90deg, #18191f 25%, #252833 50%, #18191f 75%);
       background-size: 200% 100%;
       animation: shimmer 1.5s infinite;
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    /* Markdown 樣式細化 */
     .prose-custom p { margin-bottom: 0.6em; line-height: 1.65; }
     .prose-custom p:last-child { margin-bottom: 0; }
     .prose-custom pre {
@@ -98,7 +93,6 @@
       overflow-x: auto;
     }
     .prose-custom code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.82rem; }
-    /* 代碼複製按鈕 */
     .copy-code-btn {
       position: absolute;
       top: 0.5rem;
@@ -117,15 +111,8 @@
 </head>
 <body class="bg-white dark:bg-oled text-slate-800 dark:text-slate-100 antialiased select-none md:select-auto transition-colors duration-200">
 
-  <!-- 浮動告警條 -->
-  <div id="diag-banner" class="hidden fixed top-3 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-4 py-2 rounded-2xl shadow-xl text-xs flex items-center space-x-2">
-    <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
-    <span id="diag-banner-text">系統偵測到配置異常</span>
-    <button onclick="toggleSettingsModal(true)" class="underline font-bold ml-2">檢查</button>
-  </div>
-
   <div id="app-container">
-    <!-- 頂部導航列 -->
+    <!-- 頂部導航 -->
     <header class="flex items-center justify-between px-4 py-2.5 bg-white/80 dark:bg-oled/80 backdrop-blur-md border-b border-slate-200/80 dark:border-oledBorder shrink-0 z-10">
       <div class="flex items-center space-x-2">
         <span class="font-bold text-base tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
@@ -134,57 +121,56 @@
           </span>
           Gemini Studio
         </span>
-        <div id="net-status" class="flex items-center text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/40 dark:border-emerald-800/40">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-          <span id="net-text">在線正常</span>
+        <!-- 記憶庫狀態標籤 -->
+        <div id="kb-status-chip" onclick="toggleSettingsModal(true)" class="cursor-pointer flex items-center text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full border border-blue-200/50 dark:border-blue-800/50">
+          <i data-lucide="book-marked" class="w-3 h-3 mr-1"></i>
+          <span id="kb-count-text">設定集: 0 字</span>
         </div>
       </div>
       
       <div class="flex items-center space-x-1">
-        <!-- OLED 純黑省電模式切換按鍵 -->
-        <button onclick="toggleDarkMode()" title="切換 OLED 全黑省電模式" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-amber-400 transition">
+        <button onclick="toggleDarkMode()" title="切換 OLED 純黑" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-amber-400 transition">
           <i id="theme-icon" data-lucide="moon" class="w-4 h-4"></i>
         </button>
-        <button onclick="clearHistory()" title="清除紀錄" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-400 hover:text-rose-500 transition">
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <button onclick="clearHistory()" title="重置對話（保留世界觀記憶）" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-400 hover:text-rose-500 transition">
+          <i data-lucide="refresh-ccw" class="w-4 h-4"></i>
         </button>
-        <button onclick="toggleSettingsModal(true)" title="設定 (Cmd/Ctrl + K)" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-slate-300 transition">
-          <i data-lucide="settings" class="w-4 h-4"></i>
+        <button onclick="toggleSettingsModal(true)" title="世界觀與設定 (Cmd/Ctrl + K)" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledCard text-slate-500 dark:text-slate-300 transition">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
         </button>
       </div>
     </header>
 
-    <!-- 對話區域 (自適應寬度與螢幕旋轉) -->
+    <!-- 對話主區域 -->
     <main class="flex-1 overflow-y-auto px-4 py-5 max-w-3xl w-full mx-auto space-y-6" id="chat-stream">
       <div class="flex items-start space-x-3">
         <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已啟用 <b>OLED 全黑極致省電模式</b> 與 <b>自動旋轉版面自適應</b>。支援程式碼一鍵複製、觸覺反饋與 Gemini 3.6 Flash 原生串流。
+          已啟用<b>「超大上下文硬錨定與防幻覺架構」</b>。你可以前往右上角 <i data-lucide="sliders" class="inline w-3.5 h-3.5"></i> 匯入數萬字的世界觀設定、人物檔案或歷史章節，AI 將以最高準則嚴格遵循，杜絕捏造與混亂！
         </div>
       </div>
     </main>
 
-    <!-- 底部浮動輸入區 (橫豎螢幕自動高度收攏) -->
-    <footer class="p-3 max-w-3xl w-full mx-auto shrink-0 z-20" id="footer-container">
+    <!-- 底部輸入區域 -->
+    <footer class="p-3 max-w-3xl w-full mx-auto shrink-0 z-20">
       <div class="oled-glass rounded-3xl border p-2 flex flex-col space-y-2 input-glow transition-all duration-300">
         
-        <!-- 前作特徵指示 -->
+        <!-- 特徵鎖定條 -->
         <div id="context-anchor-bar" class="hidden items-center justify-between text-xs bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-3.5 py-1.5 rounded-2xl border border-indigo-100/60 dark:border-indigo-800/40">
           <div class="flex items-center space-x-1.5 truncate">
             <i data-lucide="pin" class="w-3.5 h-3.5 shrink-0 text-blue-500"></i>
-            <span id="anchor-preview" class="truncate font-medium">特徵錨定啟用中</span>
+            <span id="anchor-preview" class="truncate font-medium">特徵鎖定中</span>
           </div>
           <button onclick="clearAnchor()" class="text-slate-400 hover:text-rose-500 transition">
             <i data-lucide="x" class="w-3.5 h-3.5"></i>
           </button>
         </div>
 
-        <!-- 檔案預覽 -->
         <div id="file-preview-strip" class="hidden flex items-center gap-2 overflow-x-auto py-1 px-1"></div>
 
-        <!-- 輸入欄位 -->
+        <!-- 輸入欄 -->
         <div class="flex items-end space-x-1.5">
           <textarea 
             id="user-input" 
@@ -193,7 +179,7 @@
             class="flex-1 max-h-32 resize-none bg-transparent outline-none px-2.5 py-1.5 text-slate-800 dark:text-slate-100 text-sm leading-6 placeholder:text-slate-400"
             oninput="autoResize(this)"></textarea>
           
-          <label class="cursor-pointer p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledBorder text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0" title="上傳檔案/圖片">
+          <label class="cursor-pointer p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledBorder text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0" title="上傳單次檔案/圖片">
             <i data-lucide="paperclip" class="w-4 h-4"></i>
             <input type="file" id="file-uploader" class="hidden" onchange="handleFileUpload(event)" multiple accept="image/*,.txt,.md,.pdf,.json" />
           </label>
@@ -207,12 +193,12 @@
           </button>
         </div>
 
-        <!-- 控制工具列 -->
+        <!-- 模式切換列 -->
         <div class="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-oledBorder text-xs text-slate-500 dark:text-slate-400">
           <select id="mode-select" class="bg-transparent hover:bg-slate-50 dark:hover:bg-oledBorder rounded-lg px-1.5 py-0.5 outline-none font-medium cursor-pointer transition">
-            <option value="concise" class="dark:bg-oledCard">⚡ 快速精要 (極速省流)</option>
-            <option value="in_depth" selected class="dark:bg-oledCard">🔬 深度探究 (理智縝密)</option>
-            <option value="storyteller" class="dark:bg-oledCard">📖 小說世界觀 (感性豐沛)</option>
+            <option value="strict_lore" selected class="dark:bg-oledCard">🔒 嚴格記憶依從 (絕不捏造 / 嚴格遵循)</option>
+            <option value="creative_lore" class="dark:bg-oledCard">📖 創作衍生模式 (基於設定擴展細節)</option>
+            <option value="concise" class="dark:bg-oledCard">⚡ 精要條列 (提煉摘要)</option>
           </select>
           <div class="flex items-center space-x-3 text-slate-400">
             <button onclick="exportChat()" class="hover:text-slate-700 dark:hover:text-slate-200 flex items-center space-x-1 transition">
@@ -224,41 +210,71 @@
     </footer>
   </div>
 
-  <!-- 設定與金鑰面板 -->
-  <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-oledSurface rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-100 dark:border-oledBorder">
-      <div class="flex justify-between items-center border-b border-slate-100 dark:border-oledBorder pb-3">
-        <h3 class="font-bold text-slate-800 dark:text-white text-base">偏好與安全金鑰</h3>
+  <!-- 旗艦設定與龐大知識庫控制台 (Lorebook Vault) -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-oledSurface rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-100 dark:border-oledBorder max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-100 dark:border-oledBorder pb-3 shrink-0">
+        <div>
+          <h3 class="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2">
+            <i data-lucide="database" class="w-4 h-4 text-blue-500"></i> 世界觀設定集與知識庫
+          </h3>
+          <p class="text-xs text-slate-400">硬錨定至 System Instruction，全域 100% 絕對優先遵循</p>
+        </div>
         <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-slate-600">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-600 dark:text-slate-300 flex justify-between">
-          <span>Google Gemini API Key</span>
-          <span id="key-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 hidden font-semibold">就緒</span>
-        </label>
-        <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-2xl p-2.5 text-xs outline-none focus:border-blue-500 font-mono transition" />
+      <div class="overflow-y-auto space-y-4 flex-1 pr-1 text-xs">
+        <!-- 檔案大量匯入功能 -->
+        <div class="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-700 dark:text-blue-300">批次匯入設定集文件 (.txt, .md, .json)</span>
+            <label class="cursor-pointer px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-medium transition shadow-sm">
+              <span>選擇檔案匯入</span>
+              <input type="file" id="kb-file-input" class="hidden" onchange="importKnowledgeFiles(event)" multiple accept=".txt,.md,.json,.csv" />
+            </label>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+            支援將整套小說人物表、技能體系、世界歷史一次性讀入，並永久保存在本地資料庫中。
+          </p>
+        </div>
+
+        <!-- 龐大知識庫內容即時編輯區 -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center">
+            <label class="font-semibold text-slate-600 dark:text-slate-300">核心世界觀 / 永恆設定內文</label>
+            <span id="kb-char-counter" class="text-[10px] text-slate-400 font-mono">0 字</span>
+          </div>
+          <textarea id="lorebook-content" rows="7" placeholder="貼上或匯入你的世界觀規則、角色人設、特定用語約束...
+例如：
+【角色設定】
+雷克斯：42歲，前聯邦刑警，左眼為義眼（藍光），絕對不喝含糖飲料。
+【世界觀禁忌】
+此世界不存在魔法，所有超自然現象皆來自奈米機器，AI 回答時絕對禁止提及魔法。" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-2xl p-3 text-xs outline-none focus:border-blue-500 font-mono transition leading-relaxed"></textarea>
+        </div>
+
+        <!-- API 金鑰配置 -->
+        <div class="space-y-1">
+          <label class="font-semibold text-slate-600 dark:text-slate-300">Google Gemini API Key</label>
+          <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-2xl p-2.5 text-xs outline-none focus:border-blue-500 font-mono transition" />
+        </div>
       </div>
 
-      <div class="space-y-1">
-        <label class="text-xs font-semibold text-slate-600 dark:text-slate-300">全局記憶點 (約束條件)</label>
-        <textarea id="core-memories" rows="3" placeholder="例如：深入探討、理性與感性兼具、台灣繁體中文..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-2xl p-2 text-xs outline-none focus:border-blue-500 transition"></textarea>
+      <div class="pt-2 border-t border-slate-100 dark:border-oledBorder shrink-0">
+        <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-2xl text-xs transition shadow-md shadow-blue-500/20">
+          安全儲存並硬錨定至核心
+        </button>
       </div>
-
-      <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-2xl text-xs transition shadow-md shadow-blue-500/20">
-        儲存設定並即刻套用
-      </button>
     </div>
   </div>
 
   <script>
     lucide.createIcons();
 
-    // --- 1. IndexedDB 超大容量資料庫 ---
-    const DB_NAME = 'GeminiStudioDB';
-    const DB_VERSION = 1;
+    // --- 1. IndexedDB 現代持久化架構 (保留大檔案與對話) ---
+    const DB_NAME = 'GeminiStudio_LoreDB';
+    const DB_VERSION = 2;
     let db = null;
 
     function initDB() {
@@ -269,13 +285,44 @@
           if (!database.objectStoreNames.contains('messages')) {
             database.createObjectStore('messages', { keyPath: 'id', autoIncrement: true });
           }
+          if (!database.objectStoreNames.contains('settings')) {
+            database.createObjectStore('settings', { keyPath: 'key' });
+          }
         };
         req.onsuccess = (e) => {
           db = e.target.result;
-          loadHistoryFromDB().then(resolve);
+          loadAllDataFromDB().then(resolve);
         };
         req.onerror = () => resolve();
       });
+    }
+
+    async function loadAllDataFromDB() {
+      if (!db) return;
+      // 讀取設定與知識庫
+      const tx = db.transaction(['settings', 'messages'], 'readonly');
+      const settingsStore = tx.objectStore('settings');
+      const messagesStore = tx.objectStore('messages');
+
+      const loreReq = settingsStore.get('lorebook');
+      loreReq.onsuccess = () => {
+        if (loreReq.result) {
+          document.getElementById('lorebook-content').value = loreReq.result.value || "";
+          updateLorebookStats();
+        }
+      };
+
+      const msgReq = messagesStore.getAll();
+      msgReq.onsuccess = () => {
+        chatHistory = msgReq.result || [];
+        chatHistory.forEach(item => renderMessage(item.role, item.text, false));
+      };
+    }
+
+    function saveLorebookToDB(text) {
+      if (!db) return;
+      const tx = db.transaction('settings', 'readwrite');
+      tx.objectStore('settings').put({ key: 'lorebook', value: text });
     }
 
     function saveMessageToDB(message) {
@@ -284,9 +331,10 @@
       tx.objectStore('messages').add(message);
     }
 
+    // 重置對話（保留核心世界觀，斬斷混亂）
     function clearHistory() {
-      triggerHaptic();
-      if (!confirm('確定要清空所有對話記錄嗎？')) return;
+      triggerHaptic(20);
+      if (!confirm('是否清空目前對話紀錄？（世界觀與設定集會完好保留，並徹底清除歷史錯誤污染）')) return;
       if (db) {
         const tx = db.transaction('messages', 'readwrite');
         tx.objectStore('messages').clear();
@@ -294,24 +342,42 @@
       chatHistory = [];
       const stream = document.getElementById('chat-stream');
       stream.innerHTML = '';
-      appendSystemMessage('對話紀錄已全部清除。');
+      appendSystemMessage('✨ 對話已乾淨重置！世界觀與設定集已重新硬錨定，無任何先前錯誤污染。');
     }
 
-    async function loadHistoryFromDB() {
-      if (!db) return;
-      return new Promise((resolve) => {
-        const tx = db.transaction('messages', 'readonly');
-        const store = tx.objectStore('messages');
-        const req = store.getAll();
-        req.onsuccess = () => {
-          chatHistory = req.result || [];
-          chatHistory.forEach(item => renderMessage(item.role, item.text, false));
-          resolve();
+    // --- 2. 批次匯入龐大文件 ---
+    function importKnowledgeFiles(event) {
+      const files = Array.from(event.target.files);
+      if (!files.length) return;
+
+      let importedTotalText = "";
+      let completedCount = 0;
+
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          importedTotalText += `\n\n【文件檔案: ${file.name}】\n${e.target.result}`;
+          completedCount++;
+          if (completedCount === files.length) {
+            const textarea = document.getElementById('lorebook-content');
+            textarea.value += importedTotalText;
+            updateLorebookStats();
+            triggerHaptic(15);
+            alert(`成功匯入 ${files.length} 個設定文件！請記得點選下方儲存。`);
+          }
         };
+        reader.readAsText(file);
       });
     }
 
-    // --- 2. 全域變數與初始化 ---
+    function updateLorebookStats() {
+      const text = document.getElementById('lorebook-content').value;
+      const len = text.length;
+      document.getElementById('kb-char-counter').innerText = `${len.toLocaleString()} 字`;
+      document.getElementById('kb-count-text').innerText = `設定集: ${len > 1000 ? (len/1000).toFixed(1) + 'k' : len} 字`;
+    }
+
+    // --- 3. 全域狀態與初始化 ---
     let chatHistory = [];
     let anchoredContext = "";
     let recognition = null;
@@ -326,19 +392,16 @@
       checkConnection();
       initSpeech();
       await initDB();
-      runSilentPreflight();
     });
 
-    // --- 3. 觸覺微震動 (Haptic Feedback) ---
     function triggerHaptic(duration = 15) {
       if ('vibrate' in navigator) {
         try { navigator.vibrate(duration); } catch(e) {}
       }
     }
 
-    // --- 4. OLED 全黑省電主題控制 ---
     function initTheme() {
-      const savedTheme = localStorage.getItem('omni_theme') || 'dark'; // 預設深色省電
+      const savedTheme = localStorage.getItem('omni_theme') || 'dark';
       applyTheme(savedTheme === 'dark');
     }
 
@@ -364,13 +427,10 @@
       lucide.createIcons();
     }
 
-    // --- 5. 螢幕自動旋轉與虛擬鍵盤防遮蔽自適應 ---
     function setupViewportAndOrientation() {
-      // VisualViewport 動態縮放
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', handleViewportResize);
       }
-      // 螢幕旋轉監聽
       window.addEventListener('orientationchange', () => {
         setTimeout(() => {
           handleViewportResize();
@@ -383,15 +443,11 @@
       if (!window.visualViewport) return;
       const offset = window.innerHeight - window.visualViewport.height;
       document.documentElement.style.setProperty('--keyboard-offset', `${Math.max(0, offset)}px`);
-      
-      // 橫螢幕時輸入框縮減高度，避免佔滿全屏
       const isLandscape = window.innerWidth > window.innerHeight;
-      const userInput = document.getElementById('user-input');
-      userInput.style.maxHeight = isLandscape ? '4rem' : '8rem';
+      document.getElementById('user-input').style.maxHeight = isLandscape ? '4rem' : '8rem';
       scrollChatToBottom();
     }
 
-    // 快捷鍵 (Cmd/Ctrl+K, Enter)
     function setupKeyboardShortcuts() {
       const textarea = document.getElementById('user-input');
       textarea.addEventListener('keydown', (e) => {
@@ -406,6 +462,7 @@
           toggleSettingsModal(true);
         }
       });
+      document.getElementById('lorebook-content').addEventListener('input', updateLorebookStats);
     }
 
     function scrollChatToBottom() {
@@ -418,41 +475,24 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
-    // 背景靜默自檢
-    function runSilentPreflight() {
-      const rawKey = localStorage.getItem('omni_ai_key');
-      const banner = document.getElementById('diag-banner');
-      const bannerText = document.getElementById('diag-banner-text');
-
-      if (!rawKey) {
-        bannerText.innerText = "尚未配置 Gemini API Key，請點擊輸入";
-        banner.classList.remove('hidden');
-      } else {
-        banner.classList.add('hidden');
-      }
-    }
-
     function loadSettings() {
       const savedKey = localStorage.getItem('omni_ai_key');
-      const savedMem = localStorage.getItem('omni_ai_memories');
       if (savedKey) {
-        try {
-          document.getElementById('api-key').value = atob(savedKey).trim();
-          document.getElementById('key-badge').classList.remove('hidden');
-        } catch(e) {}
+        try { document.getElementById('api-key').value = atob(savedKey).trim(); } catch(e) {}
       }
-      if (savedMem) document.getElementById('core-memories').value = savedMem;
     }
 
     function saveSettings() {
       triggerHaptic();
       const key = document.getElementById('api-key').value.trim();
+      const lore = document.getElementById('lorebook-content').value;
       if (!key) return alert('請輸入 API Key');
+
       localStorage.setItem('omni_ai_key', btoa(key));
-      localStorage.setItem('omni_ai_memories', document.getElementById('core-memories').value.trim());
+      saveLorebookToDB(lore);
+      updateLorebookStats();
       toggleSettingsModal(false);
-      document.getElementById('key-badge').classList.remove('hidden');
-      runSilentPreflight();
+      alert('世界觀知識庫已硬錨定！');
     }
 
     function toggleSettingsModal(show) {
@@ -474,7 +514,7 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // --- 6. 圖片本地自動壓縮 ---
+    // --- 4. 圖片壓縮 ---
     async function compressImage(file) {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -485,17 +525,13 @@
             const MAX_WIDTH = 1280;
             let width = img.width;
             let height = img.height;
-
             if (width > MAX_WIDTH) {
               height = Math.round((height * MAX_WIDTH) / width);
               width = MAX_WIDTH;
             }
-
             canvas.width = width;
             canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
             const base64 = canvas.toDataURL('image/webp', 0.82);
             resolve({
               mimeType: 'image/webp',
@@ -514,7 +550,6 @@
       const files = Array.from(e.target.files);
       if (!files.length) return;
       triggerHaptic(10);
-
       const previewStrip = document.getElementById('file-preview-strip');
       previewStrip.classList.remove('hidden');
 
@@ -522,19 +557,14 @@
         if (file.type.startsWith('image/')) {
           const compressed = await compressImage(file);
           attachedFilesData.push(compressed);
-
           const tag = document.createElement('div');
           tag.className = 'relative flex items-center gap-1.5 bg-slate-100 dark:bg-oledCard border border-slate-200 dark:border-oledBorder text-xs px-2 py-1 rounded-xl shrink-0';
-          tag.innerHTML = `
-            <img src="${compressed.preview}" class="w-4 h-4 rounded object-cover" />
-            <span class="truncate max-w-[100px] text-slate-700 dark:text-slate-300">${compressed.name}</span>
-          `;
+          tag.innerHTML = `<img src="${compressed.preview}" class="w-4 h-4 rounded object-cover" /><span class="truncate max-w-[100px] text-slate-700 dark:text-slate-300">${compressed.name}</span>`;
           previewStrip.appendChild(tag);
         } else {
           const reader = new FileReader();
           reader.onload = (evt) => {
-            const content = evt.target.result;
-            document.getElementById('user-input').value += `\n[檔案: ${file.name}]\n${content.slice(0, 8000)}`;
+            document.getElementById('user-input').value += `\n[暫時附件: ${file.name}]\n${evt.target.result.slice(0, 8000)}`;
             autoResize(document.getElementById('user-input'));
           };
           reader.readAsText(file);
@@ -542,7 +572,7 @@
       }
     }
 
-    // --- 7. 真·SSE 流式核心傳輸 ---
+    // --- 5. 核心防幻覺與流式傳輸引擎 ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const prompt = inputEl.value.trim();
@@ -561,13 +591,28 @@
       autoResize(inputEl);
 
       const mode = document.getElementById('mode-select').value;
-      const memory = localStorage.getItem('omni_ai_memories') || '';
+      const lorebook = document.getElementById('lorebook-content').value.trim();
 
-      let systemPrompt = `助手偏好: ${memory}。回覆排版請使用標準 Markdown，程式碼請明確標註語言名稱。`;
-      if (anchoredContext) systemPrompt += `\n[特徵錨定]: ${anchoredContext}`;
-      if (mode === 'concise') systemPrompt += "\n限制: 極簡答覆，提取重點。";
-      else if (mode === 'in_depth') systemPrompt += "\n風格: 深入探討、理性與感性兼具、結構詳盡。";
-      else if (mode === 'storyteller') systemPrompt += "\n風格: 小說敘事，情感充沛。";
+      // 建立最高防護指令 (Anti-Hallucination Constitution)
+      let systemPrompt = "【核心遵守準則】\n";
+      systemPrompt += "1. 你是一個具備強大邏輯的專業助理。在任何情況下，回答必須邏輯嚴謹，禁止前後矛盾。\n";
+      systemPrompt += "2. 如果提問涉及以下【硬錨定設定集/知識庫】，該設定即為不可動搖的最高真理。絕對禁止捏造未提及的設定，若資料不足請明確說明，不可胡亂杜撰或問A答C。\n";
+      
+      if (mode === 'strict_lore') {
+        systemPrompt += "3. 當前模式【嚴格依從模式】：嚴格依據提供的設定回答，禁止任何天馬行空的發散與非授權擴充。\n";
+      } else if (mode === 'creative_lore') {
+        systemPrompt += "3. 當前模式【創作衍生模式】：在不違反任何既有設定的前提下，合理豐富情緒與細節描寫。\n";
+      } else if (mode === 'concise') {
+        systemPrompt += "3. 當前模式【極簡模式】：以條列式提取要點，杜絕冗言贅字。\n";
+      }
+
+      if (lorebook) {
+        systemPrompt += `\n===================\n【硬錨定設定集 / 世界觀知識庫】\n${lorebook}\n===================\n`;
+      }
+
+      if (anchoredContext) {
+        systemPrompt += `\n【上一作特徵鎖定】: ${anchoredContext}\n`;
+      }
 
       const botCard = appendSkeletonMessage();
       const contentEl = botCard.querySelector('.content-body');
@@ -582,13 +627,21 @@
       document.getElementById('file-preview-strip').innerHTML = '';
       document.getElementById('file-preview-strip').classList.add('hidden');
 
+      // 對話歷史防污染：只保留最近 3 輪對話以防滾雪球，龐大設定集則由 systemInstruction 永恆硬錨定
+      const safeHistory = chatHistory.slice(-3).map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.text }]
+      }));
+
       const payload = {
         systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          // 嚴格模式下壓低溫度，將隨機幻覺降到最低
+          temperature: mode === 'strict_lore' ? 0.2 : (mode === 'concise' ? 0.3 : 0.7),
+          topP: 0.8
+        },
         contents: [
-          ...chatHistory.slice(-4).map(m => ({
-            role: m.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: m.text }]
-          })),
+          ...safeHistory,
           { role: "user", parts: currentParts }
         ]
       };
@@ -644,7 +697,7 @@
 
       if (!success) {
         contentEl.classList.remove('typing-cursor');
-        contentEl.innerHTML = `<span class="text-rose-500 font-medium">連線暫時受阻，請稍候再試。</span>`;
+        contentEl.innerHTML = `<span class="text-rose-500 font-medium">連線暫時受阻，請稍候重試。</span>`;
         return;
       }
 
@@ -654,7 +707,7 @@
       attachActionButtons(botCard, fullReply);
     }
 
-    // --- 8. 代碼一鍵複製按鈕增強 ---
+    // --- 6. 介面輔助函數 ---
     function addCodeCopyButtons(container) {
       container.querySelectorAll('pre').forEach((pre) => {
         if (pre.querySelector('.copy-code-btn')) return;
@@ -672,7 +725,6 @@
       });
     }
 
-    // --- 9. 訊息渲染與輔助功能 ---
     function renderMessage(role, text, save = false) {
       const stream = document.getElementById('chat-stream');
       const wrapper = document.createElement('div');
@@ -782,7 +834,7 @@
       anchoredContext = decodeURIComponent(encodedText);
       const bar = document.getElementById('context-anchor-bar');
       const preview = document.getElementById('anchor-preview');
-      preview.textContent = `鎖定前作：${anchoredContext.slice(0, 26)}...`;
+      preview.textContent = `鎖定特徵：${anchoredContext.slice(0, 26)}...`;
       bar.classList.remove('hidden');
       bar.classList.add('flex');
     }
@@ -793,7 +845,6 @@
       document.getElementById('context-anchor-bar').classList.add('hidden');
     }
 
-    // 語音輸入
     function initSpeech() {
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRec) {
