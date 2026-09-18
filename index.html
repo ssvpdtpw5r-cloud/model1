@@ -112,7 +112,6 @@
 <body class="bg-white dark:bg-oled text-slate-800 dark:text-slate-100 antialiased select-none md:select-auto transition-colors duration-200">
 
   <div id="app-container">
-    <!-- 頂部導航 -->
     <header class="flex items-center justify-between px-4 py-2.5 bg-white/80 dark:bg-oled/80 backdrop-blur-md border-b border-slate-200/80 dark:border-oledBorder shrink-0 z-10">
       <div class="flex items-center space-x-2">
         <span class="font-bold text-base tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
@@ -140,24 +139,22 @@
       </div>
     </header>
 
-    <!-- 對話主區域 -->
     <main class="flex-1 overflow-y-auto px-4 py-5 max-w-3xl w-full mx-auto space-y-6" id="chat-stream">
       <div class="flex items-start space-x-3">
         <div class="w-8 h-8 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已切換至<b>直通 API 輕量正文下載引擎</b>：
+          已切換至 <b>Bilibili 手機端 H5 輕量穿透下載引擎</b>：
           <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>免網頁風控</b>：直接呼叫專欄唯讀 API 獲取乾淨正文，徹底解決下載略過問題</li>
-            <li><b>iOS 常亮保護</b>：保持背景穩定下載，每篇自動寫入本機資料庫</li>
-            <li><b>即時字數統計</b>：支援一鍵下載合併後的完整純文字檔案</li>
+            <li><b>手機 H5 直出通道</b>：繞過 API 412 風控與網頁動態渲染阻擋，直接提取正文與插圖</li>
+            <li><b>動態重試機制</b>：自動輪換代理節點，杜絕連鎖略過</li>
+            <li><b>夜間全自動常亮</b>：螢幕微光防休眠，整晚自動逐篇寫入本地 IndexedDB</li>
           </ul>
         </div>
       </div>
     </main>
 
-    <!-- 底部輸入區域 -->
     <footer class="p-3 max-w-3xl w-full mx-auto shrink-0 z-20">
       <div class="oled-glass rounded-3xl border p-2 flex flex-col space-y-2 input-glow transition-all duration-300">
         
@@ -211,7 +208,6 @@
     </footer>
   </div>
 
-  <!-- 設定與夜間巡航面板 -->
   <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-oledSurface rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-100 dark:border-oledBorder max-h-[90vh] flex flex-col">
       <div class="flex justify-between items-center border-b border-slate-100 dark:border-oledBorder pb-3 shrink-0">
@@ -227,7 +223,6 @@
       </div>
 
       <div class="overflow-y-auto space-y-4 flex-1 pr-1 text-xs">
-        <!-- 金鑰配置 -->
         <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-oledCard border border-slate-200 dark:border-oledBorder space-y-2">
           <div class="flex items-center justify-between">
             <label class="font-semibold text-slate-700 dark:text-slate-200">Google Gemini API Key</label>
@@ -236,7 +231,6 @@
           <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-blue-500 font-mono transition" />
         </div>
 
-        <!-- Bilibili 巡航爬取模組 -->
         <div class="p-3.5 rounded-2xl bg-pink-50/40 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900/40 space-y-2.5">
           <div class="flex items-center justify-between">
             <span class="font-bold text-slate-800 dark:text-pink-300 flex items-center gap-1.5">
@@ -261,7 +255,6 @@
 
           <textarea id="bili-target-input" rows="3" placeholder="貼上文集網址、短網址或分享文字，例如：&#10;https://www.bilibili.com/read/readlist/rl355169&#10;系統將自動抓取整套文集的所有章節..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
 
-          <!-- 三態動態看板與進度條 -->
           <div id="cruise-dashboard" class="hidden space-y-2 pt-1">
             <div class="flex justify-between items-center text-[11px]">
               <span id="cruise-status-text" class="font-semibold text-pink-600 dark:text-pink-400">正在分析文集清單...</span>
@@ -282,7 +275,6 @@
           </div>
         </div>
 
-        <!-- 本地檔案批次匯入功能 -->
         <div class="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-2">
           <div class="flex items-center justify-between">
             <span class="font-bold text-slate-700 dark:text-blue-300">本機批次匯入設定文件 (.txt, .md, .json)</span>
@@ -293,7 +285,6 @@
           </div>
         </div>
 
-        <!-- 知識庫編輯區 -->
         <div class="space-y-1.5">
           <div class="flex justify-between items-center">
             <label class="font-semibold text-slate-600 dark:text-slate-300">核心世界觀 / 永恆設定內文</label>
@@ -314,7 +305,7 @@
   <script>
     lucide.createIcons();
 
-    // --- 1. IndexedDB 持久化架構 ---
+    // --- 1. IndexedDB 持久化 ---
     const DB_NAME = 'GeminiStudio_OmniDB_Final';
     const DB_VERSION = 1;
     let db = null;
@@ -404,95 +395,99 @@
       }
     }
 
-    // --- 3. 跨域雙向通道 (支援代理容錯) ---
+    // --- 3. 雙向多路徑跨域代理 (含重試) ---
     async function fetchWithFallback(targetUrl) {
       const endpoints = [
-        `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
         `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
         `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`
       ];
 
       for (const ep of endpoints) {
         try {
-          const res = await fetch(ep);
+          const res = await fetch(ep, { headers: { 'Accept': 'text/html,application/json,*/*' } });
           if (!res.ok) continue;
           if (ep.includes('/get?url=')) {
             const json = await res.json();
             if (json && json.contents) return json.contents;
           } else {
             const text = await res.text();
-            if (text) return text;
+            if (text && text.trim().length > 0) return text;
           }
         } catch(e) {}
       }
       return null;
     }
 
-    // 專用：透過 API 提取專欄正文（完全避開網頁版反爬）
-    async function fetchArticleBodyViaApi(cvId) {
-      const apiUrl = `https://api.bilibili.com/x/article/viewinfo?id=${cvId}`;
-      const res = await fetchWithFallback(apiUrl);
-      if (!res) return null;
+    // 核心重寫：手機端 H5 直出通道正文提取器
+    async function fetchArticleBodyH5(cvId) {
+      // B 站手機版文章直出端點，無反爬 SPA 阻擋
+      const targetUrls = [
+        `https://www.bilibili.com/read/mobile?id=${cvId}`,
+        `https://www.bilibili.com/read/cv${cvId}`
+      ];
 
-      try {
-        const data = typeof res === 'string' ? JSON.parse(res) : res;
-        if (data.code === 0 && data.data) {
-          const title = data.data.title || `專欄 cv${cvId}`;
-          const author = data.data.author_name || '創作者';
-          const rawContent = data.data.content || '';
+      for (const url of targetUrls) {
+        const html = await fetchWithFallback(url);
+        if (!html) continue;
 
-          // 將回傳的 HTML 節點清洗為乾淨的 Markdown 格式
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(rawContent, 'text/html');
-          let parsedBody = "";
-
-          doc.querySelectorAll('p, img, figure').forEach(node => {
-            if (node.tagName.toLowerCase() === 'img') {
-              const src = node.getAttribute('data-src') || node.src;
-              if (src) parsedBody += `\n\n![插圖](${src.startsWith('//') ? 'https:' + src : src})\n\n`;
-            } else {
-              const t = node.innerText.trim();
-              if (t) parsedBody += `${t}\n\n`;
-            }
-          });
-
-          if (!parsedBody.trim()) {
-            parsedBody = doc.body.innerText.trim();
-          }
-
-          return { title, author, content: parsedBody };
-        }
-      } catch(e) {}
-
-      // 備援：嘗試直接讀取網頁版 HTML
-      const html = await fetchWithFallback(`https://www.bilibili.com/read/cv${cvId}`);
-      if (html) {
         try {
           const parser = new DOMParser();
           const doc = parser.parseFromString(html, 'text/html');
-          const title = doc.querySelector('.title-holder .title, .opus-title, h1')?.innerText.trim() || `專欄 cv${cvId}`;
-          const author = doc.querySelector('.up-name, .author-name')?.innerText.trim() || '創作者';
-          const contentContainer = doc.querySelector('#article-content, .opus-module-content, .article-holder');
 
+          // 提取標題
+          const title = doc.querySelector('.article-title, .title-holder .title, .opus-title, h1')?.innerText.trim() || `專欄 cv${cvId}`;
+          const author = doc.querySelector('.up-name, .author-name, .name')?.innerText.trim() || '創作者';
+
+          // 手機端與電腦端容器選擇器全覆蓋
+          const contentContainer = doc.querySelector('.article-content, #article-content, .opus-module-content, .article-holder, .read-article-box');
           let parsedBody = "";
+
           if (contentContainer) {
-            contentContainer.querySelectorAll('p, img, figure').forEach(node => {
+            contentContainer.querySelectorAll('p, img, figure, section, div').forEach(node => {
               if (node.tagName.toLowerCase() === 'img') {
-                const src = node.getAttribute('data-src') || node.src;
-                if (src) parsedBody += `\n\n![插圖](${src.startsWith('//') ? 'https:' + src : src})\n\n`;
-              } else {
+                const src = node.getAttribute('data-src') || node.getAttribute('src');
+                if (src && !src.includes('data:image')) {
+                  parsedBody += `\n\n![插圖](${src.startsWith('//') ? 'https:' + src : src})\n\n`;
+                }
+              } else if (['p', 'section'].includes(node.tagName.toLowerCase())) {
                 const t = node.innerText.trim();
-                if (t) parsedBody += `${t}\n\n`;
+                if (t && !parsedBody.includes(t)) {
+                  parsedBody += `${t}\n\n`;
+                }
               }
             });
-          } else {
-            parsedBody = doc.body.innerText.slice(0, 4000);
           }
-          if (parsedBody.trim()) {
-            return { title, author, content: parsedBody };
+
+          if (!parsedBody.trim()) {
+            // 降級提取內文文字
+            const bodyClone = doc.body.cloneNode(true);
+            bodyClone.querySelectorAll('script, style, nav, header, footer').forEach(n => n.remove());
+            parsedBody = bodyClone.innerText.slice(0, 4000);
+          }
+
+          if (parsedBody && parsedBody.length > 50) {
+            return { title, author, content: parsedBody.trim() };
           }
         } catch(e) {}
       }
+
+      // 備援：若 HTML 提取受阻，最後嘗試一次 viewinfo API
+      try {
+        const apiRes = await fetchWithFallback(`https://api.bilibili.com/x/article/viewinfo?id=${cvId}`);
+        if (apiRes) {
+          const data = typeof apiRes === 'string' ? JSON.parse(apiRes) : apiRes;
+          if (data.code === 0 && data.data?.content) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data.data.content, 'text/html');
+            return {
+              title: data.data.title || `專欄 cv${cvId}`,
+              author: data.data.author_name || '創作者',
+              content: doc.body.innerText.trim()
+            };
+          }
+        }
+      } catch(e) {}
 
       return null;
     }
@@ -502,7 +497,7 @@
       triggerHaptic(15);
     }
 
-    // --- 4. 夜間巡航爬蟲引擎 (專門優化多篇穩定入庫) ---
+    // --- 4. 夜間巡航爬蟲引擎 ---
     let cruiseQueue = [];
 
     function renderCruiseTaskList() {
@@ -556,7 +551,7 @@
 
       let rawTargetList = [];
 
-      // 1. 優先辨識 rl 文集編號 (如 rl355169)
+      // 1. 優先辨識 rl 文集編號
       const rlMatches = inputVal.match(/rl(\d+)/i);
       if (rlMatches) {
         const numId = rlMatches[1];
@@ -574,7 +569,6 @@
           } catch(e) {}
         }
 
-        // 備援：若 API 傳回空值，直接爬取文集 HTML 目錄頁面
         if (rawTargetList.length === 0) {
           statusText.innerText = `調用網頁目錄解析文集 rl${numId}...`;
           const pageHtml = await fetchWithFallback(`https://www.bilibili.com/read/readlist/rl${numId}`);
@@ -622,9 +616,9 @@
       }
 
       renderCruiseTaskList();
-      statusText.innerText = `鎖定成功！共 ${cruiseQueue.length} 篇專欄，夜間防休眠巡航中...`;
+      statusText.innerText = `鎖定成功！共 ${cruiseQueue.length} 篇專欄，手機端輕量通道下載中...`;
 
-      // 4. 逐篇下載巡航（切換至純淨 API 端點）
+      // 4. 逐篇下載巡航（切換至 H5 直出通道 + 自動重試）
       for (let i = 0; i < cruiseQueue.length; i++) {
         if (!isCruiseRunning) break;
 
@@ -632,13 +626,18 @@
         task.status = 'downloading';
         renderCruiseTaskList();
 
-        const articleData = await fetchArticleBodyViaApi(task.numericId);
+        let articleData = await fetchArticleBodyH5(task.numericId);
+
+        // 失敗時自動重試一次
+        if (!articleData) {
+          await new Promise(r => setTimeout(r, 1000));
+          articleData = await fetchArticleBodyH5(task.numericId);
+        }
 
         if (articleData && articleData.content) {
           try {
             const formattedEntry = `\n\n====================\n【B站設定集：${articleData.title}】\n創作者：${articleData.author}\n識別碼：${task.id}\n原始連結：https://www.bilibili.com/read/cv${task.numericId}\n\n${articleData.content}\n====================\n`;
 
-            // 即時單篇入庫
             const textarea = document.getElementById('lorebook-content');
             textarea.value += formattedEntry;
             updateLorebookStats();
@@ -654,11 +653,11 @@
         }
 
         renderCruiseTaskList();
-        // 1.5 秒平滑間隔，穩定穿透且不觸發頻率限制
-        await new Promise(r => setTimeout(r, 1500));
+        // 平滑間隔 1 秒，保持長效穩定
+        await new Promise(r => setTimeout(r, 1000));
       }
 
-      statusText.innerText = '巡航完成！所有成功篇章已永久寫入本地資料庫。';
+      statusText.innerText = '巡航完成！所有成功篇章已全數保存至手機資料庫。';
       document.getElementById('download-txt-btn').classList.remove('hidden');
       stopNightCruise(false);
       triggerHaptic(25);
@@ -855,7 +854,7 @@
     window.addEventListener('online', checkConnection);
     window.addEventListener('offline', checkConnection);
 
-    // --- 6. 圖片本地壓縮 ---
+    // --- 6. 圖片壓縮 ---
     async function compressImage(file) {
       return new Promise((resolve) => {
         const reader = new FileReader();
