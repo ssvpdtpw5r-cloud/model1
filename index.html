@@ -145,11 +145,12 @@
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已升級至 <b>Bilibili 超高速輕量封包巡航架構</b>：
+          已啟動<b>永久授權、全能多模態生成與 Bilibili 巡航爬取架構</b>：
           <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>API 輕量封包直通</b>：將傳輸量自 3MB 降至 40KB，徹底消除 7 秒連線逾時死穴</li>
-            <li><b>本機查重零耗能</b>：已存在的章節自動快取略過，節省頻寬與代理額度</li>
-            <li><b>實體符號自動清洗</b>：自動轉換 HTML 特殊符號為乾淨 Markdown</li>
+            <li><b>API 輕量封包直通</b>：將傳輸量自 3MB 降至 40KB，徹底消除連線逾時</li>
+            <li><b>高畫質生圖與影片</b>：支援 <code class="text-blue-400">/image</code> 生成高畫質圖片及 <code class="text-purple-400">/video</code> 生成動態短片</li>
+            <li><b>本機查重零耗能</b>：已存在的設定自動快取略過，節省頻寬與代理額度</li>
+            <li><b>歷史自動校準</b>：內建交替校準器，徹底免除 HTTP 400 與 405 連線錯誤</li>
           </ul>
         </div>
       </div>
@@ -178,7 +179,7 @@
             class="flex-1 max-h-32 resize-none bg-transparent outline-none px-2.5 py-1.5 text-slate-800 dark:text-slate-100 text-sm leading-6 placeholder:text-slate-400"
             oninput="autoResize(this)"></textarea>
           
-          <label class="cursor-pointer p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledBorder text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0" title="上傳單次檔案/圖片">
+          <label class="cursor-pointer p-2 rounded-full hover:bg-slate-100 dark:hover:bg-oledBorder text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition shrink-0" title="上傳檔案/圖片">
             <i data-lucide="paperclip" class="w-4 h-4"></i>
             <input type="file" id="file-uploader" class="hidden" onchange="handleFileUpload(event)" multiple accept="image/*,.txt,.md,.pdf,.json" />
           </label>
@@ -229,6 +230,9 @@
             <span id="key-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 font-semibold">永久有效</span>
           </div>
           <input type="password" id="api-key" placeholder="貼上 AQ... 或 AIza... 金鑰" class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-blue-500 font-mono transition" />
+          <p class="text-[11px] text-slate-400 leading-normal">
+            金鑰直接存於本地安全沙盒（IndexedDB）。儲存後即鎖定授權，無需重複發送檢驗消耗額度。
+          </p>
         </div>
 
         <div class="p-3.5 rounded-2xl bg-pink-50/40 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900/40 space-y-2.5">
@@ -250,7 +254,7 @@
             <span>支援任何文集網址（如 rl927064）、短網址或專欄網址：</span>
           </div>
 
-          <textarea id="bili-target-input" rows="3" placeholder="貼上文集網址、短網址或分享文字，例如：&#10;Https://www.bilibili.com/read/readlist/rl927064&#10;cv8967124&#10;cv9640556..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
+          <textarea id="bili-target-input" rows="3" placeholder="貼上文集網址、短網址或分享文字，例如：&#10;https://www.bilibili.com/read/readlist/rl927064&#10;cv8967124&#10;cv9640556..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
 
           <div id="cruise-dashboard" class="hidden space-y-2 pt-1">
             <div class="flex justify-between items-center text-[11px]">
@@ -274,12 +278,15 @@
 
         <div class="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-2">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-700 dark:text-blue-300">本機批次匯入設定文件 (.txt, .md, .json)</span>
+            <span class="font-bold text-slate-700 dark:text-blue-300">批次匯入設定集文件 (.txt, .md, .json)</span>
             <label class="cursor-pointer px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-medium transition shadow-sm">
               <span>選擇檔案匯入</span>
               <input type="file" id="kb-file-input" class="hidden" onchange="importKnowledgeFiles(event)" multiple accept=".txt,.md,.json,.csv" />
             </label>
           </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+            支援將整套小說人物表、技能體系、世界歷史一次性讀入，永久保存在本地資料庫中。
+          </p>
         </div>
 
         <div class="space-y-1.5">
@@ -414,31 +421,26 @@
 
     async function fetchViaFiveChannels(targetUrl) {
       const channels = [
-        // 通道 1: AllOrigins Raw（直出）
         async (u) => {
           const res = await fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 4500);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.text();
         },
-        // 通道 2: Corsproxy.io
         async (u) => {
           const res = await fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(u)}`, 4500);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.text();
         },
-        // 通道 3: CodeTabs Proxy
         async (u) => {
           const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, 5000);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.text();
         },
-        // 通道 4: jsonp.afeld.me 輕量代理
         async (u) => {
           const res = await fetchWithTimeout(`https://jsonp.afeld.me/?url=${encodeURIComponent(u)}`, 5000);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.text();
         },
-        // 通道 5: AllOrigins JSON Envelope
         async (u) => {
           const res = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, 5500);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -462,9 +464,7 @@
       return { error: lastErr };
     }
 
-    // 核心重寫：優先透過 B 站官方 viewinfo 輕量 JSON 封包取得正文（40KB 超小體積，杜絕逾時）
     async function fetchArticleContentRobust(cvId) {
-      // 1. 優先呼叫純資料 API，避免載入網頁龐大 HTML
       const apiUrl = `https://api.bilibili.com/x/article/viewinfo?id=${cvId}`;
       const apiResult = await fetchViaFiveChannels(apiUrl);
 
@@ -495,7 +495,6 @@
               parsedBody = doc.body.innerText.trim();
             }
 
-            // 清洗實體編碼符號（如 &lt; &gt;）
             parsedBody = decodeHtmlEntities(parsedBody);
 
             if (parsedBody.length > 20) {
@@ -511,7 +510,6 @@
         } catch (e) {}
       }
 
-      // 2. 備援：若 API 遭受風控，使用手機版輕量 H5 頁面提取
       const h5Url = `https://www.bilibili.com/read/mobile?id=${cvId}`;
       const h5Result = await fetchViaFiveChannels(h5Url);
 
@@ -558,7 +556,6 @@
       return { success: false, error: apiResult.error || h5Result.error || '連線逾時' };
     }
 
-    // 文集目錄解析器
     async function resolveReadlistArticles(rlId) {
       let articles = [];
 
@@ -608,7 +605,7 @@
       return articles;
     }
 
-    // --- 4. 夜間巡航爬蟲引擎 (多輪補抓 + 本地查重) ---
+    // --- 4. 夜間巡航爬蟲引擎 ---
     let cruiseQueue = [];
     let currentRound = 1;
     const MAX_ROUNDS = 5;
@@ -667,7 +664,6 @@
 
       let rawTargetList = [];
 
-      // 1. 文集編號提取
       const rlMatches = inputVal.match(/(?:readlist\/rl|rl)(\d+)/i);
       if (rlMatches) {
         const numId = rlMatches[1];
@@ -678,7 +674,6 @@
         }
       }
 
-      // 2. 常規 cv 與 opus 提取
       const cvRegex = /(?:cv|\/read\/cv|\/read\/mobile\?id=)(\d+)/gi;
       const opusRegex = /(?:opus\/)(\d+)/gi;
       let match;
@@ -689,7 +684,6 @@
         rawTargetList.push({ type: 'opus', id: match[1] });
       }
 
-      // 3. 去重
       const uniqueKeys = new Set();
       cruiseQueue = [];
       rawTargetList.forEach(item => {
@@ -713,7 +707,6 @@
         return alert('未能從輸入內容中識別出有效章節，請確認輸入包含 rl... 或 cv... 網址');
       }
 
-      // 4. 本地查重秒級跳過（已入庫文章直接快取略過）
       const existingLorebook = document.getElementById('lorebook-content').value;
       cruiseQueue.forEach(task => {
         if (existingLorebook.includes(`識別碼：${task.id}`) || existingLorebook.includes(`章節編號：${task.id}`) || existingLorebook.includes(`cv${task.numericId}`)) {
@@ -724,7 +717,6 @@
 
       renderCruiseTaskList();
 
-      // 5. 多輪巡航重試
       while (isCruiseRunning && currentRound <= MAX_ROUNDS) {
         const pendingOrFailed = cruiseQueue.filter(t => t.status !== 'completed');
         if (pendingOrFailed.length === 0) break;
@@ -759,7 +751,6 @@
           }
 
           renderCruiseTaskList();
-          // 平滑微休眠 800ms
           await new Promise(r => setTimeout(r, 800));
         }
 
@@ -952,7 +943,7 @@
       saveLorebookToDB(lore);
       updateLorebookStats();
       toggleSettingsModal(false);
-      alert('設定與知識庫已安全儲存！');
+      alert('設定與金鑰已安全鎖定，永久有效！');
     }
 
     function toggleSettingsModal(show) {
@@ -1159,7 +1150,7 @@
       preload.src = frameUrl;
     }
 
-    // --- 8. 核心對話發送 ---
+    // --- 8. 核心對話發送 (嚴格交替防 400/405) ---
     async function sendMessage() {
       const inputEl = document.getElementById('user-input');
       const rawPrompt = inputEl.value.trim();
@@ -1494,7 +1485,7 @@
     }
 
     function speakText(text) {
-      if (!'speechSynthesis' in window) return;
+      if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(decodeURIComponent(text));
       utterance.lang = 'zh-TW';
