@@ -145,11 +145,11 @@
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="bg-white dark:bg-oledCard p-4 rounded-3xl rounded-tl-sm border border-slate-200/80 dark:border-oledBorder shadow-sm leading-relaxed max-w-[88%] text-sm text-slate-700 dark:text-slate-200">
-          已啟動<b>五重管道動態容錯 + 多輪巡航重試爬取架構</b>：
+          已強化 <b>Bilibili 任意文集 (rl...) 與動態狀態解析引擎</b>：
           <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-            <li><b>五重代理通道輪換</b>：若某一通道遭遇 429 限流或逾時，自動無縫切換下一通道</li>
-            <li><b>本地查重跳過</b>：本機資料庫已下載的文章自動標記跳過，零延遲不耗費流量</li>
-            <li><b>多輪補抓巡航</b>：自動執行多輪重試，並明確標註各篇章若未下載成功的具體原因</li>
+            <li><b>萬能文集容錯</b>：支援大寫開頭、帶有查詢參數的 <code class="text-pink-400">Https://.../rl...</code> 網址</li>
+            <li><b>SSR 狀態包穿透</b>：直接解構網頁內置章節列表，杜絕目錄解析失敗</li>
+            <li><b>五重備援 + 多輪巡航</b>：自動排查連線狀態，失敗時自動多輪補抓</li>
           </ul>
         </div>
       </div>
@@ -247,13 +247,10 @@
           </div>
           
           <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-            <span>支援文集網址、短網址或直接點擊載入專屬合集：</span>
-            <button onclick="injectPresetRl355169()" class="text-pink-600 dark:text-pink-400 font-semibold underline hover:text-pink-500">
-              載入【光頭戰錘70篇】文集
-            </button>
+            <span>支援任何文集網址（如 rl927064）、短網址或專欄網址：</span>
           </div>
 
-          <textarea id="bili-target-input" rows="3" placeholder="貼上文集網址、短網址或分享文字，例如：&#10;https://www.bilibili.com/read/readlist/rl355169&#10;系統將自動抓取整套文集的所有章節..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
+          <textarea id="bili-target-input" rows="3" placeholder="貼上文集網址、短網址或分享文字，例如：&#10;Https://www.bilibili.com/read/readlist/rl927064&#10;系統將自動解析整個文集並逐篇下載..." class="w-full border border-slate-200 dark:border-oledBorder bg-transparent rounded-xl p-2 text-xs outline-none focus:border-pink-500 font-mono transition"></textarea>
 
           <div id="cruise-dashboard" class="hidden space-y-2 pt-1">
             <div class="flex justify-between items-center text-[11px]">
@@ -395,8 +392,8 @@
       }
     }
 
-    // --- 3. 五大跨域穿透通道（含超時防卡死） ---
-    async function fetchWithTimeout(url, timeout = 6000) {
+    // --- 3. 五大跨域穿透通道 ---
+    async function fetchWithTimeout(url, timeout = 7000) {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
       try {
@@ -411,31 +408,26 @@
 
     async function fetchViaFiveChannels(targetUrl) {
       const channels = [
-        // 通道 1: AllOrigins Raw
-        async (u) => {
-          const res = await fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 5000);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return await res.text();
-        },
-        // 通道 2: Corsproxy.io
         async (u) => {
           const res = await fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(u)}`, 5000);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.text();
         },
-        // 通道 3: CodeTabs Proxy
+        async (u) => {
+          const res = await fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 5000);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.text();
+        },
         async (u) => {
           const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, 6000);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.text();
         },
-        // 通道 4: Thingproxy
         async (u) => {
           const res = await fetchWithTimeout(`https://thingproxy.freehostia.com/fetch/${u}`, 6000);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.text();
         },
-        // 通道 5: AllOrigins JSON Envelope
         async (u) => {
           const res = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, 6000);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -453,13 +445,67 @@
             return { text, channelIndex: i + 1 };
           }
         } catch (err) {
-          lastErr = err.name === 'AbortError' ? '連線超時(6s)' : (err.message || '通道錯誤');
+          lastErr = err.name === 'AbortError' ? '連線逾時(7s)' : (err.message || '通道錯誤');
         }
       }
       return { error: lastErr };
     }
 
-    // 深度正文解析（結合 H5 頁面與 API 雙向清洗）
+    // 核心重寫：文集章節目錄解析器（支援 API 與 SSR State 雙軌穿透）
+    async function resolveReadlistArticles(rlId) {
+      let articles = [];
+
+      // 途徑 1：B 站官方專欄文集 API
+      const apiUrl = `https://api.bilibili.com/x/article/list/web/articles?id=${rlId}&jsonp=jsonp`;
+      const apiRes = await fetchViaFiveChannels(apiUrl);
+      if (apiRes.text) {
+        try {
+          const data = JSON.parse(apiRes.text);
+          if (data.code === 0 && data.data?.articles && data.data.articles.length > 0) {
+            data.data.articles.forEach(a => {
+              articles.push({ type: 'cv', id: a.id.toString(), title: a.title });
+            });
+            return articles;
+          }
+        } catch (e) {}
+      }
+
+      // 途徑 2：抓取文集 HTML 並從 window.__INITIAL_STATE__ 或 DOM 提取
+      const htmlUrl = `https://www.bilibili.com/read/readlist/rl${rlId}`;
+      const pageRes = await fetchViaFiveChannels(htmlUrl);
+      if (pageRes.text) {
+        try {
+          // 嘗試解構 SSR 內嵌狀態 JSON
+          const stateMatch = pageRes.text.match(/window\.__INITIAL_STATE__\s*=\s*(\{.+?\});/s);
+          if (stateMatch) {
+            const state = JSON.parse(stateMatch[1]);
+            const artList = state.readlistInfo?.articles || state.articles || [];
+            if (artList.length > 0) {
+              artList.forEach(a => {
+                articles.push({ type: 'cv', id: (a.id || a.cvid).toString(), title: a.title });
+              });
+              return articles;
+            }
+          }
+
+          // 正則抽取所有包含 cv 的連結
+          const cvRegex = /(?:read\/cv|cv)(\d+)/gi;
+          let m;
+          const seen = new Set();
+          while ((m = cvRegex.exec(pageRes.text)) !== null) {
+            if (!seen.has(m[1])) {
+              seen.add(m[1]);
+              articles.push({ type: 'cv', id: m[1] });
+            }
+          }
+          if (articles.length > 0) return articles;
+        } catch (e) {}
+      }
+
+      return articles;
+    }
+
+    // 正文提取器
     async function fetchArticleContentRobust(cvId) {
       const h5Url = `https://www.bilibili.com/read/mobile?id=${cvId}`;
       const result = await fetchViaFiveChannels(h5Url);
@@ -502,7 +548,7 @@
         } catch (e) {}
       }
 
-      // 備援：若 H5 失敗，改呼叫 viewinfo API
+      // 備援：API 通道
       const apiUrl = `https://api.bilibili.com/x/article/viewinfo?id=${cvId}`;
       const apiResult = await fetchViaFiveChannels(apiUrl);
       if (apiResult.text) {
@@ -525,12 +571,7 @@
       return { success: false, error: result.error || '解析失敗' };
     }
 
-    function injectPresetRl355169() {
-      document.getElementById('bili-target-input').value = 'https://www.bilibili.com/read/readlist/rl355169';
-      triggerHaptic(15);
-    }
-
-    // --- 4. 夜間巡航爬蟲引擎 (多輪補抓 + 本機查重秒跳過) ---
+    // --- 4. 夜間巡航爬蟲引擎 ---
     let cruiseQueue = [];
     let currentRound = 1;
     const MAX_ROUNDS = 5;
@@ -570,7 +611,7 @@
     }
 
     async function startNightCruiseCrawl() {
-      const inputVal = document.getElementById('bili-target-input').value.trim();
+      let inputVal = document.getElementById('bili-target-input').value.trim();
       if (!inputVal) return alert('請貼入包含 B 站文集網址、短網址或專欄網址的文字');
 
       const btn = document.getElementById('bili-auto-btn');
@@ -589,35 +630,14 @@
 
       let rawTargetList = [];
 
-      // 1. 優先解構文集 rl 編號
-      const rlMatches = inputVal.match(/rl(\d+)/i);
+      // 1. 全方位相容文集編號提取（不論大小寫或是否帶問號參數）
+      const rlMatches = inputVal.match(/(?:readlist\/rl|rl)(\d+)/i);
       if (rlMatches) {
         const numId = rlMatches[1];
-        statusText.innerText = `讀取文集 rl${numId} 目錄中...`;
-
-        const listRes = await fetchViaFiveChannels(`https://api.bilibili.com/x/article/list/web/articles?id=${numId}`);
-        if (listRes.text) {
-          try {
-            const parsed = JSON.parse(listRes.text);
-            if (parsed.data?.articles && parsed.data.articles.length > 0) {
-              parsed.data.articles.forEach(a => {
-                rawTargetList.push({ type: 'cv', id: a.id.toString(), title: a.title });
-              });
-            }
-          } catch (e) {}
-        }
-
-        // 備援：若 API 受限，直接爬取文集 HTML 目錄頁面
-        if (rawTargetList.length === 0) {
-          statusText.innerText = `通道備援：解析文集 rl${numId} HTML 目錄...`;
-          const pageHtml = await fetchViaFiveChannels(`https://www.bilibili.com/read/readlist/rl${numId}`);
-          if (pageHtml.text) {
-            const cvRegex = /(?:read\/cv|cv)(\d+)/gi;
-            let m;
-            while ((m = cvRegex.exec(pageHtml.text)) !== null) {
-              rawTargetList.push({ type: 'cv', id: m[1] });
-            }
-          }
+        statusText.innerText = `正在穿透文集 rl${numId} 的所有章節目錄...`;
+        const articles = await resolveReadlistArticles(numId);
+        if (articles.length > 0) {
+          rawTargetList.push(...articles);
         }
       }
 
@@ -632,7 +652,7 @@
         rawTargetList.push({ type: 'opus', id: match[1] });
       }
 
-      // 3. 去除重複
+      // 3. 去重
       const uniqueKeys = new Set();
       cruiseQueue = [];
       rawTargetList.forEach(item => {
@@ -653,10 +673,10 @@
 
       if (cruiseQueue.length === 0) {
         stopNightCruise();
-        return alert('未能辨識出任何專欄，請確認網址包含 rl... 或 cv...');
+        return alert('未能從輸入內容中識別出有效章節，請確認包含 rl927064 或 cv 編號');
       }
 
-      // 4. 本地查重秒級跳過（避免重複浪費流量）
+      // 4. 本地查重秒級跳過
       const existingLorebook = document.getElementById('lorebook-content').value;
       cruiseQueue.forEach(task => {
         if (existingLorebook.includes(`識別碼：${task.id}`) || existingLorebook.includes(`章節編號：${task.id}`)) {
@@ -667,7 +687,7 @@
 
       renderCruiseTaskList();
 
-      // 5. 多輪巡航重試主迴圈
+      // 5. 多輪巡航重試
       while (isCruiseRunning && currentRound <= MAX_ROUNDS) {
         const pendingOrFailed = cruiseQueue.filter(t => t.status !== 'completed');
         if (pendingOrFailed.length === 0) break;
@@ -702,7 +722,6 @@
           }
 
           renderCruiseTaskList();
-          // 平滑微休眠 1.2 秒
           await new Promise(r => setTimeout(r, 1200));
         }
 
